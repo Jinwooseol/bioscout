@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+      - name: MCP server starts over stdio
+        run: uv run python scripts/smoke_live.py --offline
+  # Day 5 adds an `eval-gate` job: 20-question smoke eval replayed from the recorded cache
+  # (BIOSCOUT_CACHE_MODE=readonly), failing on any fabricated PMID or a >3pt citation-precision drop.

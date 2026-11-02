@@ -1,0 +1,43 @@
+[project]
+name = "bioscout"
+version = "0.1.0"
+description = "Biomedical research agent that cites PubMed for every claim and checks its own citations"
+readme = "README.md"
+authors = [
+    { name = "Jinwoo Seol" }
+]
+requires-python = ">=3.12"
+license = "MIT"
+keywords = ["mcp", "agent", "pubmed", "rag", "llm-evaluation", "bioinformatics"]
+dependencies = [
+    "httpx>=0.28.1",
+    "mcp>=2.3,<3",
+    "pydantic>=2.14.2",
+]
+
+[project.scripts]
+bioscout-mcp = "bioscout.mcp_server:main"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "respx>=0.23.1",
+    "ruff>=0.17.3",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
