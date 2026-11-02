@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bioscout": {
+      "command": "uv",
+      "args": ["run", "bioscout-mcp"]
+    }
+  }
+}
