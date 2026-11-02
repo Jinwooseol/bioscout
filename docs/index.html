@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioScout</title>
+<meta name="description" content="문장마다 PubMed 근거를 달고, 그 근거를 스스로 검증하는 바이오메디컬 리서치 에이전트">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="wordmark" href="index.html"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>BioScout</a>
+  <nav class="nav" aria-label="문서">
+    <a href="index.html" aria-current="page">개요</a>
+    <a href="design.html">설계</a>
+    <a href="how-it-works.html">동작 방식</a>
+    <a href="progress.html">진행 상황</a>
+    <a href="guide.html">가이드</a>
+  </nav>
+</header>
+
+<main>
+  <h1>근거 없는 문장은<br>답변에 남지 않는다</h1>
+  <p class="lead">BioScout는 바이오메디컬 질문에 답할 때 문장마다 PubMed 논문(PMID)을 붙이고, 그 논문이 실제로 문장을 뒷받침하는지 판정한 뒤에야 답변을 보여주는 리서치 에이전트입니다.</p>
+
+  <section class="specimen" aria-label="답변 출력 형식 예시">
+    <div class="q">질문: MSI-H 대장암에서 PD-1 억제제 반응률은 MSS보다 높은가?</div>
+    <ol>
+      <li>
+        <span class="well sup" role="img" aria-label="지지"></span>
+        <div><span class="claim">MSI-H는 DNA 불일치 복구(MMR) 결함으로 생긴다.</span> <span class="cite">PMID 10000002</span></div>
+      </li>
+      <li>
+        <span class="well sup" role="img" aria-label="지지"></span>
+        <div><span class="claim">MSI-H 종양군의 객관적 반응률이 MSS군보다 높게 보고되었다.</span> <span class="cite">PMID 10000002</span></div>
+      </li>
+      <li>
+        <span class="well par" role="img" aria-label="부분 지지"></span>
+        <div><span class="claim">이 차이는 cfDNA 기반 MSI 검출로도 재현된다.</span> <span class="cite">PMID 10000001</span>
+          <span class="why">초록은 검출 방법만 다루고 반응률은 다루지 않아 부분 지지로 표시</span></div>
+      </li>
+      <li class="dropped">
+        <span class="well uns" role="img" aria-label="근거 없음"></span>
+        <div><span class="claim">반응은 모든 환자에서 2년 이상 지속된다.</span> <span class="cite">PMID 10000003</span>
+          <span class="why">PubMed에 없는 PMID라 재검색 후에도 근거를 못 찾아 답변에서 삭제</span></div>
+      </li>
+    </ol>
+    <div class="verdicts">
+      <span><i class="well sup"></i>지지</span>
+      <span><i class="well par"></i>부분 지지</span>
+      <span><i class="well uns"></i>근거 없음, 삭제</span>
+    </div>
+  </section>
+  <p class="note">출력 형식을 보여주는 예시입니다. PMID와 문장은 가상이며 실제 논문을 가리키지 않습니다.</p>
+
+  <h2>문서</h2>
+  <ul class="pages">
+    <li><a href="design.html">설계</a><p>목표와 성공 기준, 아키텍처, 데이터 계약, 평가 설계, 기술 결정</p></li>
+    <li><a href="how-it-works.html">동작 방식</a><p>질문 하나가 검색, 답변, 인용 검증을 거쳐 나가는 과정</p></li>
+    <li><a href="progress.html">진행 상황</a><p>7일 일정의 작업별 상태, 평가 수치, 빌드 로그</p></li>
+    <li><a href="guide.html">가이드</a><p>설치, 테스트, Claude Code와 Claude Desktop 연결, GitHub 푸시</p></li>
+  </ul>
+</main>
+
+<footer>BioScout는 문헌 탐색을 돕는 도구이며, 개별 환자의 진단이나 치료 결정에 쓰지 않습니다.</footer>
+</body>
+</html>

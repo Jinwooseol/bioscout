@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioScout 동작 방식</title>
+<meta name="description" content="질문 하나가 검색, 인용 답변, 인용 검증을 거쳐 나가는 과정">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="wordmark" href="index.html"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>BioScout</a>
+  <nav class="nav" aria-label="문서">
+    <a href="index.html">개요</a>
+    <a href="design.html">설계</a>
+    <a href="how-it-works.html" aria-current="page">동작 방식</a>
+    <a href="progress.html">진행 상황</a>
+    <a href="guide.html">가이드</a>
+  </nav>
+</header>
+
+<main>
+  <h1>동작 방식</h1>
+  <p class="lead">질문 하나는 검색, 초록 읽기, 인용 답변 초안, PMID 존재 확인, 문장별 지지 판정을 거쳐 나갑니다. 근거를 못 찾은 문장은 한 번 더 검색하고, 그래도 없으면 답변에서 빠집니다.</p>
+
+  <h2>질문 하나의 흐름</h2>
+  <figure class="bleed">
+    <svg viewBox="0 0 900 600" role="img" aria-labelledby="seq-title">
+      <title id="seq-title">질문 하나의 처리 순서: 에이전트가 MCP 도구로 검색과 초록 조회를 하고, PMID 확인과 지지 판정을 거쳐 답변한다</title>
+      <defs>
+        <marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+        <marker id="hl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
+      </defs>
+      <!-- lanes -->
+      <rect class="box strong" x="20" y="16" width="120" height="40" rx="8"/><text class="t" x="80" y="41" text-anchor="middle">사용자</text>
+      <rect class="box planned" x="200" y="16" width="140" height="40" rx="8"/><text class="t" x="270" y="41" text-anchor="middle">에이전트</text>
+      <rect class="box accent" x="400" y="16" width="140" height="40" rx="8"/><text class="t" x="470" y="41" text-anchor="middle">MCP 서버</text>
+      <rect class="box accent" x="580" y="16" width="120" height="40" rx="8"/><text class="t" x="640" y="41" text-anchor="middle">캐시</text>
+      <rect class="box strong" x="740" y="16" width="140" height="40" rx="8"/><text class="t" x="810" y="41" text-anchor="middle">PubMed · EPMC</text>
+      <path class="lifeline" d="M80 56V585M270 56V585M470 56V585M640 56V585M810 56V585"/>
+
+      <path class="edge" d="M80 92H268" marker-end="url(#h)"/>
+      <text class="s" x="90" y="84">1 질문</text>
+
+      <rect class="box planned" x="216" y="104" width="108" height="26" rx="6"/>
+      <text class="s" x="270" y="122" text-anchor="middle">2 계획 · 검색어</text>
+
+      <path class="edge" d="M270 156H468" marker-end="url(#h)"/>
+      <text class="s" x="280" y="148">3 search_pubmed(query)</text>
+      <path class="edge" d="M470 182H638" marker-end="url(#h)"/>
+      <text class="s" x="480" y="174">4 캐시 조회</text>
+      <path class="edge" d="M640 208H808" marker-end="url(#h)"/>
+      <text class="s" x="650" y="200">5 미스일 때만 esearch · esummary</text>
+      <path class="edge" d="M808 232H642" marker-end="url(#h)"/>
+      <text class="s" x="720" y="250" text-anchor="middle">저장</text>
+      <path class="edge" d="M470 268H272" marker-end="url(#h)"/>
+      <text class="s" x="370" y="260" text-anchor="middle">6 PMID · 제목 · 연도</text>
+
+      <path class="edge" d="M270 304H468" marker-end="url(#h)"/>
+      <text class="s" x="280" y="296">7 get_abstracts(pmids)</text>
+      <path class="edge" d="M470 330H272" marker-end="url(#h)"/>
+      <text class="s" x="370" y="322" text-anchor="middle">8 초록 · MeSH</text>
+
+      <rect class="box planned" x="196" y="342" width="148" height="26" rx="6"/>
+      <text class="s" x="270" y="360" text-anchor="middle">9 문장별 인용 답변 초안</text>
+
+      <path class="edge" d="M270 394H468" marker-end="url(#h)"/>
+      <text class="s" x="280" y="386">10 check_pmids(인용한 PMID)</text>
+      <path class="edge" d="M470 420H272" marker-end="url(#h)"/>
+      <text class="s" x="370" y="412" text-anchor="middle">11 없는 PMID 목록</text>
+
+      <rect class="box planned" x="196" y="432" width="148" height="26" rx="6" style="stroke:var(--cy5)"/>
+      <text class="s" x="270" y="450" text-anchor="middle">12 문장–초록 지지 판정</text>
+
+      <path class="edge loop" d="M196 445H172V164H264" marker-end="url(#hl)"/>
+      <text class="s" x="164" y="290" text-anchor="end" style="fill:var(--cy5)">근거 없음</text>
+      <text class="s" x="164" y="306" text-anchor="end" style="fill:var(--cy5)">3부터 재검색</text>
+      <text class="s" x="164" y="322" text-anchor="end" style="fill:var(--cy5)">(최대 2회)</text>
+
+      <path class="edge" d="M268 500H82" marker-end="url(#h)"/>
+      <text class="s" x="175" y="492" text-anchor="middle">13 검증된 답변</text>
+      <text class="s" x="80" y="520" text-anchor="middle">판정 배지 · 삭제 문장</text>
+
+      <text class="s" x="470" y="565" text-anchor="middle">초록색 레인: 구현됨 · 점선: Day 3–4 예정</text>
+    </svg>
+    <figcaption>3–8번과 10–11번은 오늘 만든 MCP 서버가 처리합니다. 2, 9, 12번과 붉은 재검색 루프는 Day 3–4에 에이전트로 구현합니다.</figcaption>
+  </figure>
+
+  <h2>인용 검증 규칙</h2>
+  <p>답변의 문장마다 아래 순서로 판정합니다. 판정이 끝난 문장만 사용자에게 갑니다.</p>
+  <figure>
+    <svg viewBox="0 0 760 300" role="img" aria-labelledby="ver-title">
+      <title id="ver-title">문장 하나의 검증 규칙: PMID가 없으면 삭제, 지지나 부분 지지면 유지, 근거가 없으면 재검색 후 다시 판정</title>
+      <defs>
+        <marker id="v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+        <marker id="vl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
+      </defs>
+      <rect class="box strong" x="16" y="40" width="130" height="52" rx="10"/>
+      <text class="t" x="81" y="71" text-anchor="middle">문장 + PMID</text>
+
+      <polygon class="box" points="196,66 266,26 336,66 266,106"/>
+      <text class="t" x="266" y="64" text-anchor="middle">PMID</text>
+      <text class="t" x="266" y="80" text-anchor="middle">존재?</text>
+
+      <polygon class="box" points="396,66 476,22 556,66 476,110"/>
+      <text class="t" x="476" y="64" text-anchor="middle">초록이</text>
+      <text class="t" x="476" y="80" text-anchor="middle">지지?</text>
+
+      <rect class="box" x="606" y="18" width="138" height="40" rx="10"/>
+      <circle class="fam" cx="628" cy="38" r="7"/><text class="t" x="644" y="43">유지</text>
+      <rect class="box" x="606" y="74" width="138" height="40" rx="10"/>
+      <circle class="hex" cx="628" cy="94" r="7"/><text class="t" x="644" y="99">유지 + 표시</text>
+
+      <rect class="box" x="196" y="206" width="140" height="44" rx="10"/>
+      <circle class="cy5" cx="218" cy="228" r="7"/><text class="t" x="234" y="233">삭제</text>
+      <rect class="box" x="406" y="206" width="140" height="44" rx="10" style="stroke:var(--cy5)"/>
+      <text class="t" x="476" y="233" text-anchor="middle">재검색</text>
+
+      <path class="edge" d="M146 66H194" marker-end="url(#v)"/>
+      <path class="edge" d="M336 66H394" marker-end="url(#v)"/>
+      <text class="s" x="365" y="58" text-anchor="middle">예</text>
+      <path class="edge" d="M266 106V204" marker-end="url(#v)"/>
+      <text class="s" x="274" y="160">아니오</text>
+      <path class="edge" d="M556 66H580V38H604" marker-end="url(#v)"/>
+      <text class="s" x="582" y="30" text-anchor="end">지지</text>
+      <path class="edge" d="M556 66H580V94H604" marker-end="url(#v)"/>
+      <text class="s" x="582" y="112" text-anchor="end">부분</text>
+      <path class="edge" d="M456 99V204" marker-end="url(#v)"/>
+      <text class="s" x="448" y="160" text-anchor="end">근거 없음</text>
+      <path class="edge loop" d="M406 228H340" marker-end="url(#vl)"/>
+      <text class="s" x="373" y="272" text-anchor="middle" style="fill:var(--cy5)">2회 후에도 없으면</text>
+      <path class="edge loop" d="M546 228H600V156H496V101" marker-end="url(#vl)"/>
+      <text class="s" x="608" y="160" style="fill:var(--cy5)">새 초록으로 다시 판정</text>
+    </svg>
+    <figcaption>PMID 존재 확인은 결정적 검사(PubMed 조회)이고, 지지 판정은 LLM judge가 합니다. judge는 사람 라벨 60쌍으로 일치도를 먼저 검증합니다.</figcaption>
+  </figure>
+
+  <h3>판정 기준</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>판정</th><th>기준</th><th>처리</th></tr></thead>
+    <tbody>
+      <tr><td><span class="well sup"></span> 지지</td><td>초록이 문장의 핵심 주장을 직접 말한다. 수치, 방향, 대상 집단이 일치한다</td><td>그대로 유지</td></tr>
+      <tr><td><span class="well par"></span> 부분 지지</td><td>주장의 일부만 다루거나, 대상 집단·조건이 더 좁거나 넓다</td><td>유지하고 배지로 표시</td></tr>
+      <tr><td><span class="well uns"></span> 근거 없음</td><td>초록이 주장을 다루지 않거나 반대로 말한다, 또는 PMID가 존재하지 않는다</td><td>재검색, 그래도 없으면 삭제</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>MCP 도구 <span class="tag built">구현됨</span></h2>
+  <p>다섯 도구 모두 읽기 전용이고, 결과는 구조화된 JSON(MCP structured content)으로 돌아옵니다. 에이전트 밖에서도 Claude Code나 Claude Desktop에 붙여 바로 쓸 수 있습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>도구</th><th>입력</th><th>출력</th><th>외부 API</th></tr></thead>
+    <tbody>
+      <tr><td><code>search_pubmed</code></td><td>query, max_results(≤50), min_year, max_year, sort</td><td>총 건수, PMID · 제목 · 저널 · 연도 · 제1저자 · DOI · PMCID</td><td>esearch → esummary</td></tr>
+      <tr><td><code>get_abstracts</code></td><td>pmids(≤50)</td><td>섹션 라벨이 있는 초록, MeSH, 출판 유형, 찾지 못한 PMID</td><td>efetch (XML)</td></tr>
+      <tr><td><code>check_pmids</code></td><td>pmids(≤200)</td><td>존재하는 PMID, 없는 PMID(형식 오류 포함)</td><td>esummary</td></tr>
+      <tr><td><code>get_fulltext</code></td><td>pmid 또는 pmcid, max_chars</td><td>섹션별 본문, 잘림 여부, 불가 시 이유</td><td>Europe PMC search → fullTextXML</td></tr>
+      <tr><td><code>search_trials</code></td><td>query, condition, intervention, status, max_results</td><td>NCT ID, 제목, 상태, 단계, 질환, 중재, 등록 수, 시작일</td><td>ClinicalTrials.gov v2</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>오류가 났을 때</h3>
+  <p>외부 API가 응답하지 않으면 429와 5xx는 최대 4번까지 간격을 늘려 재시도합니다. 그래도 실패하면 스택 트레이스 대신 에이전트가 읽고 행동할 수 있는 짧은 오류를 돌려줍니다.</p>
+<pre><code>Source temporarily unreachable, retry later or use another tool.
+Source rejected the request (HTTP 400); check the arguments.
+Replay mode: no recorded response for this call.</code></pre>
+
+  <h2>캐시 모드</h2>
+  <p>모든 외부 응답은 요청 URL과 파라미터로 만든 키로 SQLite에 저장됩니다. API 키와 이메일은 키에 들어가지 않아, 키가 바뀌어도 같은 응답을 재사용합니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><code>BIOSCOUT_CACHE_MODE</code></th><th>동작</th><th>언제 쓰나</th></tr></thead>
+    <tbody>
+      <tr><td><code>readwrite</code> (기본)</td><td>캐시에 있으면 사용, 없으면 호출하고 저장. 30일 지나면 다시 호출</td><td>개발, 데모</td></tr>
+      <tr><td><code>readonly</code></td><td>캐시만 사용, 없으면 오류. 네트워크를 전혀 쓰지 않음</td><td>CI 평가 게이트, 평가 재현</td></tr>
+      <tr><td><code>off</code></td><td>항상 호출, 저장 안 함</td><td>최신 데이터 확인, 디버깅</td></tr>
+    </tbody>
+  </table></div>
+  <p>속도 제한은 호스트별로 따로 겁니다. NCBI는 API 키가 없으면 초당 3건, 있으면 10건까지 허용하므로 각각 2.5건, 9건으로 여유를 둡니다.</p>
+</main>
+
+<footer>설계 근거와 평가 지표는 <a href="design.html">설계</a>에 있습니다.</footer>
+</body>
+</html>

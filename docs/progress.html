@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioScout 진행 상황</title>
+<meta name="description" content="7일 일정의 작업별 상태, 평가 수치, 빌드 로그">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .plate-wrap { overflow-x: auto; margin: 28px 0 8px; }
+  .plate {
+    display: inline-grid;
+    grid-template-columns: 28px repeat(7, 52px);
+    gap: 6px 4px;
+    padding: 18px 20px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+  }
+  .plate .lab { font-size: 12.5px; color: var(--muted); text-align: center; align-self: center; }
+  .plate .lab.today { color: var(--ink); font-weight: 700; }
+  .plate a, .plate span.empty { display: grid; place-items: center; height: 30px; text-decoration: none; }
+  .plate a .well { width: 22px; height: 22px; border-width: 1.75px; }
+  .plate span.empty::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--rule); }
+  .plate a:hover .well, .plate a:focus-visible .well { transform: scale(1.18); }
+  .plate a .well { transition: transform 120ms ease; }
+  .tally { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+  .tally span { display: inline-flex; align-items: center; gap: 7px; }
+  .tally b { color: var(--ink); font-weight: 700; }
+  .day h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 36px; }
+  .day h3 .when { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .day ul { list-style: none; padding: 0; margin: 6px 0 0; }
+  .day li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 5px 0; margin: 0; }
+  .day li .well { margin-top: 6px; }
+  .day li .why { display: block; font-size: 13.5px; color: var(--muted); }
+  .day li:target, .day:target h3 { background: color-mix(in srgb, var(--hex) 14%, transparent); border-radius: 6px; }
+  .log article { border-top: 1px solid var(--rule); padding: 18px 0 6px; }
+  .log h3 { margin: 0 0 8px; }
+  .log dl { display: grid; grid-template-columns: 64px 1fr; gap: 6px 14px; margin: 0; }
+  .log dt { font-size: 14px; color: var(--muted); padding-top: 2px; }
+  .log dd { margin: 0; }
+  .log dd ul { margin: 0; }
+  td.num { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="wordmark" href="index.html"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>BioScout</a>
+  <nav class="nav" aria-label="문서">
+    <a href="index.html">개요</a>
+    <a href="design.html">설계</a>
+    <a href="how-it-works.html">동작 방식</a>
+    <a href="progress.html" aria-current="page">진행 상황</a>
+    <a href="guide.html">가이드</a>
+  </nav>
+</header>
+
+<main>
+  <h1 id="headline">진행 상황</h1>
+  <p class="lead" id="summary"></p>
+
+  <div class="plate-wrap"><div class="plate" id="plate" role="group" aria-label="작업 플레이트: 열은 날짜, 웰 하나는 작업 하나"></div></div>
+  <div class="tally" id="tally"></div>
+  <p class="note">96-well 플레이트처럼 열은 Day 1–7, 행은 그날의 작업입니다. 웰을 누르면 해당 작업으로 이동합니다.</p>
+
+  <h2>평가 수치</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>가짜 PMID</th><th>Citation precision</th><th>Coverage</th><th>정답률</th><th>질의당 비용</th></tr></thead>
+    <tbody id="metrics"></tbody>
+  </table></div>
+  <p class="note" id="metrics-note"></p>
+
+  <h2>일자별 작업</h2>
+  <div id="days"></div>
+
+  <h2>빌드 로그</h2>
+  <p>매일 마지막 20분에 그날의 결정, 막힌 점, 움직인 숫자를 적습니다. LinkedIn 글과 면접 답변의 재료입니다.</p>
+  <div class="log" id="log"></div>
+</main>
+
+<footer>이 페이지의 내용은 아래 스크립트의 <code>PROGRESS</code> 객체 하나에서 그려집니다. 작업 상태는 그 객체만 고치면 됩니다.</footer>
+
+<script>
+/* ── Edit this object to update the page. status: done | doing | todo | cut ── */
+const PROGRESS = {
+  updated: "2026-11-03",
+  today: 1,
+  days: [
+    { day: 1, date: "11/3 (화)", title: "기반 + MCP 서버", tasks: [
+      { t: "레포 스캐폴딩: uv, ruff, pytest, GitHub Actions CI", s: "done" },
+      { t: "PubMed 클라이언트: esearch, esummary, efetch 파싱", s: "done" },
+      { t: "Europe PMC 오픈액세스 본문 조회", s: "done" },
+      { t: "ClinicalTrials.gov v2 검색", s: "done" },
+      { t: "SQLite 응답 캐시와 readonly 재생 모드", s: "done" },
+      { t: "MCP 도구 5종과 에이전트용 오류 메시지", s: "done" },
+      { t: "오프라인 단위 테스트 17개", s: "done" },
+      { t: "실제 API 스모크 테스트", s: "todo", why: "작업 환경에서 외부 API 접근 불가. PC에서 scripts/smoke_live.py 실행 필요" },
+      { t: "NCBI API 키 발급, .env 설정", s: "todo" },
+      { t: "GitHub 원격 저장소 연결과 첫 push", s: "todo", why: "빈 저장소 Jinwooseol/bioscout 생성 필요. 가이드 참고" },
+    ]},
+    { day: 2, date: "11/4 (수)", title: "평가셋 + baseline", tasks: [
+      { t: "PubMedQA PQA-L에서 100문항 무작위 추출" , s: "todo" },
+      { t: "도메인 셋 작성: MSI, dPCR, liquid biopsy (15문항 먼저)", s: "todo" },
+      { t: "평가 하네스와 결과 스키마", s: "todo" },
+      { t: "변형 A (LLM 단독) 실행", s: "todo" },
+      { t: "변형 B (단순 RAG) 실행", s: "todo" },
+      { t: "결과표 v1, 가짜 PMID 비율 측정", s: "todo" },
+    ]},
+    { day: 3, date: "11/5 (목)", title: "에이전트", tasks: [
+      { t: "답변 스키마 Pydantic 모델", s: "todo" },
+      { t: "LangGraph 그래프: 계획, 검색, 선별, 인용 답변", s: "todo" },
+      { t: "MeSH 기반 검색어 재작성", s: "todo" },
+      { t: "변형 C 실행과 B 대비 원인 분석", s: "todo" },
+    ]},
+    { day: 4, date: "11/6 (금)", title: "인용 검증", tasks: [
+      { t: "judge 프롬프트", s: "todo" },
+      { t: "보정셋 60쌍 라벨링, Cohen's kappa", s: "todo" },
+      { t: "검증, 재검색, 삭제 루프", s: "todo" },
+      { t: "변형 D 실행, 전체 결과표", s: "todo" },
+      { t: "일정 판단: 축소할지 결정", s: "todo" },
+    ]},
+    { day: 5, date: "11/7 (토)", title: "관측 · CI · 개선", tasks: [
+      { t: "Langfuse 트레이스", s: "todo" },
+      { t: "비용, 지연 집계", s: "todo" },
+      { t: "CI 평가 게이트 (20문항 재생)", s: "todo" },
+      { t: "실패 10건 유형 분류, 개선 1회", s: "todo" },
+    ]},
+    { day: 6, date: "11/8 (일)", title: "데모", tasks: [
+      { t: "Streamlit UI: 답변, 인용 카드, 검증 배지", s: "todo" },
+      { t: "Dockerfile", s: "todo" },
+      { t: "Hugging Face Spaces 배포", s: "todo" },
+      { t: "세션당 질의 수 제한, 예시 질문 캐시", s: "todo" },
+    ]},
+    { day: 7, date: "11/9 (월)", title: "공개", tasks: [
+      { t: "README 결과표와 차트", s: "todo" },
+      { t: "홈페이지 케이스 스터디", s: "todo" },
+      { t: "LinkedIn 글", s: "todo" },
+      { t: "60–90초 데모 영상", s: "todo" },
+    ]},
+  ],
+  metrics: [
+    { v: "A. LLM 단독" }, { v: "B. 단순 RAG" }, { v: "C. 에이전트" }, { v: "D. 에이전트 + 검증" },
+  ],
+  metricsNote: "Day 2에 A와 B부터 채워집니다. 수치는 evals/reports/에서 생성된 값만 옮깁니다.",
+  log: [
+    { date: "2026-11-03", day: 1, title: "MCP 서버와 테스트 기반",
+      decided: [
+        "MCP Python SDK가 2.x(2.3.0)로 올라가며 FastMCP가 MCPServer로 바뀌었다. 처음부터 2.x 기준으로 작성했다.",
+        "업스트림 장애를 짧은 ToolError로 바꿨다. 스모크 테스트에서 스택 트레이스가 그대로 에이전트에 가는 것을 발견했다.",
+        "테스트 픽스처는 가상 PMID(10000001 등)로 만들었다. 인용 진실성을 다루는 프로젝트라 실제처럼 보이는 가짜 인용을 남기지 않는다.",
+      ],
+      blocked: [
+        "작업 환경에서 NCBI, Europe PMC, ClinicalTrials.gov에 접근할 수 없어 실제 응답은 아직 확인하지 못했다. PC에서 smoke_live.py로 확인한다.",
+      ],
+      numbers: [
+        "단위 테스트 17개 통과, MCP 도구 5개, stdio로 서버 기동 확인",
+      ],
+    },
+  ],
+};
+
+const LABEL = { done: "완료", doing: "진행 중", todo: "예정", cut: "제외" };
+const ROWS = "ABCDEFGHIJKL";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const wellClass = (s) => "well " + (s === "done" ? "done" : s === "doing" ? "doing" : s === "cut" ? "cut" : "");
+
+const all = PROGRESS.days.flatMap((d) => d.tasks);
+const count = (s) => all.filter((t) => t.s === s).length;
+const todayDay = PROGRESS.days.find((d) => d.day === PROGRESS.today);
+
+$("headline").textContent = `Day ${PROGRESS.today} / 7: ${todayDay.title}`;
+$("summary").textContent =
+  `작업 ${all.length}개 중 ${count("done")}개 완료. ` +
+  `Day ${PROGRESS.today}에 남은 작업은 ${todayDay.tasks.filter((t) => t.s !== "done" && t.s !== "cut").length}개입니다. ` +
+  `마지막 갱신 ${PROGRESS.updated}.`;
+
+/* Plate */
+const maxRows = Math.max(...PROGRESS.days.map((d) => d.tasks.length));
+let plate = `<span></span>` + PROGRESS.days.map((d) =>
+  `<span class="lab${d.day === PROGRESS.today ? " today" : ""}">${d.day}</span>`).join("");
+for (let r = 0; r < maxRows; r++) {
+  plate += `<span class="lab">${ROWS.charAt(r)}</span>`;
+  for (const d of PROGRESS.days) {
+    const t = d.tasks.at(r);
+    plate += t
+      ? `<a href="#t-${d.day}-${r}" title="Day ${d.day} ${ROWS.charAt(r)}: ${esc(t.t)} (${LABEL[t.s]})" aria-label="Day ${d.day} ${ROWS.charAt(r)}: ${esc(t.t)}, ${LABEL[t.s]}"><i class="${wellClass(t.s)}"></i></a>`
+      : `<span class="empty" aria-hidden="true"></span>`;
+  }
+}
+$("plate").innerHTML = plate;
+$("tally").innerHTML = ["done", "doing", "todo", "cut"]
+  .map((s) => `<span><i class="${wellClass(s)}"></i>${LABEL[s]} <b>${count(s)}</b></span>`).join("");
+
+/* Metrics */
+const cell = (x) => (x === undefined || x === null ? "—" : esc(x));
+$("metrics").innerHTML = PROGRESS.metrics.map((m) =>
+  `<tr><td>${esc(m.v)}</td><td class="num">${cell(m.fake)}</td><td class="num">${cell(m.precision)}</td><td class="num">${cell(m.coverage)}</td><td class="num">${cell(m.accuracy)}</td><td class="num">${cell(m.cost)}</td></tr>`).join("");
+$("metrics-note").textContent = PROGRESS.metricsNote;
+
+/* Days */
+$("days").innerHTML = PROGRESS.days.map((d) => `
+  <section class="day" id="day-${d.day}">
+    <h3>Day ${d.day}. ${esc(d.title)} <span class="when">${esc(d.date)}</span></h3>
+    <ul>${d.tasks.map((t, i) => `
+      <li id="t-${d.day}-${i}"><i class="${wellClass(t.s)}" role="img" aria-label="${LABEL[t.s]}"></i>
+        <div>${ROWS.charAt(i)}. ${esc(t.t)}${t.why ? `<span class="why">${esc(t.why)}</span>` : ""}</div></li>`).join("")}
+    </ul>
+  </section>`).join("");
+
+/* Log, newest first */
+const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+$("log").innerHTML = [...PROGRESS.log].reverse().map((e) => `
+  <article>
+    <h3>Day ${e.day}. ${esc(e.title)} <span class="small">${esc(e.date)}</span></h3>
+    <dl>
+      ${e.decided?.length ? `<dt>결정</dt><dd>${list(e.decided)}</dd>` : ""}
+      ${e.blocked?.length ? `<dt>막힌 점</dt><dd>${list(e.blocked)}</dd>` : ""}
+      ${e.numbers?.length ? `<dt>숫자</dt><dd>${list(e.numbers)}</dd>` : ""}
+    </dl>
+  </article>`).join("");
+</script>
+</body>
+</html>

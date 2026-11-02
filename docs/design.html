@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioScout 설계</title>
+<meta name="description" content="BioScout 설계서: 목표, 아키텍처, 데이터 계약, 평가 설계, 기술 결정">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="wordmark" href="index.html"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>BioScout</a>
+  <nav class="nav" aria-label="문서">
+    <a href="index.html">개요</a>
+    <a href="design.html" aria-current="page">설계</a>
+    <a href="how-it-works.html">동작 방식</a>
+    <a href="progress.html">진행 상황</a>
+    <a href="guide.html">가이드</a>
+  </nav>
+</header>
+
+<main>
+  <h1>설계</h1>
+  <p class="lead">1주 안에 "에이전트를 만들었다"가 아니라 "평가로 인용 정확도를 얼마나 올렸다"는 숫자를 남기는 것이 목표입니다. 그래서 평가셋과 baseline을 먼저 만들고, 기능은 하루에 하나씩 더하며 숫자로 효과를 확인합니다.</p>
+
+  <h2>성공 기준</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>기준</th><th>목표 (Day 7)</th></tr></thead>
+    <tbody>
+      <tr><td>평가 규모</td><td>PubMedQA 100문항 + 도메인 25문항, 변형 4개(A–D) 비교표</td></tr>
+      <tr><td>가짜 PMID 비율 (변형 D)</td><td>0%</td></tr>
+      <tr><td>Citation precision (변형 D)</td><td>0.90 이상, 단순 RAG(B) 대비 개선 폭 제시</td></tr>
+      <tr><td>Judge 신뢰도</td><td>사람 라벨 60쌍과 Cohen's kappa 0.7 이상</td></tr>
+      <tr><td>공개 결과물</td><td>GitHub 레포, 공개 데모 URL, 홈페이지 케이스 스터디, LinkedIn 글</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>아키텍처</h2>
+  <p>도구(MCP 서버), 추론(에이전트), 평가(하네스)를 분리해 각각 따로 교체하고 테스트합니다. 데모와 평가 하네스는 같은 에이전트를 부르므로, 데모에서 보이는 품질이 곧 평가 수치입니다.</p>
+
+  <figure class="bleed">
+    <svg viewBox="0 0 900 530" role="img" aria-labelledby="arch-title">
+      <title id="arch-title">BioScout 시스템 구성: 데모와 평가 하네스가 리서치 에이전트를 호출하고, 에이전트는 MCP 서버를 통해 외부 API를 조회한다</title>
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+        <marker id="aloop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
+      </defs>
+
+      <rect class="box planned" x="20" y="20" width="250" height="60" rx="10"/>
+      <text class="t" x="145" y="46" text-anchor="middle">Streamlit 데모</text>
+      <text class="s" x="145" y="66" text-anchor="middle">답변 · 인용 카드 · 검증 배지 (Day 6)</text>
+
+      <rect class="box planned" x="325" y="20" width="250" height="60" rx="10"/>
+      <text class="t" x="450" y="46" text-anchor="middle">평가 하네스</text>
+      <text class="s" x="450" y="66" text-anchor="middle">변형 A–D 실행 · 지표 계산 (Day 2)</text>
+
+      <rect class="box planned" x="630" y="20" width="250" height="60" rx="10"/>
+      <text class="t" x="755" y="46" text-anchor="middle">결과표 · CI 게이트</text>
+      <text class="s" x="755" y="66" text-anchor="middle">PR마다 20문항 재생 평가 (Day 5)</text>
+
+      <rect class="group" x="20" y="130" width="860" height="170" rx="12"/>
+      <text class="t" x="40" y="157">리서치 에이전트 (LangGraph, Day 3–4)</text>
+
+      <rect class="box planned" x="40" y="180" width="185" height="64" rx="10"/>
+      <text class="t" x="132.5" y="207" text-anchor="middle">계획</text>
+      <text class="s" x="132.5" y="227" text-anchor="middle">질문 분해 · MeSH 확장</text>
+      <rect class="box planned" x="255" y="180" width="185" height="64" rx="10"/>
+      <text class="t" x="347.5" y="207" text-anchor="middle">검색 · 선별</text>
+      <text class="s" x="347.5" y="227" text-anchor="middle">초록 읽고 관련 논문 고르기</text>
+      <rect class="box planned" x="470" y="180" width="185" height="64" rx="10"/>
+      <text class="t" x="562.5" y="207" text-anchor="middle">인용 답변 생성</text>
+      <text class="s" x="562.5" y="227" text-anchor="middle">문장마다 PMID · JSON</text>
+      <rect class="box planned" x="685" y="180" width="185" height="64" rx="10" style="stroke:var(--cy5)"/>
+      <text class="t" x="777.5" y="207" text-anchor="middle">인용 검증</text>
+      <text class="s" x="777.5" y="227" text-anchor="middle">문장–초록 지지 판정</text>
+
+      <path class="edge" d="M145 80V130" marker-end="url(#a)"/>
+      <path class="edge" d="M450 80V130" marker-end="url(#a)"/>
+      <path class="edge" d="M575 50H630" marker-end="url(#a)"/>
+      <path class="edge" d="M225 212H255" marker-end="url(#a)"/>
+      <path class="edge" d="M440 212H470" marker-end="url(#a)"/>
+      <path class="edge" d="M655 212H685" marker-end="url(#a)"/>
+      <path class="edge loop" d="M777.5 244V270H347.5V246" marker-end="url(#aloop)"/>
+      <text class="s" x="562.5" y="290" text-anchor="middle">근거 없는 문장 → 재검색, 그래도 없으면 삭제</text>
+
+      <rect class="box accent" x="20" y="340" width="520" height="70" rx="10"/>
+      <text class="t" x="280" y="366" text-anchor="middle">Bio MCP 서버 (구현됨, Day 1)</text>
+      <text class="s" x="280" y="386" text-anchor="middle">search_pubmed · get_abstracts · check_pmids · get_fulltext · search_trials</text>
+
+      <rect class="box planned" x="630" y="340" width="250" height="70" rx="10"/>
+      <text class="t" x="755" y="366" text-anchor="middle">Langfuse</text>
+      <text class="s" x="755" y="386" text-anchor="middle">트레이스 · 토큰 비용 · 지연 (Day 5)</text>
+
+      <path class="edge" d="M280 300V340" marker-end="url(#a)"/>
+      <text class="s" x="290" y="325">MCP 도구 호출</text>
+      <path class="edge" d="M755 300V340" marker-end="url(#a)"/>
+      <text class="s" x="765" y="325">트레이스</text>
+
+      <rect class="box accent" x="20" y="450" width="250" height="60" rx="10"/>
+      <text class="t" x="145" y="476" text-anchor="middle">SQLite 응답 캐시 (구현됨)</text>
+      <text class="s" x="145" y="496" text-anchor="middle">readwrite · readonly · off</text>
+      <rect class="box strong" x="330" y="450" width="550" height="60" rx="10"/>
+      <text class="t" x="605" y="476" text-anchor="middle">외부 공개 API</text>
+      <text class="s" x="605" y="496" text-anchor="middle">NCBI E-utilities · Europe PMC REST · ClinicalTrials.gov v2</text>
+
+      <path class="edge" d="M145 410V450" marker-end="url(#a)"/>
+      <path class="edge" d="M270 480H330" marker-end="url(#a)"/>
+      <text class="s" x="300" y="470" text-anchor="middle">미스만</text>
+    </svg>
+    <figcaption>초록색 실선 상자는 구현을 마친 부분, 점선 상자는 예정된 부분입니다. 붉은 점선은 인용 검증 루프입니다.</figcaption>
+  </figure>
+
+  <h3>구성 요소</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>구성 요소</th><th>역할</th><th>위치</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>Bio MCP 서버</td><td>외부 API를 MCP 도구 5개로 제공. 에이전트와 독립적으로 Claude Desktop 등에서도 사용</td><td><code>src/bioscout/mcp_server.py</code></td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>데이터 소스</td><td>PubMed, Europe PMC, ClinicalTrials.gov 응답을 타입이 있는 레코드로 파싱</td><td><code>src/bioscout/sources/</code></td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>HTTP · 캐시</td><td>호스트별 속도 제한, 429/5xx 재시도, SQLite 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code></td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성</td><td><code>evals/</code></td><td><span class="tag">Day 2</span></td></tr>
+      <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행</td><td><code>src/bioscout/agent/</code></td><td><span class="tag">Day 3</span></td></tr>
+      <tr><td>인용 검증기</td><td>(문장, 초록) 쌍을 지지 / 부분 지지 / 무관으로 판정, 재검색·삭제 결정</td><td><code>src/bioscout/verifier/</code></td><td><span class="tag">Day 4</span></td></tr>
+      <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">Day 5</span></td></tr>
+      <tr><td>데모</td><td>Streamlit UI, Docker, Hugging Face Spaces 배포</td><td><code>app/</code></td><td><span class="tag">Day 6</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>데이터 계약</h2>
+  <p>에이전트는 자유 텍스트가 아니라 아래 구조로 답합니다. 문장 단위로 인용과 판정이 붙어 있어야 데모는 배지를 그리고, 평가 하네스는 지표를 계산할 수 있습니다. Day 3에 Pydantic 모델로 고정합니다.</p>
+<pre><code>{
+  "question": "MSI-H 대장암에서 PD-1 억제제 반응률은 MSS보다 높은가?",
+  "sentences": [
+    {
+      "text": "MSI-H 종양군의 객관적 반응률이 MSS군보다 높게 보고되었다.",
+      "citations": ["10000002"],
+      "verdict": "supported",          // supported | partial | unsupported
+      "evidence": "초록에서 판정 근거가 된 문장"
+    }
+  ],
+  "dropped": [ { "text": "...", "citations": ["10000003"], "reason": "pmid_not_found" } ],
+  "searches": [ { "query": "\"microsatellite instability\"[MeSH] AND ...", "pmids": ["..."] } ],
+  "usage": { "usd": 0.0, "latency_ms": 0, "tool_calls": 0 }
+}</code></pre>
+
+  <h2>평가 설계</h2>
+  <p>평가가 이 프로젝트의 본체입니다. 같은 평가셋, 같은 지표로 네 변형을 비교하고 그 결과표가 README와 LinkedIn 글의 헤드라인이 됩니다.</p>
+
+  <h3>평가셋</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>셋</th><th>규모</th><th>구성</th><th>재는 것</th></tr></thead>
+    <tbody>
+      <tr><td>PubMedQA 서브셋</td><td>100문항</td><td>전문가 라벨 셋(PQA-L)에서 무작위 추출, 문항마다 원 논문 PMID 존재</td><td>정답률, 원 논문 검색 성공률</td></tr>
+      <tr><td>도메인 셋</td><td>25문항</td><td>MSI · dPCR · liquid biopsy 질문 직접 작성, 문항마다 꼭 인용할 PMID와 핵심 포인트 2–4개</td><td>핵심 포인트 커버리지, must-cite recall</td></tr>
+      <tr><td>판정 보정셋</td><td>60쌍</td><td>에이전트 출력의 (문장, 인용 초록) 쌍을 직접 라벨링</td><td>LLM judge와 사람 판정의 일치도</td></tr>
+      <tr><td>범위 밖 질문</td><td>10문항</td><td>개인 치료 결정 요청 등</td><td>연구 탐색 범위로 안내하는지</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>지표</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>지표</th><th>정의</th><th>판정 방식</th></tr></thead>
+    <tbody>
+      <tr><td>가짜 PMID 비율</td><td>인용한 PMID 중 PubMed에 없는 비율</td><td><code>check_pmids</code>, 결정적</td></tr>
+      <tr><td>Citation precision</td><td>인용 중 해당 문장을 실제로 지지하는 비율</td><td>LLM judge, 보정셋으로 검증</td></tr>
+      <tr><td>Citation coverage</td><td>사실 진술 문장 중 지지 인용이 1개 이상인 비율</td><td>LLM judge</td></tr>
+      <tr><td>정답률 · 키포인트 커버리지</td><td>PubMedQA 라벨 일치, 도메인 셋 핵심 포인트 포함 비율</td><td>규칙 + LLM judge</td></tr>
+      <tr><td>Retrieval recall@10</td><td>정답 PMID가 검색 상위 10건에 들어간 비율</td><td>결정적</td></tr>
+      <tr><td>비용 · 지연</td><td>질의당 USD, p50/p95 지연, 도구 호출 수</td><td>트레이스 집계</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>비교 변형</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>구성</th><th>보여주는 것</th></tr></thead>
+    <tbody>
+      <tr><td>A. LLM 단독</td><td>도구 없이 답변 + PMID 인용 요청</td><td>인용 환각이 실제로 얼마나 일어나는가</td></tr>
+      <tr><td>B. 단순 RAG</td><td>질문 그대로 PubMed 상위 10건 초록 → 답변</td><td>일반적인 RAG의 한계</td></tr>
+      <tr><td>C. 에이전트</td><td>질문 분해, 검색어 재작성, 다중 도구</td><td>에이전트 설계의 효과</td></tr>
+      <tr><td>D. 에이전트 + 검증</td><td>C + 인용 검증 · 재검색 루프</td><td>검증 루프의 효과와 그 비용</td></tr>
+    </tbody>
+  </table></div>
+  <p class="callout warn">PubMedQA 질문은 논문 제목에서 만들어져 검색 성공률이 낙관적으로 나오고, 모델이 학습 중 봤을 가능성도 있습니다. 그래서 직접 만든 도메인 셋 결과를 항상 함께 제시합니다.</p>
+
+  <h2>기술 결정</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>MCP SDK 2.x의 <code>MCPServer</code> 사용</td><td>현재 SDK 기준. 1.x의 FastMCP가 2.x에서 이름이 바뀌었으므로 처음부터 2.x로 작성</td><td><code>mcp&lt;2</code> 고정</td></tr>
+      <tr><td>검색 엔진은 PubMed API 자체</td><td>3,700만 건 인덱싱 없이 1주 안에 가능하고, 관련도 정렬 품질이 충분. 대신 검색어 재작성을 에이전트의 일로 둠</td><td>자체 벡터DB 인덱싱</td></tr>
+      <tr><td>SQLite 응답 캐시 + readonly 모드</td><td>NCBI 속도 제한 준수, 평가 재현성, CI에서 네트워크 없이 재생</td><td>매번 실시간 호출</td></tr>
+      <tr><td>업스트림 오류를 짧은 도구 오류로 변환</td><td>에이전트가 스택 트레이스 대신 "재시도하거나 다른 도구 사용"을 읽고 행동</td><td>예외 그대로 전달</td></tr>
+      <tr><td>테스트 픽스처는 가상 데이터</td><td>인용 진실성을 다루는 프로젝트에서 실제처럼 보이는 가짜 인용을 만들지 않음</td><td>실제 응답 녹화본 커밋</td></tr>
+      <tr><td>평가 하네스 직접 작성</td><td>지표 정의를 면접에서 직접 설명할 수 있어야 함. RAGAS는 참고 지표로만</td><td>RAGAS 단독</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>범위 밖</h2>
+  <ul>
+    <li>자체 벡터DB 대규모 인덱싱, 모델 파인튜닝</li>
+    <li>전문(full text) 대량 저장·재배포. 초록과 오픈액세스 본문만 실시간 조회</li>
+    <li>임상 의사결정 지원. Intended use는 "연구 문헌 탐색 보조"</li>
+  </ul>
+
+  <h2>일정이 밀릴 때</h2>
+  <p>기능을 줄이고 평가는 지킵니다. Day 4 저녁에 판단하며, 아래 순서로 덜어냅니다.</p>
+  <ol>
+    <li>ClinicalTrials.gov 도구를 평가에서 제외</li>
+    <li>모델 간 비교 실험 제외</li>
+    <li>웹 데모 대신 CLI + 녹화 영상</li>
+    <li>PubMedQA 100문항을 50문항으로</li>
+  </ol>
+  <p>끝까지 지킬 것: 변형 A · B · D 비교, 가짜 PMID 비율, citation precision, judge 일치도.</p>
+</main>
+
+<footer>일정과 상태는 <a href="progress.html">진행 상황</a>에서 관리합니다.</footer>
+</body>
+</html>
