@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<article xmlns:xlink="http://www.w3.org/1999/xlink" article-type="research-article">
+  <front><article-meta><title-group><article-title>Synthetic study A</article-title></title-group></article-meta></front>
+  <body>
+    <sec id="s1"><title>Introduction</title><p>MSI arises from mismatch repair deficiency.</p><p>It predicts response to <italic>PD-1</italic> blockade.</p></sec>
+    <sec id="s2"><title>Methods</title><p>Synthetic cohort, synthetic assay.</p>
+      <sec id="s2a"><title>Statistics</title><p>Fisher exact test.</p></sec></sec>
+    <sec id="s3"><title>Results</title><p>Response rates differed between groups.</p></sec>
+  </body>
+</article>

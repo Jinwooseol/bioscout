@@ -1,0 +1,4 @@
+{"header":{"type":"esummary","version":"0.3"},"result":{"uids":["10000002","10000001","99999999"],
+"10000002":{"uid":"10000002","pubdate":"2024 Mar 12","source":"J Synth Oncol","authors":[{"name":"Kim J","authtype":"Author","clusterid":""},{"name":"Lee S","authtype":"Author","clusterid":""}],"title":"Synthetic study A: MSI-high status and response to PD-1 blockade.","articleids":[{"idtype":"pubmed","idtypen":1,"value":"10000002"},{"idtype":"doi","idtypen":3,"value":"10.0000/synth.a"},{"idtype":"pmc","idtypen":8,"value":"PMC9000002"}]},
+"10000001":{"uid":"10000001","pubdate":"2021","source":"Synth Mol Diagn","authors":[{"name":"Park H","authtype":"Author","clusterid":""}],"title":"Synthetic study B: digital PCR for MSI detection in cfDNA.","articleids":[{"idtype":"pubmed","idtypen":1,"value":"10000001"}]},
+"99999999":{"uid":"99999999","error":"cannot get document summary"}}}

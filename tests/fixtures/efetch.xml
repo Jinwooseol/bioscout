@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<!DOCTYPE PubmedArticleSet PUBLIC "-//NLM//DTD PubMedArticle, 1st January 2024//EN" "https://dtd.nlm.nih.gov/ncbi/pubmed/out/pubmed_240101.dtd">
+<PubmedArticleSet>
+<PubmedArticle>
+  <MedlineCitation Status="MEDLINE" Owner="NLM">
+    <PMID Version="1">10000002</PMID>
+    <Article PubModel="Print-Electronic">
+      <Journal>
+        <JournalIssue CitedMedium="Internet"><PubDate><Year>2024</Year><Month>Mar</Month></PubDate></JournalIssue>
+        <Title>Journal of Synthetic Oncology</Title>
+      </Journal>
+      <ArticleTitle>Synthetic study A: MSI-high status and response to PD-1 blockade.</ArticleTitle>
+      <Abstract>
+        <AbstractText Label="BACKGROUND" NlmCategory="BACKGROUND">Mismatch repair deficiency produces <i>microsatellite</i> instability.</AbstractText>
+        <AbstractText Label="RESULTS" NlmCategory="RESULTS">Objective response was higher in MSI-H tumours (synthetic numbers).</AbstractText>
+      </Abstract>
+      <PublicationTypeList><PublicationType UI="D016428">Journal Article</PublicationType></PublicationTypeList>
+    </Article>
+    <MeshHeadingList>
+      <MeshHeading><DescriptorName UI="D053842" MajorTopicYN="Y">Microsatellite Instability</DescriptorName></MeshHeading>
+      <MeshHeading><DescriptorName UI="D007167" MajorTopicYN="N">Immunotherapy</DescriptorName></MeshHeading>
+    </MeshHeadingList>
+  </MedlineCitation>
+  <PubmedData>
+    <ArticleIdList>
+      <ArticleId IdType="pubmed">10000002</ArticleId>
+      <ArticleId IdType="doi">10.0000/synth.a</ArticleId>
+      <ArticleId IdType="pmc">PMC9000002</ArticleId>
+    </ArticleIdList>
+  </PubmedData>
+</PubmedArticle>
+<PubmedArticle>
+  <MedlineCitation Status="MEDLINE" Owner="NLM">
+    <PMID Version="1">10000001</PMID>
+    <Article PubModel="Print">
+      <Journal>
+        <JournalIssue CitedMedium="Print"><PubDate><MedlineDate>2021 Jan-Feb</MedlineDate></PubDate></JournalIssue>
+        <Title>Synthetic Molecular Diagnostics</Title>
+      </Journal>
+      <ArticleTitle>Synthetic study B: digital PCR for MSI detection in cfDNA.</ArticleTitle>
+      <Abstract><AbstractText>Unstructured abstract about droplet digital PCR.</AbstractText></Abstract>
+      <PublicationTypeList><PublicationType UI="D016428">Journal Article</PublicationType></PublicationTypeList>
+    </Article>
+  </MedlineCitation>
+  <PubmedData><ArticleIdList><ArticleId IdType="pubmed">10000001</ArticleId></ArticleIdList></PubmedData>
+</PubmedArticle>
+</PubmedArticleSet>
