@@ -94,6 +94,7 @@ const PROGRESS = {
       { t: "SQLite 응답 캐시와 readonly 재생 모드", s: "done" },
       { t: "MCP 도구 5종과 에이전트용 오류 메시지", s: "done" },
       { t: "오프라인 단위 테스트 17개", s: "done" },
+      { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "todo", why: "원격 전송이 .git 폴더 쓰기를 막아 번들로 전달. 가이드 2단계" },
       { t: "실제 API 스모크 테스트", s: "todo", why: "작업 환경에서 외부 API 접근 불가. PC에서 scripts/smoke_live.py 실행 필요" },
       { t: "NCBI API 키 발급, .env 설정", s: "todo" },
       { t: "GitHub 원격 저장소 연결과 첫 push", s: "todo", why: "빈 저장소 Jinwooseol/bioscout 생성 필요. 가이드 참고" },
@@ -151,6 +152,7 @@ const PROGRESS = {
       ],
       blocked: [
         "작업 환경에서 NCBI, Europe PMC, ClinicalTrials.gov에 접근할 수 없어 실제 응답은 아직 확인하지 못했다. PC에서 smoke_live.py로 확인한다.",
+        "PC로 파일을 옮기는 원격 전송이 .git, .mcp.json, .github/workflows 쓰기를 막았다. 커밋 기록을 git bundle로 보내고 setup.ps1로 복원하게 했다.",
       ],
       numbers: [
         "단위 테스트 17개 통과, MCP 도구 5개, stdio로 서버 기동 확인",
