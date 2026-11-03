@@ -11,7 +11,7 @@ import functools
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Annotated, ParamSpec, TypeVar
+from typing import Annotated
 
 import httpx
 from mcp.server.mcpserver import MCPServer
@@ -36,11 +36,8 @@ PMIDs -> cite PMIDs for every claim. Use check_pmids before presenting any PMID 
 from these tools. get_fulltext works only for open-access papers; fall back to the abstract.
 These tools support research reading, not clinical decisions about individual patients."""
 
-P = ParamSpec("P")
-R = TypeVar("R")
 
-
-def agent_readable_errors(fn: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+def agent_readable_errors[**P, R](fn: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
     """Turn upstream failures into short tool errors an agent can act on, instead of tracebacks."""
 
     @functools.wraps(fn)
