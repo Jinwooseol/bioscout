@@ -175,6 +175,99 @@ Replay mode: no recorded response for this call.</code></pre>
     </tbody>
   </table></div>
   <p>속도 제한은 호스트별로 따로 겁니다. NCBI는 API 키가 없으면 초당 3건, 있으면 10건까지 허용하므로 각각 2.5건, 9건으로 여유를 둡니다.</p>
+
+  <h2 id="eval">평가 하네스가 채점하는 방식 <span class="tag built">구현됨</span></h2>
+  <p>같은 질문을 변형마다 따로 답하게 합니다. 모든 변형이 같은 모델, 같은 effort, 같은 출력 스키마(<code>CitedAnswer</code>)를 쓰므로, 채점도 같은 코드로 하고 결과 차이는 "근거를 어디서 얻었는가"에서만 나옵니다.</p>
+  <figure class="bleed">
+    <svg viewBox="0 0 900 250" role="img" aria-labelledby="var-title">
+      <title id="var-title">변형 A는 질문을 바로 Claude에 보내고, 변형 B는 질문 그대로 PubMed를 검색해 초록 10건과 함께 보낸다. 두 답변은 같은 채점 단계를 거친다</title>
+      <defs>
+        <marker id="e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+      </defs>
+      <text class="t" x="20" y="22">A. LLM 단독</text>
+      <rect class="box strong" x="20" y="34" width="100" height="52" rx="10"/>
+      <text class="t" x="70" y="65" text-anchor="middle">질문</text>
+      <rect class="box" x="160" y="34" width="450" height="52" rx="10"/>
+      <text class="t" x="385" y="57" text-anchor="middle">Claude: 기억만으로 답변, 문장마다 PMID</text>
+      <text class="s" x="385" y="75" text-anchor="middle">PMID가 확실하지 않으면 인용을 비우라고 지시</text>
+      <rect class="box accent" x="650" y="34" width="110" height="52" rx="10"/>
+      <text class="t" x="705" y="65" text-anchor="middle">CitedAnswer</text>
+
+      <text class="t" x="20" y="122">B. 단순 RAG</text>
+      <rect class="box strong" x="20" y="134" width="100" height="52" rx="10"/>
+      <text class="t" x="70" y="165" text-anchor="middle">질문</text>
+      <rect class="box accent" x="160" y="134" width="130" height="52" rx="10"/>
+      <text class="t" x="225" y="157" text-anchor="middle">search_pubmed</text>
+      <text class="s" x="225" y="175" text-anchor="middle">질문 그대로 · 10건</text>
+      <rect class="box accent" x="320" y="134" width="120" height="52" rx="10"/>
+      <text class="t" x="380" y="157" text-anchor="middle">get_abstracts</text>
+      <text class="s" x="380" y="175" text-anchor="middle">초록 10건</text>
+      <rect class="box" x="470" y="134" width="140" height="52" rx="10"/>
+      <text class="t" x="540" y="157" text-anchor="middle">Claude</text>
+      <text class="s" x="540" y="175" text-anchor="middle">주어진 초록만 근거</text>
+      <rect class="box accent" x="650" y="134" width="110" height="52" rx="10"/>
+      <text class="t" x="705" y="165" text-anchor="middle">CitedAnswer</text>
+
+      <rect class="box strong" x="790" y="34" width="90" height="152" rx="10"/>
+      <text class="t" x="835" y="92" text-anchor="middle">채점</text>
+      <text class="s" x="835" y="114" text-anchor="middle">check_pmids</text>
+      <text class="s" x="835" y="132" text-anchor="middle">정답 비교</text>
+      <text class="s" x="835" y="150" text-anchor="middle">recall · 비용</text>
+
+      <path class="edge" d="M120 60H158" marker-end="url(#e)"/>
+      <path class="edge" d="M610 60H648" marker-end="url(#e)"/>
+      <path class="edge" d="M760 60H788" marker-end="url(#e)"/>
+      <path class="edge" d="M120 160H158" marker-end="url(#e)"/>
+      <path class="edge" d="M290 160H318" marker-end="url(#e)"/>
+      <path class="edge" d="M440 160H468" marker-end="url(#e)"/>
+      <path class="edge" d="M610 160H648" marker-end="url(#e)"/>
+      <path class="edge" d="M760 160H788" marker-end="url(#e)"/>
+      <text class="s" x="450" y="232" text-anchor="middle">같은 모델(claude-opus-5-5) · 같은 effort(medium) · 같은 JSON 스키마. 다른 것은 근거의 출처뿐</text>
+    </svg>
+    <figcaption>C(에이전트)와 D(에이전트 + 인용 검증)는 Day 3–4에 같은 자리에 들어갑니다. 채점 코드는 그대로입니다.</figcaption>
+  </figure>
+
+  <h3>답변 하나를 채점하면</h3>
+  <p>Day 2 채점은 판정 없이 계산되는 것만 봅니다. PMID 존재 여부는 PubMed에 물어 확인하고, 문장이 초록에 의해 지지되는지는 Day 4 judge가 같은 레코드 위에서 판정합니다.</p>
+  <section class="specimen" aria-label="변형 A 답변의 채점 예시">
+    <div class="q">PubMedQA 문항 · 라벨 <code>yes</code> · 변형 A의 답변 <code>decision: yes</code></div>
+    <ol>
+      <li>
+        <span class="well" role="img" aria-label="판정 전"></span>
+        <div><span class="claim">무작위 배정 연구에서 X군의 재발률이 Y군보다 낮았다.</span> <span class="cite">PMID 10000001</span>
+          <span class="why">PubMed에 있는 PMID. 초록이 문장을 지지하는지는 Day 4에 판정</span></div>
+      </li>
+      <li>
+        <span class="well uns" role="img" aria-label="가짜 PMID"></span>
+        <div><span class="claim">이 효과는 5년 추적에서도 유지되었다.</span> <span class="cite">PMID 10000009</span>
+          <span class="why">PubMed에 없는 PMID. 가짜 PMID 1건으로 집계</span></div>
+      </li>
+      <li>
+        <span class="well cut" role="img" aria-label="인용 없음"></span>
+        <div><span class="claim">다만 대상 집단이 작아 일반화에는 한계가 있다.</span>
+          <span class="why">인용 없음. 인용 부착률의 분모에만 들어감</span></div>
+      </li>
+    </ol>
+    <div class="verdicts">
+      <span>인용 PMID <b>2</b></span>
+      <span>가짜 PMID <b>1</b> (50%)</span>
+      <span>인용 부착 문장 <b>2 / 3</b></span>
+      <span>정답 <b>일치</b></span>
+      <span>원 논문 인용 <b>예</b></span>
+    </div>
+  </section>
+  <p class="note">채점 방식을 보여주는 가상 예시입니다. PMID와 문장은 실제 논문을 가리키지 않습니다.</p>
+
+  <h3>실행이 남기는 것</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th><th>쓰임</th></tr></thead>
+    <tbody>
+      <tr><td><code>evals/runs/&lt;run_id&gt;/records.jsonl</code></td><td>문항 × 변형마다 답변 원문, 검색 기록, 토큰, 채점 결과, 오류</td><td>재채점, 실패 사례 분석. 끝난 문항부터 바로 기록해 중간에 멈춰도 남음</td></tr>
+      <tr><td><code>evals/runs/&lt;run_id&gt;/meta.json</code></td><td>모델, effort, 캐시 모드, 커밋, 변형별 프롬프트 해시</td><td>어떤 조건에서 나온 숫자인지 추적</td></tr>
+      <tr><td><code>evals/reports/&lt;run_id&gt;.md</code></td><td>변형 × 데이터셋 결과표</td><td>README와 진행 상황에 옮겨 적는 유일한 출처</td></tr>
+    </tbody>
+  </table></div>
+  <p>Claude 응답도 요청 전체를 키로 캐시합니다. 같은 실행을 다시 돌리면 API 비용 없이 같은 답변이 재생되고, <code>BIOSCOUT_CACHE_MODE=readonly</code>면 네트워크 없이 CI에서 그대로 재현됩니다.</p>
 </main>
 
 <footer>설계 근거와 평가 지표는 <a href="design.html">설계</a>에 있습니다.</footer>

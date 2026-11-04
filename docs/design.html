@@ -117,7 +117,7 @@
       <tr><td>Bio MCP 서버</td><td>외부 API를 MCP 도구 5개로 제공. 에이전트와 독립적으로 Claude Desktop 등에서도 사용</td><td><code>src/bioscout/mcp_server.py</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>데이터 소스</td><td>PubMed, Europe PMC, ClinicalTrials.gov 응답을 타입이 있는 레코드로 파싱</td><td><code>src/bioscout/sources/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>HTTP · 캐시</td><td>호스트별 속도 제한, 429/5xx 재시도, SQLite 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code></td><td><span class="tag built">구현됨</span></td></tr>
-      <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성</td><td><code>evals/</code></td><td><span class="tag">Day 2</span></td></tr>
+      <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성. <a href="#harness">상세 설계</a></td><td><code>src/bioscout/evals/</code>, <code>evals/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행</td><td><code>src/bioscout/agent/</code></td><td><span class="tag">Day 3</span></td></tr>
       <tr><td>인용 검증기</td><td>(문장, 초록) 쌍을 지지 / 부분 지지 / 무관으로 판정, 재검색·삭제 결정</td><td><code>src/bioscout/verifier/</code></td><td><span class="tag">Day 4</span></td></tr>
       <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">Day 5</span></td></tr>
@@ -126,9 +126,10 @@
   </table></div>
 
   <h2>데이터 계약</h2>
-  <p>에이전트는 자유 텍스트가 아니라 아래 구조로 답합니다. 문장 단위로 인용과 판정이 붙어 있어야 데모는 배지를 그리고, 평가 하네스는 지표를 계산할 수 있습니다. Day 3에 Pydantic 모델로 고정합니다.</p>
+  <p>에이전트는 자유 텍스트가 아니라 아래 구조로 답합니다. 문장 단위로 인용과 판정이 붙어 있어야 데모는 배지를 그리고, 평가 하네스는 지표를 계산할 수 있습니다. 평가 하네스가 먼저 필요해 Day 2에 <code>src/bioscout/answer.py</code>의 Pydantic 모델로 고정했습니다.</p>
 <pre><code>{
   "question": "MSI-H 대장암에서 PD-1 억제제 반응률은 MSS보다 높은가?",
+  "decision": "yes",                   // yes | no | maybe | not_applicable (PubMedQA 채점용)
   "sentences": [
     {
       "text": "MSI-H 종양군의 객관적 반응률이 MSS군보다 높게 보고되었다.",
@@ -139,7 +140,7 @@
   ],
   "dropped": [ { "text": "...", "citations": ["10000003"], "reason": "pmid_not_found" } ],
   "searches": [ { "query": "\"microsatellite instability\"[MeSH] AND ...", "pmids": ["..."] } ],
-  "usage": { "usd": 0.0, "latency_ms": 0, "tool_calls": 0 }
+  "usage": { "usd": 0.0, "latency_ms": 0, "tool_calls": 0, "model": "claude-opus-5-5" }
 }</code></pre>
 
   <h2>평가 설계</h2>
@@ -181,6 +182,151 @@
   </table></div>
   <p class="callout warn">PubMedQA 질문은 논문 제목에서 만들어져 검색 성공률이 낙관적으로 나오고, 모델이 학습 중 봤을 가능성도 있습니다. 그래서 직접 만든 도메인 셋 결과를 항상 함께 제시합니다.</p>
 
+  <h2 id="harness">평가 하네스 (Day 2)</h2>
+  <p>평가 하네스는 "문항 × 변형"마다 답변을 하나 받아, 사람 손을 거치지 않는 결정적 지표부터 채점합니다. 판정이 필요한 지표(citation precision, coverage)는 judge를 보정한 뒤 Day 4에 같은 레코드 위에 더합니다. 그래서 Day 2 레코드는 나중에 다시 실행하지 않고 재채점할 수 있게 원자료를 모두 남깁니다.</p>
+
+  <figure class="bleed">
+    <svg viewBox="0 0 900 580" role="img" aria-labelledby="run-title">
+      <title id="run-title">평가 실행 한 번의 흐름: 데이터셋 문항이 러너에서 변형별로 답변되고, 결정적 채점을 거쳐 문항별 레코드와 요약 리포트로 저장된다</title>
+      <defs>
+        <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+      </defs>
+
+      <rect class="box accent" id="ds-pqa" x="20" y="40" width="190" height="60" rx="10"/>
+      <text class="t" x="115" y="66" text-anchor="middle">PubMedQA 100</text>
+      <text class="s" x="115" y="86" text-anchor="middle">질문 · yes/no/maybe · 원 PMID</text>
+      <rect class="box accent" id="ds-dom" x="20" y="120" width="190" height="60" rx="10"/>
+      <text class="t" x="115" y="146" text-anchor="middle">도메인 셋 15 → 25</text>
+      <text class="s" x="115" y="166" text-anchor="middle">초안 · must-cite PMID · 핵심 포인트</text>
+      <rect class="box planned" x="20" y="200" width="190" height="60" rx="10"/>
+      <text class="t" x="115" y="226" text-anchor="middle">범위 밖 10</text>
+      <text class="s" x="115" y="246" text-anchor="middle">Day 4 이후</text>
+
+      <rect class="group" x="250" y="20" width="330" height="270" rx="12"/>
+      <text class="t" x="268" y="46">러너: 문항 × 변형, 동시 4개</text>
+      <rect class="box accent" id="v-a" x="270" y="64" width="290" height="56" rx="10"/>
+      <text class="t" x="415" y="88" text-anchor="middle">A. LLM 단독</text>
+      <text class="s" x="415" y="107" text-anchor="middle">질문만 주고 문장별 PMID 인용 요청</text>
+      <rect class="box accent" id="v-b" x="270" y="136" width="290" height="56" rx="10"/>
+      <text class="t" x="415" y="160" text-anchor="middle">B. 단순 RAG</text>
+      <text class="s" x="415" y="179" text-anchor="middle">질문 그대로 검색 10건 → 초록 → 답변</text>
+      <rect class="box planned" x="270" y="208" width="290" height="56" rx="10"/>
+      <text class="t" x="415" y="232" text-anchor="middle">C · D (Day 3–4)</text>
+      <text class="s" x="415" y="251" text-anchor="middle">에이전트, 에이전트 + 인용 검증</text>
+
+      <rect class="box strong" x="640" y="64" width="240" height="56" rx="10"/>
+      <text class="t" x="760" y="88" text-anchor="middle">Claude API</text>
+      <text class="s" x="760" y="107" text-anchor="middle">JSON 스키마 출력 · 응답 캐시</text>
+      <rect class="box accent" x="640" y="136" width="240" height="56" rx="10"/>
+      <text class="t" x="760" y="160" text-anchor="middle">PubMed · SQLite 캐시</text>
+      <text class="s" x="760" y="179" text-anchor="middle">search · abstracts · check_pmids</text>
+
+      <path class="edge" d="M210 70H248" marker-end="url(#r)"/>
+      <path class="edge" d="M210 150H248" marker-end="url(#r)"/>
+      <path class="edge" d="M210 230H248" marker-end="url(#r)"/>
+      <path class="edge" d="M560 84H638" marker-end="url(#r)"/>
+      <path class="edge" d="M560 150H600V108H638" marker-end="url(#r)"/>
+      <path class="edge" d="M560 172H638" marker-end="url(#r)"/>
+
+      <rect class="box accent" id="answer" x="250" y="330" width="330" height="56" rx="10"/>
+      <text class="t" x="415" y="354" text-anchor="middle">CitedAnswer</text>
+      <text class="s" x="415" y="373" text-anchor="middle">문장 · 인용 PMID · decision · 토큰 · 지연</text>
+      <path class="edge" d="M415 290V328" marker-end="url(#r)"/>
+
+      <rect class="box accent" id="score" x="250" y="420" width="330" height="56" rx="10"/>
+      <text class="t" x="415" y="444" text-anchor="middle">결정적 채점</text>
+      <text class="s" x="415" y="463" text-anchor="middle">가짜 PMID · 정답 · recall · 비용 · 지연</text>
+      <path class="edge" d="M415 386V418" marker-end="url(#r)"/>
+      <path class="edge" d="M580 436H616V184H638" marker-end="url(#r)"/>
+      <text class="s" x="624" y="300">check_pmids</text>
+
+      <rect class="box accent" id="records" x="660" y="330" width="220" height="56" rx="10"/>
+      <text class="t" x="770" y="354" text-anchor="middle">records.jsonl</text>
+      <text class="s" x="770" y="373" text-anchor="middle">evals/runs/ · 원자료 · Git 제외</text>
+      <path class="edge" d="M580 460H636V358H658" marker-end="url(#r)"/>
+
+      <rect class="box accent" id="report" x="660" y="420" width="220" height="56" rx="10"/>
+      <text class="t" x="770" y="444" text-anchor="middle">리포트 JSON · MD</text>
+      <text class="s" x="770" y="463" text-anchor="middle">evals/reports/ · 요약 수치만 커밋</text>
+      <path class="edge" d="M770 386V418" marker-end="url(#r)"/>
+
+      <rect class="box strong" x="660" y="508" width="220" height="56" rx="10"/>
+      <text class="t" x="770" y="532" text-anchor="middle">진행 상황 · README</text>
+      <text class="s" x="770" y="551" text-anchor="middle">리포트 수치만 옮겨 적음</text>
+      <path class="edge" d="M770 476V506" marker-end="url(#r)"/>
+    </svg>
+    <figcaption>초록색 실선은 구현을 마친 부분, 점선은 예정된 부분입니다. 문항별 레코드에는 답변 원문까지 남겨, Day 4에 judge 지표를 더할 때 다시 실행하지 않고 재채점합니다.</figcaption>
+  </figure>
+
+  <h3>파일 구성</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>위치</th><th>내용</th><th>Git</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/answer.py</code></td><td>답변 데이터 계약(<code>CitedAnswer</code>). 변형, 데모, 채점이 모두 이 모델을 씀</td><td>커밋</td></tr>
+      <tr><td><code>src/bioscout/llm.py</code></td><td>Claude 호출 래퍼: JSON 스키마 출력, refusal fallback, 토큰 비용 계산, 응답 캐시</td><td>커밋</td></tr>
+      <tr><td><code>src/bioscout/evals/</code></td><td><code>datasets</code> 로딩, <code>variants</code>(A, B), <code>metrics</code>, <code>runner</code>, <code>cli</code></td><td>커밋</td></tr>
+      <tr><td><code>evals/datasets/</code></td><td>문항 JSONL. PMID, 질문, 라벨, 우리가 쓴 핵심 포인트만. 초록·본문 없음</td><td>커밋</td></tr>
+      <tr><td><code>evals/runs/&lt;run_id&gt;/</code></td><td><code>records.jsonl</code>(문항별 답변과 채점), <code>meta.json</code>(모델, effort, 프롬프트 해시)</td><td>제외</td></tr>
+      <tr><td><code>evals/reports/&lt;run_id&gt;.json</code>, <code>.md</code></td><td>변형별 요약 수치와 결과표</td><td>커밋</td></tr>
+    </tbody>
+  </table></div>
+  <p>실행 명령은 <code>uv run bioscout-eval run --variants A,B --datasets pubmedqa,domain</code>입니다. <code>--limit 10</code>으로 먼저 10문항만 돌려 비용과 오류를 확인한 뒤 전체를 돌립니다.</p>
+
+  <h3>레코드 형식</h3>
+<pre><code>// evals/datasets/pubmedqa_100.jsonl (한 줄 = 한 문항)
+{"id": "pqa-10000001", "dataset": "pubmedqa", "question": "...", "answer": "yes", "pmid": "10000001"}
+
+// evals/datasets/domain.jsonl
+{"id": "dom-msi-01", "topic": "msi", "question": "...", "must_cite": ["10000002"],
+ "key_points": [{"point": "...", "pmids": ["10000002"]}], "status": "draft"}
+
+// evals/runs/&lt;run_id&gt;/records.jsonl (한 줄 = 문항 × 변형)
+{"item_id": "pqa-10000001", "dataset": "pubmedqa", "variant": "B",
+ "answer": { CitedAnswer },
+ "scores": {"cited": 4, "fabricated": 0, "sentences": 3, "cited_sentences": 3,
+            "correct": true, "retrieved_gold": true, "gold_cited": true},
+ "error": null}</code></pre>
+  <p class="note">예시의 PMID는 가상 번호입니다. 실제처럼 보이는 가짜 인용은 테스트 픽스처 밖에 두지 않습니다.</p>
+
+  <h3>Day 2에 계산하는 지표 (결정적)</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>지표</th><th>계산</th><th>대상</th></tr></thead>
+    <tbody>
+      <tr><td>가짜 PMID 비율</td><td>PubMed에 없는 인용 PMID 수 ÷ 전체 인용 PMID 수 (전 문항 합산)</td><td>전체</td></tr>
+      <tr><td>가짜 인용 답변 비율</td><td>없는 PMID가 하나라도 있는 답변 ÷ 답변 수</td><td>전체</td></tr>
+      <tr><td>인용 부착률</td><td>PMID가 1개 이상 붙은 문장 ÷ 문장 수. Day 4 coverage의 상한</td><td>전체</td></tr>
+      <tr><td>정답률</td><td>답변의 <code>decision</code>이 PubMedQA 라벨과 같은 비율</td><td>PubMedQA</td></tr>
+      <tr><td>원 논문 검색률 (recall@10)</td><td>문항의 원 PMID가 검색 상위 10건에 든 비율. 검색이 없는 A는 해당 없음</td><td>PubMedQA</td></tr>
+      <tr><td>원 논문 인용률</td><td>원 PMID를 실제로 인용한 비율</td><td>PubMedQA</td></tr>
+      <tr><td>must-cite recall</td><td>인용한 must-cite PMID ÷ must-cite PMID</td><td>도메인</td></tr>
+      <tr><td>비용 · 지연 · 거절</td><td>질의당 USD 평균, 지연 p50/p95, 도구 호출 수, refusal로 끝난 비율, 다른 모델이 대신 답한 비율</td><td>전체</td></tr>
+    </tbody>
+  </table></div>
+  <p>Citation precision, coverage, 핵심 포인트 커버리지는 LLM judge가 필요해 Day 4에 보정셋으로 judge를 검증한 뒤 같은 레코드에 더합니다.</p>
+
+  <h3>LLM 호출 설정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>항목</th><th>값</th><th>이유</th></tr></thead>
+    <tbody>
+      <tr><td>모델</td><td><code>claude-opus-5-5</code> (<code>BIOSCOUT_MODEL</code>로 변경)</td><td>모든 변형이 같은 모델을 써야 차이가 설계에서 나왔다고 말할 수 있음</td></tr>
+      <tr><td>effort</td><td><code>medium</code> (<code>BIOSCOUT_EFFORT</code>)</td><td>모델 기본값과 같지만 실행 기록에 남도록 명시</td></tr>
+      <tr><td>출력 형식</td><td>JSON 스키마 구조화 출력</td><td>파싱 실패로 문항이 빠지거나 정규식으로 PMID를 긁는 일을 없앰</td></tr>
+      <tr><td>거절 처리</td><td><code>fallbacks: "default"</code>, 실제 응답 모델 기록</td><td>생의학 질문이 안전 분류기에 오탐될 수 있음. 다른 모델이 답한 문항 수를 리포트에 따로 표시</td></tr>
+      <tr><td>응답 캐시</td><td>요청 전체(모델, 프롬프트, 스키마, effort)를 키로 <code>llm.sqlite</code></td><td>같은 실행은 비용 없이 재생, CI는 <code>readonly</code>로 네트워크 없이 재생</td></tr>
+      <tr><td>비용 계산</td><td>응답의 입력·출력 토큰 × 모델 단가. fallback이면 시도별 토큰을 각 모델 단가로</td><td>질의당 비용을 결과표의 한 열로 보고</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>비용 추정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>입력 토큰</th><th>출력 토큰 (생각 포함)</th><th>질의당</th><th>125문항</th></tr></thead>
+    <tbody>
+      <tr><td>A. LLM 단독</td><td>약 0.5K</td><td>1–3K</td><td>$0.02–0.06</td><td>$3–8</td></tr>
+      <tr><td>B. 단순 RAG</td><td>약 4–6K (초록 10건)</td><td>1–3K</td><td>$0.04–0.09</td><td>$5–11</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Opus 5.5 단가(입력 $4, 출력 $20 / 백만 토큰) 기준 추정입니다. <code>--limit 10</code> 실행의 실측값으로 바꿔 적습니다.</p>
+
   <h2>기술 결정</h2>
   <div class="table-wrap"><table>
     <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
@@ -191,6 +337,10 @@
       <tr><td>업스트림 오류를 짧은 도구 오류로 변환</td><td>에이전트가 스택 트레이스 대신 "재시도하거나 다른 도구 사용"을 읽고 행동</td><td>예외 그대로 전달</td></tr>
       <tr><td>테스트 픽스처는 가상 데이터</td><td>인용 진실성을 다루는 프로젝트에서 실제처럼 보이는 가짜 인용을 만들지 않음</td><td>실제 응답 녹화본 커밋</td></tr>
       <tr><td>평가 하네스 직접 작성</td><td>지표 정의를 면접에서 직접 설명할 수 있어야 함. RAGAS는 참고 지표로만</td><td>RAGAS 단독</td></tr>
+      <tr><td>모든 변형에 같은 모델 · effort · 출력 스키마</td><td>변형 간 차이를 모델이 아니라 설계(검색, 에이전트, 검증)에서 온 것으로 해석하기 위해</td><td>변형마다 최적 모델</td></tr>
+      <tr><td>LLM 응답도 SQLite에 캐시</td><td>재채점과 CI 재생에 API 비용이 들지 않음. 새 표본이 필요하면 캐시를 끄고 실행</td><td>매번 새로 호출</td></tr>
+      <tr><td>Claude 호출에 <code>fallbacks: "default"</code></td><td>안전 분류기가 생의학 질문을 오탐해 거절하면 문항이 통째로 빠짐. 대신 응답한 모델을 기록해 결과에 표시</td><td>거절을 오답으로 처리</td></tr>
+      <tr><td>PubMedQA는 PMID · 질문 · 라벨만 저장</td><td>원본 JSON의 초록(CONTEXTS)과 결론(LONG_ANSWER)은 저장하지 않음. 고정 시드로 재추출 가능</td><td>원본 파일 커밋</td></tr>
     </tbody>
   </table></div>
 

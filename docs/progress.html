@@ -83,8 +83,8 @@
 <script>
 /* ── Edit this object to update the page. status: done | doing | todo | cut ── */
 const PROGRESS = {
-  updated: "2026-11-03",
-  today: 1,
+  updated: "2026-11-04",
+  today: 2,
   days: [
     { day: 1, date: "11/3 (화)", title: "기반 + MCP 서버", tasks: [
       { t: "레포 스캐폴딩: uv, ruff, pytest, GitHub Actions CI", s: "done" },
@@ -94,21 +94,21 @@ const PROGRESS = {
       { t: "SQLite 응답 캐시와 readonly 재생 모드", s: "done" },
       { t: "MCP 도구 5종과 에이전트용 오류 메시지", s: "done" },
       { t: "오프라인 단위 테스트 17개", s: "done" },
-      { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "todo", why: "원격 전송이 .git 폴더 쓰기를 막아 번들로 전달. 가이드 2단계" },
-      { t: "실제 API 스모크 테스트", s: "todo", why: "작업 환경에서 외부 API 접근 불가. PC에서 scripts/smoke_live.py 실행 필요" },
-      { t: "NCBI API 키 발급, .env 설정", s: "todo" },
-      { t: "GitHub 원격 저장소 연결과 첫 push", s: "todo", why: "빈 저장소 Jinwooseol/bioscout 생성 필요. 가이드 참고" },
+      { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "done", why: "11/4 복원. 커밋 5개, origin 등록 완료" },
+      { t: "실제 API 스모크 테스트", s: "done", why: "11/4 PC에서 도구 5개 모두 PASS" },
+      { t: "NCBI API 키 발급, .env 설정", s: "todo", why: "키 없이도 동작(초당 3건). 평가 전체 실행 전에 발급 권장" },
+      { t: "GitHub 원격 저장소 연결과 첫 push", s: "todo", why: "origin은 등록됨. github.com에 빈 저장소 Jinwooseol/bioscout 생성 후 push 필요" },
     ]},
     { day: 2, date: "11/4 (수)", title: "평가셋 + baseline", tasks: [
-      { t: "PubMedQA PQA-L에서 100문항 무작위 추출" , s: "todo" },
-      { t: "도메인 셋 작성: MSI, dPCR, liquid biopsy (15문항 먼저)", s: "todo" },
-      { t: "평가 하네스와 결과 스키마", s: "todo" },
-      { t: "변형 A (LLM 단독) 실행", s: "todo" },
-      { t: "변형 B (단순 RAG) 실행", s: "todo" },
+      { t: "PubMedQA PQA-L에서 100문항 무작위 추출" , s: "done", why: "시드 2026, yes 66 · no 27 · maybe 7. PMID · 질문 · 라벨만 저장" },
+      { t: "도메인 셋 작성: MSI, dPCR, liquid biopsy (15문항 먼저)", s: "doing", why: "초안 15문항 완료(must-cite PMID 40개 모두 PubMed 확인). 저자가 evals/review/domain_review.md로 검토하면 완료" },
+      { t: "평가 하네스와 결과 스키마", s: "done", why: "answer.py, llm.py, evals/ 패키지, bioscout-eval CLI, 테스트 15개" },
+      { t: "변형 A (LLM 단독) 실행", s: "todo", why: "ANTHROPIC_API_KEY 필요" },
+      { t: "변형 B (단순 RAG) 실행", s: "todo", why: "ANTHROPIC_API_KEY 필요. 검색 단계만 먼저 측정: 원 논문 recall@10 85%" },
       { t: "결과표 v1, 가짜 PMID 비율 측정", s: "todo" },
     ]},
     { day: 3, date: "11/5 (목)", title: "에이전트", tasks: [
-      { t: "답변 스키마 Pydantic 모델", s: "todo" },
+      { t: "답변 스키마 Pydantic 모델", s: "done", why: "평가 하네스가 먼저 필요해 Day 2에 작성 (src/bioscout/answer.py)" },
       { t: "LangGraph 그래프: 계획, 검색, 선별, 인용 답변", s: "todo" },
       { t: "MeSH 기반 검색어 재작성", s: "todo" },
       { t: "변형 C 실행과 B 대비 원인 분석", s: "todo" },
@@ -142,7 +142,7 @@ const PROGRESS = {
   metrics: [
     { v: "A. LLM 단독" }, { v: "B. 단순 RAG" }, { v: "C. 에이전트" }, { v: "D. 에이전트 + 검증" },
   ],
-  metricsNote: "Day 2에 A와 B부터 채워집니다. 수치는 evals/reports/에서 생성된 값만 옮깁니다.",
+  metricsNote: "A와 B는 API 키를 넣고 실행하면 채워집니다. 수치는 evals/reports/에서 생성된 값만 옮깁니다. LLM 없이 먼저 잰 값: PubMedQA 질문을 그대로 검색하면 원 논문이 상위 10건에 드는 비율 85/100 (11문항은 검색 결과 0건).",
   log: [
     { date: "2026-11-03", day: 1, title: "MCP 서버와 테스트 기반",
       decided: [
@@ -156,6 +156,31 @@ const PROGRESS = {
       ],
       numbers: [
         "단위 테스트 17개 통과, MCP 도구 5개, stdio로 서버 기동 확인",
+      ],
+    },
+    { date: "2026-11-04", day: 2, title: "PC 이전과 평가 하네스",
+      decided: [
+        "평가 하네스가 답변 형식을 먼저 알아야 해서 Day 3의 답변 스키마(CitedAnswer)를 Day 2로 당겼다. 변형, 데모, 채점이 모두 이 모델을 쓴다.",
+        "모든 변형에 같은 모델(claude-opus-5-5), 같은 effort(medium), 같은 JSON 스키마를 쓴다. 결과 차이를 설계에서 온 것으로 해석하기 위해서다.",
+        "Claude 응답도 요청 전체를 키로 SQLite에 캐시한다. 재채점과 CI 재생에 API 비용이 들지 않는다.",
+        "안전 분류기가 생의학 질문을 거절할 수 있어 fallbacks: \"default\"를 켜고, 실제로 답한 모델과 거절 수를 레코드에 남긴다.",
+        "변형 A 프롬프트에 \"PMID가 확실하지 않으면 비워라\"를 넣었다. 허수아비 baseline이 아니라 현실적으로 잘 쓴 프롬프트와 비교하기 위해서다.",
+        "PubMedQA 원본에서 PMID, 질문, 라벨만 저장한다. 초록(CONTEXTS)과 결론(LONG_ANSWER)은 버린다.",
+        "도메인 셋 초안은 실시간 PubMed 검색 결과에서만 PMID를 골랐고, 핵심 포인트마다 근거 PMID를 단다. 초록 인용문은 Git에서 제외한 evals/review/에만 둔다.",
+        "도메인 셋 15문항 중 5문항은 정직한 답이 \"근거가 엇갈림·제한적\"인 질문으로 넣었다. 단정적으로 답하는지도 봐야 하기 때문이다.",
+      ],
+      blocked: [
+        "Anthropic API 키가 PC에 없어 변형 A와 B를 실행하지 못했다. 하네스는 가짜 LLM으로 끝까지 테스트했다.",
+        "uv가 Python 3.12를 받은 뒤 버전 링크 생성에 실패했다. 받은 실행 파일을 --python으로 직접 지정해 해결했다(가이드 문제 해결에 기록).",
+        "최신 ruff가 ParamSpec 표기를 UP047로 잡아 CI가 실패할 상태였다. PEP 695 문법으로 바꿨다.",
+        "GitHub에 bioscout 저장소가 아직 없어 push하지 못했다.",
+      ],
+      numbers: [
+        "실제 API 스모크 테스트: 도구 5개 모두 PASS",
+        "PubMedQA 100문항: yes 66 · no 27 · maybe 7. 다수 라벨(yes)만 찍어도 정답률 66%이므로 정답률은 이 기준선과 비교한다",
+        "질문 그대로 검색: 원 논문 recall@10 85/100, 검색 결과 0건 11문항",
+        "도메인 셋 초안 15문항, must-cite PMID 40개, check-datasets 누락 0건",
+        "단위 테스트 17 → 32개",
       ],
     },
   ],
