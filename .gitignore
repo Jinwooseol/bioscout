@@ -17,6 +17,9 @@ wheels/
 # Eval outputs that are regenerated (reports/ is committed)
 evals/runs/
 
+# Hand-review notes that quote abstracts (never committed)
+evals/review/
+
 # OS / editors
 .DS_Store
 Thumbs.db

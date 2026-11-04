@@ -1,0 +1,100 @@
+{"id": "pqa-8111516", "dataset": "pubmedqa", "question": "Do family physicians make good sentinels for influenza?", "answer": "yes", "pmid": "8111516"}
+{"id": "pqa-8422202", "dataset": "pubmedqa", "question": "Metered-dose inhalers. Do health care providers know what to teach?", "answer": "no", "pmid": "8422202"}
+{"id": "pqa-8566975", "dataset": "pubmedqa", "question": "Serovar specific immunity to Neisseria gonorrhoeae: does it exist?", "answer": "no", "pmid": "8566975"}
+{"id": "pqa-8985020", "dataset": "pubmedqa", "question": "Does induction chemotherapy have a role in the management of nasopharyngeal carcinoma?", "answer": "yes", "pmid": "8985020"}
+{"id": "pqa-9199905", "dataset": "pubmedqa", "question": "Vertical lines in distal esophageal mucosa (VLEM): a true endoscopic manifestation of esophagitis in children?", "answer": "yes", "pmid": "9199905"}
+{"id": "pqa-9278754", "dataset": "pubmedqa", "question": "Are head and neck specific quality of life measures necessary?", "answer": "yes", "pmid": "9278754"}
+{"id": "pqa-9347843", "dataset": "pubmedqa", "question": "Laparoscopic-assisted ileocolic resections in patients with Crohn's disease: are abscesses, phlegmons, or recurrent disease contraindications?", "answer": "no", "pmid": "9347843"}
+{"id": "pqa-9483814", "dataset": "pubmedqa", "question": "Does para-cervical block offer additional advantages in abortion induction with gemeprost in the 2nd trimester?", "answer": "yes", "pmid": "9483814"}
+{"id": "pqa-10173769", "dataset": "pubmedqa", "question": "Longer term quality of life and outcome in stroke patients: is the Barthel index alone an adequate measure of outcome?", "answer": "yes", "pmid": "10173769"}
+{"id": "pqa-10411439", "dataset": "pubmedqa", "question": "Lloyd-Davies position with Trendelenburg--a disaster waiting to happen?", "answer": "yes", "pmid": "10411439"}
+{"id": "pqa-10781708", "dataset": "pubmedqa", "question": "Thrombosis prophylaxis in hospitalised medical patients: does prophylaxis in all patients make sense?", "answer": "no", "pmid": "10781708"}
+{"id": "pqa-11978239", "dataset": "pubmedqa", "question": "Do primary care physicians underprescribe antibiotics for peptic ulcer disease?", "answer": "yes", "pmid": "11978239"}
+{"id": "pqa-12070552", "dataset": "pubmedqa", "question": "Do antibiotics decrease post-tonsillectomy morbidity?", "answer": "no", "pmid": "12070552"}
+{"id": "pqa-12163782", "dataset": "pubmedqa", "question": "Increased neutrophil migratory activity after major trauma: a factor in the etiology of acute respiratory distress syndrome?", "answer": "yes", "pmid": "12163782"}
+{"id": "pqa-12172698", "dataset": "pubmedqa", "question": "Is withdrawal-induced anxiety in alcoholism based on beta-endorphin deficiency?", "answer": "yes", "pmid": "12172698"}
+{"id": "pqa-12484580", "dataset": "pubmedqa", "question": "Informed consent for total hip arthroplasty: does a written information sheet improve recall by patients?", "answer": "yes", "pmid": "12484580"}
+{"id": "pqa-12626177", "dataset": "pubmedqa", "question": "Can the Internet be used to improve sexual health awareness in web-wise young people?", "answer": "maybe", "pmid": "12626177"}
+{"id": "pqa-12805495", "dataset": "pubmedqa", "question": "Can patients be anticoagulated after intracerebral hemorrhage?", "answer": "maybe", "pmid": "12805495"}
+{"id": "pqa-12913878", "dataset": "pubmedqa", "question": "Locoregional opening of the rodent blood-brain barrier for paclitaxel using Nd:YAG laser-induced thermo therapy: a new concept of adjuvant glioma therapy?", "answer": "yes", "pmid": "12913878"}
+{"id": "pqa-12947068", "dataset": "pubmedqa", "question": "Do older men benefit from curative therapy of localized prostate cancer?", "answer": "yes", "pmid": "12947068"}
+{"id": "pqa-15052394", "dataset": "pubmedqa", "question": "Are higher rates of depression in women accounted for by differential symptom reporting?", "answer": "no", "pmid": "15052394"}
+{"id": "pqa-16538201", "dataset": "pubmedqa", "question": "Does use of hydrophilic guidewires significantly improve technical success rates of peripheral PTA?", "answer": "maybe", "pmid": "16538201"}
+{"id": "pqa-16872243", "dataset": "pubmedqa", "question": "Can decisional algorithms replace global introspection in the individual causality assessment of spontaneously reported ADRs?", "answer": "no", "pmid": "16872243"}
+{"id": "pqa-17096624", "dataset": "pubmedqa", "question": "Do patterns of knowledge and attitudes exist among unvaccinated seniors?", "answer": "yes", "pmid": "17096624"}
+{"id": "pqa-17276801", "dataset": "pubmedqa", "question": "Can elevated troponin I levels predict complicated clinical course and inhospital mortality in patients with acute pulmonary embolism?", "answer": "yes", "pmid": "17276801"}
+{"id": "pqa-17335331", "dataset": "pubmedqa", "question": "Diagnostic characteristics of child bipolar I disorder: does the \"Treatment of Early Age Mania (team)\" sample generalize?", "answer": "yes", "pmid": "17335331"}
+{"id": "pqa-17910536", "dataset": "pubmedqa", "question": "Adults with mild intellectual disabilities: can their reading comprehension ability be improved?", "answer": "yes", "pmid": "17910536"}
+{"id": "pqa-17971187", "dataset": "pubmedqa", "question": "Cholesterol screening in school children: is family history reliable to choose the ones to screen?", "answer": "no", "pmid": "17971187"}
+{"id": "pqa-18274917", "dataset": "pubmedqa", "question": "Prognosis of low-tone sudden deafness - does it inevitably progress to Meniere's disease?", "answer": "no", "pmid": "18274917"}
+{"id": "pqa-18359123", "dataset": "pubmedqa", "question": "Is it better to be big?", "answer": "no", "pmid": "18359123"}
+{"id": "pqa-18403945", "dataset": "pubmedqa", "question": "Does laparoscopic antireflux surgery improve quality of life in patients whose gastro-oesophageal reflux disease is well controlled with medical therapy?", "answer": "yes", "pmid": "18403945"}
+{"id": "pqa-18693227", "dataset": "pubmedqa", "question": "Does a geriatric oncology consultation modify the cancer treatment plan for elderly patients?", "answer": "yes", "pmid": "18693227"}
+{"id": "pqa-18801797", "dataset": "pubmedqa", "question": "Household and food shopping environments: do they play a role in socioeconomic inequalities in fruit and vegetable consumption?", "answer": "no", "pmid": "18801797"}
+{"id": "pqa-19027440", "dataset": "pubmedqa", "question": "Can we predict which head and neck cancer survivors develop fears of recurrence?", "answer": "yes", "pmid": "19027440"}
+{"id": "pqa-19130332", "dataset": "pubmedqa", "question": "Is the zeolite hemostatic agent beneficial in reducing blood loss during arterial injury?", "answer": "yes", "pmid": "19130332"}
+{"id": "pqa-19156007", "dataset": "pubmedqa", "question": "Can clinicians use the PHQ-9 to assess depression in people with vision loss?", "answer": "yes", "pmid": "19156007"}
+{"id": "pqa-19322056", "dataset": "pubmedqa", "question": "Does the enteral feeding advancement affect short-term outcomes in very low birth weight infants?", "answer": "yes", "pmid": "19322056"}
+{"id": "pqa-19578820", "dataset": "pubmedqa", "question": "Are opioid dependence and methadone maintenance treatment (MMT) documented in the medical record?", "answer": "maybe", "pmid": "19578820"}
+{"id": "pqa-19593710", "dataset": "pubmedqa", "question": "Could ESC (Electronic Stability Control) change the way we drive?", "answer": "yes", "pmid": "19593710"}
+{"id": "pqa-19608436", "dataset": "pubmedqa", "question": "Chemical shift MRI: is there any contribution to morphologic evaluation of solid breast masses?", "answer": "yes", "pmid": "19608436"}
+{"id": "pqa-20073599", "dataset": "pubmedqa", "question": "Do liquid-based preparations of urinary cytology perform differently than classically prepared cases?", "answer": "yes", "pmid": "20073599"}
+{"id": "pqa-20084845", "dataset": "pubmedqa", "question": "Biomolecular identification of allergenic pollen: a new perspective for aerobiological monitoring?", "answer": "yes", "pmid": "20084845"}
+{"id": "pqa-20130378", "dataset": "pubmedqa", "question": "Is low birth weight a risk indicator for congenital cytomegalovirus infection?", "answer": "no", "pmid": "20130378"}
+{"id": "pqa-20497146", "dataset": "pubmedqa", "question": "A model of healing of Los Angeles grades C and D reflux oesophagitis: is there an optimal time of acid suppression for maximal healing?", "answer": "yes", "pmid": "20497146"}
+{"id": "pqa-20602101", "dataset": "pubmedqa", "question": "Is hypoalbuminemia an independent prognostic factor in patients with gastric cancer?", "answer": "no", "pmid": "20602101"}
+{"id": "pqa-20736887", "dataset": "pubmedqa", "question": "Is decompressive surgery effective for spinal cord sarcoidosis accompanied with compressive cervical myelopathy?", "answer": "no", "pmid": "20736887"}
+{"id": "pqa-20850631", "dataset": "pubmedqa", "question": "Diagnosis and follow-up in constipated children: should we use ultrasound?", "answer": "yes", "pmid": "20850631"}
+{"id": "pqa-21550158", "dataset": "pubmedqa", "question": "Can autologous platelet-rich plasma gel enhance healing after surgical extraction of mandibular third molars?", "answer": "yes", "pmid": "21550158"}
+{"id": "pqa-21669959", "dataset": "pubmedqa", "question": "Secondhand smoke risk in infants discharged from an NICU: potential for significant health disparities?", "answer": "yes", "pmid": "21669959"}
+{"id": "pqa-21739621", "dataset": "pubmedqa", "question": "Does obesity predict knee pain over fourteen years in women, independently of radiographic changes?", "answer": "yes", "pmid": "21739621"}
+{"id": "pqa-21801416", "dataset": "pubmedqa", "question": "The effect of an intracerebroventricular injection of metformin or AICAR on the plasma concentrations of melatonin in the ewe: potential involvement of AMPK?", "answer": "yes", "pmid": "21801416"}
+{"id": "pqa-21864397", "dataset": "pubmedqa", "question": "Factors determining the survival of nasopharyngeal carcinoma with lung metastasis alone: does combined modality treatment benefit?", "answer": "yes", "pmid": "21864397"}
+{"id": "pqa-21865668", "dataset": "pubmedqa", "question": "Does automatic transmission improve driving behavior in older drivers?", "answer": "yes", "pmid": "21865668"}
+{"id": "pqa-22011946", "dataset": "pubmedqa", "question": "Does a preoperative medically supervised weight loss program improve bariatric surgery outcomes?", "answer": "no", "pmid": "22011946"}
+{"id": "pqa-22233470", "dataset": "pubmedqa", "question": "Does the distribution of health care benefits in Kenya meet the principles of universal coverage?", "answer": "no", "pmid": "22233470"}
+{"id": "pqa-22324545", "dataset": "pubmedqa", "question": "Are polymorphisms in oestrogen receptors genes associated with lipid levels in response to hormone therapy?", "answer": "yes", "pmid": "22324545"}
+{"id": "pqa-22427593", "dataset": "pubmedqa", "question": "Are normally sighted, visually impaired, and blind pedestrians accurate and reliable at making street crossing decisions?", "answer": "maybe", "pmid": "22427593"}
+{"id": "pqa-22440363", "dataset": "pubmedqa", "question": "Mitral replacement or repair for functional mitral regurgitation in dilated and ischemic cardiomyopathy: is it really the same?", "answer": "no", "pmid": "22440363"}
+{"id": "pqa-22449464", "dataset": "pubmedqa", "question": "Do general practice selection scores predict success at MRCGP?", "answer": "yes", "pmid": "22449464"}
+{"id": "pqa-22521460", "dataset": "pubmedqa", "question": "Does route of delivery affect maternal and perinatal outcome in women with eclampsia?", "answer": "no", "pmid": "22521460"}
+{"id": "pqa-22656647", "dataset": "pubmedqa", "question": "Are acceptance rates of a national preventive home visit programme for older people socially imbalanced?", "answer": "yes", "pmid": "22656647"}
+{"id": "pqa-22683044", "dataset": "pubmedqa", "question": "Does open access publishing increase the impact of scientific articles?", "answer": "yes", "pmid": "22683044"}
+{"id": "pqa-22849512", "dataset": "pubmedqa", "question": "Are neighbourhood social capital and availability of sports facilities related to sports participation among Dutch adolescents?", "answer": "maybe", "pmid": "22849512"}
+{"id": "pqa-22867778", "dataset": "pubmedqa", "question": "Does responsibility affect the public's valuation of health care interventions?", "answer": "maybe", "pmid": "22867778"}
+{"id": "pqa-23072266", "dataset": "pubmedqa", "question": "Has the use of complementary and alternative medicine therapies by U.S. adults with chronic disease-related functional limitations changed from 2002 to 2007?", "answer": "yes", "pmid": "23072266"}
+{"id": "pqa-23076787", "dataset": "pubmedqa", "question": "Can increases in the cigarette tax rate be linked to cigarette retail prices?", "answer": "no", "pmid": "23076787"}
+{"id": "pqa-23283159", "dataset": "pubmedqa", "question": "Is obesity a risk factor for wheezing among adolescents?", "answer": "yes", "pmid": "23283159"}
+{"id": "pqa-23361217", "dataset": "pubmedqa", "question": "Does the type of tibial component affect mechanical alignment in unicompartmental knee replacement?", "answer": "yes", "pmid": "23361217"}
+{"id": "pqa-23568387", "dataset": "pubmedqa", "question": "Is bicompartmental knee arthroplasty more favourable to knee muscle strength and physical performance compared to total knee arthroplasty?", "answer": "no", "pmid": "23568387"}
+{"id": "pqa-23677366", "dataset": "pubmedqa", "question": "Do oblique views add value in the diagnosis of spondylolysis in adolescents?", "answer": "no", "pmid": "23677366"}
+{"id": "pqa-23719685", "dataset": "pubmedqa", "question": "Does high-dose radiotherapy benefit palliative lung cancer patients?", "answer": "no", "pmid": "23719685"}
+{"id": "pqa-24191126", "dataset": "pubmedqa", "question": "Is CA72-4 a useful biomarker in differential diagnosis between ovarian endometrioma and epithelial ovarian cancer?", "answer": "yes", "pmid": "24191126"}
+{"id": "pqa-24298614", "dataset": "pubmedqa", "question": "Is the 7th TNM edition suitable for biological predictor in early gastric cancer?", "answer": "yes", "pmid": "24298614"}
+{"id": "pqa-24519615", "dataset": "pubmedqa", "question": "Does patella position influence ligament balancing in total knee arthroplasty?", "answer": "yes", "pmid": "24519615"}
+{"id": "pqa-24622801", "dataset": "pubmedqa", "question": "Does implant coating with antibacterial-loaded hydrogel reduce bacterial colonization and biofilm formation in vitro?", "answer": "yes", "pmid": "24622801"}
+{"id": "pqa-24671913", "dataset": "pubmedqa", "question": "Does SYNTAX score predict in-hospital outcomes in patients with ST elevation myocardial infarction undergoing primary percutaneous coronary intervention?", "answer": "yes", "pmid": "24671913"}
+{"id": "pqa-24751724", "dataset": "pubmedqa", "question": "Does ethnicity affect where people with cancer die?", "answer": "yes", "pmid": "24751724"}
+{"id": "pqa-24866606", "dataset": "pubmedqa", "question": "Do emergency ultrasound fellowship programs impact emergency medicine residents' ultrasound education?", "answer": "yes", "pmid": "24866606"}
+{"id": "pqa-25043083", "dataset": "pubmedqa", "question": "Are failures of anterior cruciate ligament reconstruction associated with steep posterior tibial slopes?", "answer": "yes", "pmid": "25043083"}
+{"id": "pqa-25155638", "dataset": "pubmedqa", "question": "Can routine offering of influenza vaccination in office-based settings reduce racial and ethnic disparities in adult influenza vaccination?", "answer": "yes", "pmid": "25155638"}
+{"id": "pqa-25156467", "dataset": "pubmedqa", "question": "Should early extubation be the goal for children after congenital cardiac surgery?", "answer": "yes", "pmid": "25156467"}
+{"id": "pqa-25432938", "dataset": "pubmedqa", "question": "Did Chile's traffic law reform push police enforcement?", "answer": "yes", "pmid": "25432938"}
+{"id": "pqa-25481573", "dataset": "pubmedqa", "question": "Processing fluency effects: can the content and presentation of participant information sheets influence recruitment and participation for an antenatal intervention?", "answer": "yes", "pmid": "25481573"}
+{"id": "pqa-25499207", "dataset": "pubmedqa", "question": "Is neck pain associated with worse health-related quality of life 6 months later?", "answer": "yes", "pmid": "25499207"}
+{"id": "pqa-25604390", "dataset": "pubmedqa", "question": "Aberrant loss of dickkopf-3 in gastric cancer: can it predict lymph node metastasis preoperatively?", "answer": "yes", "pmid": "25604390"}
+{"id": "pqa-25885219", "dataset": "pubmedqa", "question": "Maternal creatine homeostasis is altered during gestation in the spiny mouse: is this a metabolic adaptation to pregnancy?", "answer": "yes", "pmid": "25885219"}
+{"id": "pqa-25940336", "dataset": "pubmedqa", "question": "Does Residency Selection Criteria Predict Performance in Orthopaedic Surgery Residency?", "answer": "yes", "pmid": "25940336"}
+{"id": "pqa-26079501", "dataset": "pubmedqa", "question": "Does base deficit predict mortality in patients with severe traumatic brain injury?", "answer": "no", "pmid": "26079501"}
+{"id": "pqa-26104852", "dataset": "pubmedqa", "question": "Can echocardiography and ECG discriminate hereditary transthyretin V30M amyloidosis from hypertrophic cardiomyopathy?", "answer": "yes", "pmid": "26104852"}
+{"id": "pqa-26460153", "dataset": "pubmedqa", "question": "Cardiac reoperations in octogenarians: Do they really benefit?", "answer": "yes", "pmid": "26460153"}
+{"id": "pqa-26485091", "dataset": "pubmedqa", "question": "Does the use of atypical antipsychotics as adjunctive therapy in depression result in cost savings?", "answer": "no", "pmid": "26485091"}
+{"id": "pqa-26536001", "dataset": "pubmedqa", "question": "Is There an Additional Value of Using Somatostatin Receptor Subtype 2a Immunohistochemistry Compared to Somatostatin Receptor Scintigraphy Uptake in Predicting Gastroenteropancreatic Neuroendocrine Tumor Response?", "answer": "no", "pmid": "26536001"}
+{"id": "pqa-26784147", "dataset": "pubmedqa", "question": "Target Serum Urate: Do Gout Patients Know Their Goal?", "answer": "no", "pmid": "26784147"}
+{"id": "pqa-26879871", "dataset": "pubmedqa", "question": "Does depression diagnosis and antidepressant prescribing vary by location?", "answer": "yes", "pmid": "26879871"}
+{"id": "pqa-26907557", "dataset": "pubmedqa", "question": "Can a Novel Surgical Approach to the Temporomandibular Joint Improve Access and Reduce Complications?", "answer": "yes", "pmid": "26907557"}
+{"id": "pqa-27078715", "dataset": "pubmedqa", "question": "Digital Tomosynthesis: A Viable Alternative to Noncontrast Computed Tomography for the Follow-Up of Nephrolithiasis?", "answer": "yes", "pmid": "27078715"}
+{"id": "pqa-27096199", "dataset": "pubmedqa", "question": "Does Viral Co-Infection Influence the Severity of Acute Respiratory Infection in Children?", "answer": "no", "pmid": "27096199"}
+{"id": "pqa-27287237", "dataset": "pubmedqa", "question": "Assessment of appropriate antimicrobial prescribing: do experts agree?", "answer": "yes", "pmid": "27287237"}
+{"id": "pqa-27491658", "dataset": "pubmedqa", "question": "Can predilatation in transcatheter aortic valve implantation be omitted?", "answer": "yes", "pmid": "27491658"}
+{"id": "pqa-27592038", "dataset": "pubmedqa", "question": "Does multi-modal cervical physical therapy improve tinnitus in patients with cervicogenic somatic tinnitus?", "answer": "yes", "pmid": "27592038"}
