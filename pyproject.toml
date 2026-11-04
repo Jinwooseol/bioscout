@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 license = "MIT"
 keywords = ["mcp", "agent", "pubmed", "rag", "llm-evaluation", "bioinformatics"]
 dependencies = [
+    "anthropic>=2.4.0",
     "httpx>=0.28.1",
     "mcp>=2.3,<3",
     "pydantic>=2.14.2",
@@ -17,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 bioscout-mcp = "bioscout.mcp_server:main"
+bioscout-eval = "bioscout.evals.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]

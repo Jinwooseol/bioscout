@@ -35,6 +35,8 @@ class Settings:
     cache_mode: CacheMode = CacheMode.READWRITE
     cache_ttl_days: int = 30
     http_timeout_s: float = 20.0
+    llm_model: str = "claude-opus-5-5"
+    llm_effort: str = "medium"
 
     @property
     def ncbi_requests_per_second(self) -> float:
@@ -53,4 +55,6 @@ class Settings:
             cache_dir=Path(cache_dir).expanduser() if cache_dir else cls().cache_dir,
             cache_mode=CacheMode(env.get("BIOSCOUT_CACHE_MODE", CacheMode.READWRITE)),
             cache_ttl_days=int(env.get("BIOSCOUT_CACHE_TTL_DAYS", 30)),
+            llm_model=env.get("BIOSCOUT_MODEL") or cls.llm_model,
+            llm_effort=env.get("BIOSCOUT_EFFORT") or cls.llm_effort,
         )
