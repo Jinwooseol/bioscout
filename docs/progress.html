@@ -83,7 +83,7 @@
 <script>
 /* ── Edit this object to update the page. status: done | doing | todo | cut ── */
 const PROGRESS = {
-  updated: "2026-11-04",
+  updated: "2026-11-06",
   today: 2,
   days: [
     { day: 1, date: "11/3 (화)", title: "기반 + MCP 서버", tasks: [
@@ -97,7 +97,7 @@ const PROGRESS = {
       { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "done", why: "11/4 복원. 커밋 5개, origin 등록 완료" },
       { t: "실제 API 스모크 테스트", s: "done", why: "11/4 PC에서 도구 5개 모두 PASS" },
       { t: "NCBI API 키 발급, .env 설정", s: "todo", why: "키 없이도 동작(초당 3건). 평가 전체 실행 전에 발급 권장" },
-      { t: "GitHub 원격 저장소 연결과 첫 push", s: "todo", why: "origin은 등록됨. github.com에 빈 저장소 Jinwooseol/bioscout 생성 후 push 필요" },
+      { t: "GitHub 원격 저장소 연결과 첫 push", s: "done", why: "11/6 Jinwooseol/bioscout에 main 커밋 9개 push, GitHub Actions CI 통과" },
     ]},
     { day: 2, date: "11/4 (수)", title: "평가셋 + baseline", tasks: [
       { t: "PubMedQA PQA-L에서 100문항 무작위 추출" , s: "done", why: "시드 2026, yes 66 · no 27 · maybe 7. PMID · 질문 · 라벨만 저장" },
@@ -181,6 +181,15 @@ const PROGRESS = {
         "질문 그대로 검색: 원 논문 recall@10 85/100, 검색 결과 0건 11문항",
         "도메인 셋 초안 15문항, must-cite PMID 40개, check-datasets 누락 0건",
         "단위 테스트 17 → 32개",
+      ],
+    },
+    { date: "2026-11-06", day: 2, title: "GitHub 첫 push",
+      decided: [
+        "Day 2 변경분을 데이터셋, 평가 하네스, 문서 세 커밋으로 나눴다. 하네스 테스트가 PubMedQA 파일을 읽어서 데이터셋을 먼저 커밋했다. 어느 커밋을 꺼내도 테스트가 통과한다.",
+      ],
+      blocked: [],
+      numbers: [
+        "main 커밋 9개를 github.com/Jinwooseol/bioscout에 push, 첫 CI 실행(ruff, pytest 32개) 통과",
       ],
     },
   ],
