@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
-from bioscout.answer import CitedAnswer, CitedSentence, SearchLog, Usage
+from bioscout.answer import CitedAnswer, CitedSentence, SearchLog
 from bioscout.cache import ResponseCache
 from bioscout.config import CacheMode, Settings
 from bioscout.evals.datasets import EvalItem, KeyPoint, load_dataset
@@ -19,47 +18,7 @@ from bioscout.evals.runner import load_records, run_eval, write_report
 from bioscout.evals.variants import VARIANTS, Context
 from bioscout.http import CacheMissError
 from bioscout.llm import ClaudeLLM, LLMError, LLMResult
-from bioscout.models import AbstractBatch, ArticleAbstract, ArticleSummary, PmidCheck, SearchResult
-
-REAL = {"10000001", "10000002", "10000003"}  # the only PMIDs the fake PubMed knows
-
-
-@dataclass
-class FakeLLM:
-    replies: list[dict[str, Any] | None]  # None = refusal
-    model: str = "claude-opus-5-5"
-    effort: str = "medium"
-    calls: list[dict[str, Any]] = field(default_factory=list)
-
-    async def json(self, *, system: str, user: str, schema: dict, max_tokens: int = 16000) -> LLMResult:
-        self.calls.append({"system": system, "user": user})
-        data = self.replies.pop(0)
-        usage = Usage(usd=0.01, llm_calls=1, input_tokens=100, output_tokens=50, model=self.model)
-        return LLMResult(data=data, usage=usage, stop_reason="refusal" if data is None else "end_turn")
-
-
-class FakePubMed:
-    def __init__(self, hits: list[str] | None = None) -> None:
-        self.hits = hits if hits is not None else ["10000002", "10000001"]
-        self.queries: list[str] = []
-
-    async def search(self, query: str, max_results: int = 10) -> SearchResult:
-        self.queries.append(query)
-        arts = [ArticleSummary(pmid=p, title=f"Synthetic {p}") for p in self.hits[:max_results]]
-        return SearchResult(query=query, total_found=len(self.hits), articles=arts)
-
-    async def abstracts(self, pmids: list[str]) -> AbstractBatch:
-        return AbstractBatch(articles=[ArticleAbstract(pmid=p, title=f"Synthetic {p}") for p in pmids])
-
-    async def check_pmids(self, pmids: list[str]) -> PmidCheck:
-        return PmidCheck(
-            existing=[p for p in pmids if p in REAL], missing=[p for p in pmids if p not in REAL]
-        )
-
-
-def reply(decision: str, *sentences: tuple[str, list[str]]) -> dict[str, Any]:
-    return {"decision": decision, "sentences": [{"text": t, "citations": c} for t, c in sentences]}
-
+from tests.fakes import REAL, FakeLLM, FakePubMed, reply
 
 PQA = EvalItem(
     id="pqa-10000001", dataset="pubmedqa", question="Is X better than Y?", answer="yes", pmid="10000001"
@@ -90,6 +49,7 @@ async def test_naive_rag_searches_the_question_verbatim_and_passes_abstracts():
 
     assert pubmed.queries == ["Is X better than Y?"]
     assert answer.searches[0].pmids == ["10000002", "10000001"]
+    assert answer.context_pmids == ["10000002", "10000001"]
     assert "PMID 10000002 | Synthetic 10000002" in llm.calls[0]["user"]
     assert answer.usage.tool_calls == 2
 

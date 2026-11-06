@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 import xml.etree.ElementTree as ET
-from typing import Any
+from typing import Any, Protocol
 
 from bioscout.http import CachedHttp
 from bioscout.models import (
@@ -37,6 +37,16 @@ def normalize_pmids(pmids: list[str]) -> list[str]:
         if _PMID_RE.match(pmid):
             seen.setdefault(pmid, None)
     return list(seen)
+
+
+class Literature(Protocol):
+    """The slice of PubMed that the agent, the eval variants and scoring use (faked in tests)."""
+
+    async def search(self, query: str, max_results: int = 10) -> SearchResult: ...
+
+    async def abstracts(self, pmids: list[str]) -> AbstractBatch: ...
+
+    async def check_pmids(self, pmids: list[str]) -> PmidCheck: ...
 
 
 class PubMed:

@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 
 from bioscout.answer import CitedAnswer
 from bioscout.evals.datasets import EvalItem
-from bioscout.evals.variants import Literature
 from bioscout.models import PmidCheck
+from bioscout.sources.pubmed import Literature
 
 
 class ItemScores(BaseModel):
@@ -23,6 +23,9 @@ class ItemScores(BaseModel):
     fabricated_pmids: list[str] = Field(default_factory=list)
     correct: bool | None = Field(default=None, description="PubMedQA: decision matches the label")
     retrieved_gold: bool | None = Field(default=None, description="PubMedQA: source paper in a top 10")
+    gold_in_context: bool | None = Field(
+        default=None, description="PubMedQA: source paper among the abstracts given to the answer step"
+    )
     gold_cited: bool | None = Field(default=None, description="PubMedQA: source paper cited")
     must_cite_recall: float | None = Field(default=None, description="Domain: share of must-cite cited")
 
@@ -56,6 +59,7 @@ async def score_item(item: EvalItem, answer: CitedAnswer, pubmed: Literature) ->
         scores.gold_cited = item.pmid in existing
         if answer.searches:
             scores.retrieved_gold = any(item.pmid in s.pmids[:10] for s in answer.searches)
+            scores.gold_in_context = item.pmid in answer.context_pmids
     if item.must_cite:
         scores.must_cite_recall = len(set(item.must_cite) & existing) / len(set(item.must_cite))
     return scores
@@ -92,6 +96,7 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
         "citation_rate": sum(s.cited_sentences for s in scores) / sentences if sentences else None,
         "accuracy": _mean([s.correct for s in scores if s.correct is not None]),
         "retrieval_recall_at_10": _mean([s.retrieved_gold for s in scores if s.retrieved_gold is not None]),
+        "gold_in_context_rate": _mean([s.gold_in_context for s in scores if s.gold_in_context is not None]),
         "gold_cited_rate": _mean([s.gold_cited for s in scores if s.gold_cited is not None]),
         "must_cite_recall": _mean([s.must_cite_recall for s in scores if s.must_cite_recall is not None]),
         "usd_per_query": None if None in usd else _mean(usd),
@@ -141,6 +146,7 @@ COLUMNS = [
     ("citation_rate", "Sentences cited", "pct"),
     ("accuracy", "Accuracy", "pct"),
     ("retrieval_recall_at_10", "Recall@10", "pct"),
+    ("gold_in_context_rate", "Source in context", "pct"),
     ("gold_cited_rate", "Source cited", "pct"),
     ("must_cite_recall", "Must-cite recall", "pct"),
     ("usd_per_query", "$/query", "usd"),

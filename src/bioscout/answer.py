@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import Literal
 
@@ -46,6 +47,13 @@ class Usage(BaseModel):
     model: str | None = Field(default=None, description="Model that produced the final answer")
     fell_back: bool = Field(default=False, description="A fallback model answered after a refusal")
 
+    @classmethod
+    def total(cls, usages: Iterable[Usage]) -> Usage:
+        out = cls()
+        for usage in usages:
+            out.add(usage)
+        return out
+
     def add(self, other: Usage) -> None:
         """Accumulate another call's usage. Latency is measured end to end by the caller instead."""
         self.usd = None if self.usd is None or other.usd is None else self.usd + other.usd
@@ -64,6 +72,9 @@ class CitedAnswer(BaseModel):
     sentences: list[CitedSentence] = Field(default_factory=list)
     dropped: list[DroppedSentence] = Field(default_factory=list)
     searches: list[SearchLog] = Field(default_factory=list)
+    context_pmids: list[str] = Field(
+        default_factory=list, description="PMIDs whose abstracts the answering step was given"
+    )
     usage: Usage = Field(default_factory=Usage)
     refused: bool = False
 
