@@ -50,9 +50,9 @@
       <text class="t" x="145" y="46" text-anchor="middle">Streamlit 데모</text>
       <text class="s" x="145" y="66" text-anchor="middle">답변 · 인용 카드 · 검증 배지 (Day 6)</text>
 
-      <rect class="box planned" x="325" y="20" width="250" height="60" rx="10"/>
+      <rect class="box accent" x="325" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="450" y="46" text-anchor="middle">평가 하네스</text>
-      <text class="s" x="450" y="66" text-anchor="middle">변형 A–D 실행 · 지표 계산 (Day 2)</text>
+      <text class="s" x="450" y="66" text-anchor="middle">변형 A–C 구현 · D는 Day 4</text>
 
       <rect class="box planned" x="630" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="755" y="46" text-anchor="middle">결과표 · CI 게이트</text>
@@ -61,13 +61,13 @@
       <rect class="group" x="20" y="130" width="860" height="170" rx="12"/>
       <text class="t" x="40" y="157">리서치 에이전트 (LangGraph, Day 3–4)</text>
 
-      <rect class="box planned" x="40" y="180" width="185" height="64" rx="10"/>
+      <rect class="box accent" x="40" y="180" width="185" height="64" rx="10"/>
       <text class="t" x="132.5" y="207" text-anchor="middle">계획</text>
       <text class="s" x="132.5" y="227" text-anchor="middle">질문 분해 · MeSH 확장</text>
-      <rect class="box planned" x="255" y="180" width="185" height="64" rx="10"/>
+      <rect class="box accent" x="255" y="180" width="185" height="64" rx="10"/>
       <text class="t" x="347.5" y="207" text-anchor="middle">검색 · 선별</text>
       <text class="s" x="347.5" y="227" text-anchor="middle">초록 읽고 관련 논문 고르기</text>
-      <rect class="box planned" x="470" y="180" width="185" height="64" rx="10"/>
+      <rect class="box accent" x="470" y="180" width="185" height="64" rx="10"/>
       <text class="t" x="562.5" y="207" text-anchor="middle">인용 답변 생성</text>
       <text class="s" x="562.5" y="227" text-anchor="middle">문장마다 PMID · JSON</text>
       <rect class="box planned" x="685" y="180" width="185" height="64" rx="10" style="stroke:var(--cy5)"/>
@@ -118,7 +118,7 @@
       <tr><td>데이터 소스</td><td>PubMed, Europe PMC, ClinicalTrials.gov 응답을 타입이 있는 레코드로 파싱</td><td><code>src/bioscout/sources/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>HTTP · 캐시</td><td>호스트별 속도 제한, 429/5xx 재시도, SQLite 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성. <a href="#harness">상세 설계</a></td><td><code>src/bioscout/evals/</code>, <code>evals/</code></td><td><span class="tag built">구현됨</span></td></tr>
-      <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행</td><td><code>src/bioscout/agent/</code></td><td><span class="tag">Day 3</span></td></tr>
+      <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행. <a href="#agent">상세 설계</a></td><td><code>src/bioscout/agent/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>인용 검증기</td><td>(문장, 초록) 쌍을 지지 / 부분 지지 / 무관으로 판정, 재검색·삭제 결정</td><td><code>src/bioscout/verifier/</code></td><td><span class="tag">Day 4</span></td></tr>
       <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">Day 5</span></td></tr>
       <tr><td>데모</td><td>Streamlit UI, Docker, Hugging Face Spaces 배포</td><td><code>app/</code></td><td><span class="tag">Day 6</span></td></tr>
@@ -140,6 +140,7 @@
   ],
   "dropped": [ { "text": "...", "citations": ["10000003"], "reason": "pmid_not_found" } ],
   "searches": [ { "query": "\"microsatellite instability\"[MeSH] AND ...", "pmids": ["..."] } ],
+  "context_pmids": ["10000002"],       // 답변 단계에 초록을 준 PMID (Day 3 추가)
   "usage": { "usd": 0.0, "latency_ms": 0, "tool_calls": 0, "model": "claude-opus-5-5" }
 }</code></pre>
 
@@ -176,7 +177,7 @@
     <tbody>
       <tr><td>A. LLM 단독</td><td>도구 없이 답변 + PMID 인용 요청</td><td>인용 환각이 실제로 얼마나 일어나는가</td></tr>
       <tr><td>B. 단순 RAG</td><td>질문 그대로 PubMed 상위 10건 초록 → 답변</td><td>일반적인 RAG의 한계</td></tr>
-      <tr><td>C. 에이전트</td><td>질문 분해, 검색어 재작성, 다중 도구</td><td>에이전트 설계의 효과</td></tr>
+      <tr><td>C. 에이전트</td><td>질문 분해, MeSH 검색어, 초록 선별, 재검색 1회. <a href="#agent">상세 설계</a></td><td>에이전트 설계의 효과</td></tr>
       <tr><td>D. 에이전트 + 검증</td><td>C + 인용 검증 · 재검색 루프</td><td>검증 루프의 효과와 그 비용</td></tr>
     </tbody>
   </table></div>
@@ -211,8 +212,8 @@
       <text class="t" x="415" y="160" text-anchor="middle">B. 단순 RAG</text>
       <text class="s" x="415" y="179" text-anchor="middle">질문 그대로 검색 10건 → 초록 → 답변</text>
       <rect class="box planned" x="270" y="208" width="290" height="56" rx="10"/>
-      <text class="t" x="415" y="232" text-anchor="middle">C · D (Day 3–4)</text>
-      <text class="s" x="415" y="251" text-anchor="middle">에이전트, 에이전트 + 인용 검증</text>
+      <text class="t" x="415" y="232" text-anchor="middle">C · D</text>
+      <text class="s" x="415" y="251" text-anchor="middle">에이전트(구현됨), + 인용 검증(Day 4)</text>
 
       <rect class="box strong" x="640" y="64" width="240" height="56" rx="10"/>
       <text class="t" x="760" y="88" text-anchor="middle">Claude API</text>
@@ -264,7 +265,9 @@
     <tbody>
       <tr><td><code>src/bioscout/answer.py</code></td><td>답변 데이터 계약(<code>CitedAnswer</code>). 변형, 데모, 채점이 모두 이 모델을 씀</td><td>커밋</td></tr>
       <tr><td><code>src/bioscout/llm.py</code></td><td>Claude 호출 래퍼: JSON 스키마 출력, refusal fallback, 토큰 비용 계산, 응답 캐시</td><td>커밋</td></tr>
-      <tr><td><code>src/bioscout/evals/</code></td><td><code>datasets</code> 로딩, <code>variants</code>(A, B), <code>metrics</code>, <code>runner</code>, <code>cli</code></td><td>커밋</td></tr>
+      <tr><td><code>src/bioscout/prompts.py</code></td><td>답변 스키마와 지시, B와 C가 함께 쓰는 답변 프롬프트, 초록 서식</td><td>커밋</td></tr>
+      <tr><td><code>src/bioscout/agent/</code></td><td>변형 C의 LangGraph 그래프(<code>graph.py</code>)와 계획·선별 프롬프트(<code>prompts.py</code>)</td><td>커밋</td></tr>
+      <tr><td><code>src/bioscout/evals/</code></td><td><code>datasets</code> 로딩, <code>variants</code>(A, B, C), <code>metrics</code>, <code>runner</code>, <code>cli</code></td><td>커밋</td></tr>
       <tr><td><code>evals/datasets/</code></td><td>문항 JSONL. PMID, 질문, 라벨, 우리가 쓴 핵심 포인트만. 초록·본문 없음</td><td>커밋</td></tr>
       <tr><td><code>evals/runs/&lt;run_id&gt;/</code></td><td><code>records.jsonl</code>(문항별 답변과 채점), <code>meta.json</code>(모델, effort, 프롬프트 해시)</td><td>제외</td></tr>
       <tr><td><code>evals/reports/&lt;run_id&gt;.json</code>, <code>.md</code></td><td>변형별 요약 수치와 결과표</td><td>커밋</td></tr>
@@ -326,6 +329,129 @@
     </tbody>
   </table></div>
   <p class="note">Opus 5.5 단가(입력 $4, 출력 $20 / 백만 토큰) 기준 추정입니다. <code>--limit 10</code> 실행의 실측값으로 바꿔 적습니다.</p>
+
+  <h2 id="agent">리서치 에이전트 (Day 3) <span class="tag built">구현됨</span></h2>
+  <p>변형 C는 B와 같은 답변 단계에 "무엇을 읽을지 고르는 일"만 더합니다. 질문을 개념으로 나눠 검색어를 쓰고, 찾은 초록을 읽어 근거가 되는 논문만 고르고, 부족하면 한 번 더 찾습니다. 답변 단계의 시스템 프롬프트, 출력 스키마, 초록 수 상한(10건)은 B와 같습니다. 그래서 B와 C의 차이는 "어떤 초록을 읽었나"에서만 나옵니다.</p>
+
+  <figure class="bleed">
+    <svg viewBox="0 0 900 400" role="img" aria-labelledby="agent-title">
+      <title id="agent-title">에이전트 그래프: 질문이 계획, 검색, 선별을 거치고, 근거가 부족하면 새 검색어로 한 번 더 검색한 뒤 인용 답변을 만든다. Day 4에는 답변 뒤에 인용 검증이 붙는다</title>
+      <defs>
+        <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+        <marker id="gloop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
+      </defs>
+
+      <rect class="box strong" x="20" y="60" width="110" height="72" rx="10"/>
+      <text class="t" x="75" y="92" text-anchor="middle">질문</text>
+      <text class="s" x="75" y="112" text-anchor="middle">문항 · 사용자</text>
+
+      <rect class="box accent" id="n-plan" x="170" y="60" width="200" height="72" rx="10"/>
+      <text class="t" x="270" y="86" text-anchor="middle">계획 · LLM</text>
+      <text class="s" x="270" y="106" text-anchor="middle">하위 질문 · 검색어 2–4개</text>
+      <text class="s" x="270" y="122" text-anchor="middle">MeSH + [tiab] 동의어</text>
+
+      <rect class="box accent" id="n-search" x="420" y="60" width="200" height="72" rx="10"/>
+      <text class="t" x="520" y="86" text-anchor="middle">검색 · 도구</text>
+      <text class="s" x="520" y="106" text-anchor="middle">검색어별 상위 10건, 병렬</text>
+      <text class="s" x="520" y="122" text-anchor="middle">새 후보 초록 최대 25건</text>
+
+      <rect class="box accent" id="n-screen" x="670" y="60" width="210" height="72" rx="10"/>
+      <text class="t" x="775" y="86" text-anchor="middle">선별 · LLM</text>
+      <text class="s" x="775" y="106" text-anchor="middle">초록 읽고 근거 논문 고르기</text>
+      <text class="s" x="775" y="122" text-anchor="middle">충분한지 판단</text>
+
+      <path class="edge" d="M130 96H168" marker-end="url(#g)"/>
+      <path class="edge" d="M370 96H418" marker-end="url(#g)"/>
+      <path class="edge" d="M620 96H668" marker-end="url(#g)"/>
+      <path class="edge" d="M775 60V30H520V58" marker-end="url(#g)"/>
+      <text class="s" x="647" y="22" text-anchor="middle">부족하면 새 검색어로 한 번 더</text>
+
+      <path class="edge" d="M775 132V188" marker-end="url(#g)"/>
+      <text class="s" x="785" y="166">충분하거나 2회째</text>
+
+      <rect class="box accent" id="n-answer" x="670" y="190" width="210" height="72" rx="10"/>
+      <text class="t" x="775" y="216" text-anchor="middle">인용 답변 · LLM</text>
+      <text class="s" x="775" y="236" text-anchor="middle">선별 초록 최대 10건</text>
+      <text class="s" x="775" y="252" text-anchor="middle">B와 같은 시스템 프롬프트</text>
+
+      <rect class="box accent" x="420" y="190" width="200" height="72" rx="10"/>
+      <text class="t" x="520" y="216" text-anchor="middle">CitedAnswer</text>
+      <text class="s" x="520" y="236" text-anchor="middle">searches · context_pmids</text>
+      <text class="s" x="520" y="252" text-anchor="middle">usage: LLM 3–4회 합계</text>
+      <path class="edge" d="M670 226H622" marker-end="url(#g)"/>
+
+      <rect class="box accent" x="170" y="190" width="200" height="72" rx="10"/>
+      <text class="t" x="270" y="216" text-anchor="middle">평가 하네스 · 데모</text>
+      <text class="s" x="270" y="236" text-anchor="middle">변형 C로 채점</text>
+      <text class="s" x="270" y="252" text-anchor="middle">Day 6 데모도 같은 그래프</text>
+      <path class="edge" d="M420 226H372" marker-end="url(#g)"/>
+
+      <rect class="box planned" x="670" y="310" width="210" height="64" rx="10" style="stroke:var(--cy5)"/>
+      <text class="t" x="775" y="336" text-anchor="middle">인용 검증 (Day 4)</text>
+      <text class="s" x="775" y="356" text-anchor="middle">변형 D에만 붙는 노드</text>
+      <path class="edge loop" d="M775 262V308" marker-end="url(#gloop)"/>
+      <path class="edge loop" d="M670 342H395V160H480V134" marker-end="url(#gloop)"/>
+      <text class="s" x="532" y="364" text-anchor="middle">근거 없는 문장은 다시 검색, 그래도 없으면 삭제</text>
+    </svg>
+    <figcaption>초록색 상자는 구현된 부분입니다. 붉은 점선은 Day 4에 변형 D로 붙일 검증 루프입니다. 순환이 있는 그래프라 LangGraph로 만들었습니다.</figcaption>
+  </figure>
+
+  <h3>노드</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>노드</th><th>하는 일</th><th>입력 → 출력</th><th>호출</th><th>상한</th></tr></thead>
+    <tbody>
+      <tr><td><code>plan</code></td><td>질문을 개념(대상, 개입·노출, 결과, 비교)으로 나누고 개념마다 MeSH와 [tiab] 동의어로 검색어를 씀. 반대 근거를 찾을 넓은 검색어도 하나 넣음</td><td>질문 → 하위 질문과 검색어</td><td>LLM 1회</td><td>검색어 4개</td></tr>
+      <tr><td><code>search</code></td><td>검색어마다 PubMed 상위 10건을 받고, 처음 보는 PMID의 초록을 가져옴. 검색어별로 번갈아 뽑아 한 검색어가 후보를 독차지하지 않게 함</td><td>검색어 → <code>SearchLog</code>, 초록</td><td>검색 · 초록 도구, 병렬</td><td>라운드당 새 후보 25건</td></tr>
+      <tr><td><code>screen</code></td><td>후보 초록을 읽고 질문에 근거가 되는 논문을 관련도 순으로 고름. 부족하면 빠진 근거와 새 검색어를 냄. 검색 결과가 0건이어도 호출되어 더 넓은 검색어를 냄</td><td>질문, 지금까지의 검색어와 건수, 후보 초록 → 선택 PMID, 충분 여부, 새 검색어</td><td>LLM 라운드당 1회</td><td>2라운드, 새 검색어 3개</td></tr>
+      <tr><td><code>answer</code></td><td>선택한 초록만 주고 문장별 인용 답변을 받음. 시스템 프롬프트와 스키마는 B와 같음</td><td>질문, 선택 초록 → <code>CitedAnswer</code></td><td>LLM 1회</td><td>초록 10건</td></tr>
+    </tbody>
+  </table></div>
+
+<pre><code># 그래프 상태 (src/bioscout/agent/graph.py)
+question: str
+round: int                    # 검색 라운드, 1부터
+pending_queries: list[str]    # 다음 search 노드가 실행할 검색어
+searches: list[SearchLog]     # 누적, 실행 순서대로
+abstracts: dict[pmid, ArticleAbstract]   # 가져온 초록 전체
+fresh: list[pmid]             # 이번 라운드에 새로 가져온 PMID. 선별에는 이전 선택 + 새 후보만 보여 줌
+selected: list[pmid]          # 선별 결과, 관련도 순
+usages: list[Usage]           # LLM · 도구 호출별, 끝에서 합산
+refused: bool                 # 어느 단계든 거절이면 바로 종료</code></pre>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>답변 단계는 B와 같은 시스템 프롬프트, 스키마, 초록 상한 10건</td><td>B 대비 개선이 검색·선별에서 왔다고 말할 수 있음. 공유 프롬프트는 <code>src/bioscout/prompts.py</code>로 옮겨 두 변형이 같은 상수를 씀</td><td>에이전트 전용 답변 프롬프트</td></tr>
+      <tr><td>정해진 그래프 + 조건부 재검색 1회</td><td>질의당 LLM 호출이 3–4회로 정해져 비용 상한이 분명함. 단계마다 JSON 호출 하나라 응답 캐시로 재생되고, 가짜 LLM으로 단계별 테스트 가능</td><td>모델이 도구를 자유롭게 부르는 tool-use 루프. 호출 수가 문항마다 달라 비용과 재현성이 흔들림</td></tr>
+      <tr><td>LangGraph <code>StateGraph</code></td><td>Day 4 검증 루프(조건 분기와 순환)를 노드 하나로 붙이고, Day 5에 Langfuse가 노드 단위로 트레이스함</td><td>순수 async 함수 체인</td></tr>
+      <tr><td>선별은 제목이 아니라 초록 전체를 읽음</td><td>근거는 초록의 결과·결론에 있음. 후보 25건이면 입력 약 9K 토큰</td><td>제목만 보고 고르기</td></tr>
+      <tr><td>ClinicalTrials.gov와 본문은 변형 C에서 쓰지 않음</td><td>인용 단위가 PMID이고 Day 4 judge는 초록으로 판정함. 시험 등록 정보나 본문에만 있는 근거는 채점도 검증도 할 수 없음. "일정이 밀릴 때" 1번과도 같음</td><td>도구 5개 모두 사용</td></tr>
+      <tr><td>선별이 후보에 없는 PMID를 고르면 버림</td><td>답변 단계에는 실제로 가져온 초록만 들어감. 답변의 인용 검사는 하지 않음(변형 D의 일)</td><td>답변 후 인용 필터링</td></tr>
+      <tr><td>그래프 설정값도 <code>prompt_sha</code>에 포함</td><td>검색어 수나 라운드 수만 바꾼 실행도 다른 실행으로 기록됨. A·B의 해시는 바뀌지 않게 유지</td><td>프롬프트만 해시</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>데이터 계약과 지표 추가</h3>
+  <p><code>CitedAnswer</code>에 <code>context_pmids</code>(답변 단계에 초록을 준 PMID)를 더합니다. B는 검색 상위 10건 중 초록이 있던 것, C는 선별 결과입니다. 이걸로 PubMedQA 원 논문이 어디서 빠졌는지 단계별로 셉니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>단계</th><th>지표</th><th>B와 직접 비교</th></tr></thead>
+    <tbody>
+      <tr><td>검색</td><td>원 논문이 어느 검색의 상위 10건에 있었나 (recall@10)</td><td>아니오. C는 검색어 여러 개의 합집합이라 후보가 더 많음</td></tr>
+      <tr><td>선별</td><td>원 논문이 답변 단계 초록에 들어갔나 (신규: <code>gold_in_context</code>)</td><td>예. 둘 다 초록 최대 10건</td></tr>
+      <tr><td>인용</td><td>원 논문을 인용했나 (<code>gold_cited</code>)</td><td>예</td></tr>
+    </tbody>
+  </table></div>
+  <p>C가 B보다 원 논문을 덜 인용했다면, 이 세 숫자로 검색에서 못 찾은 것인지, 찾고도 버린 것인지, 읽고도 인용하지 않은 것인지 나눌 수 있습니다. Day 3의 "B 대비 원인 분석"은 이 표에서 시작합니다.</p>
+
+  <h3>비용 추정과 테스트</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>입력 토큰</th><th>출력 토큰 (생각 포함)</th><th>질의당</th><th>125문항</th></tr></thead>
+    <tbody>
+      <tr><td>C. 에이전트</td><td>약 15–20K (계획 1K, 선별 9–14K, 답변 4K)</td><td>3–8K (LLM 3–4회)</td><td>$0.12–0.24</td><td>$15–30</td></tr>
+    </tbody>
+  </table></div>
+  <p>테스트는 가짜 LLM과 가짜 PubMed로 네트워크 없이 돌립니다. 확인할 것: 한 라운드로 끝나는 경로, 재검색 경로와 2라운드 상한, 검색 결과 0건, 단계별 거절, 후보 밖 PMID 무시, 답변 단계에 선택 초록만 들어가는지, A·B 프롬프트 해시 유지.</p>
 
   <h2>기술 결정</h2>
   <div class="table-wrap"><table>

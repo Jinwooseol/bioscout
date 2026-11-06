@@ -51,7 +51,7 @@ notepad .env</code></pre></div>
     <li>
       <h3>단위 테스트</h3>
       <div class="cmd"><pre><code>uv run pytest -q</code></pre></div>
-      <p><code>32 passed</code>가 나오면 정상입니다. 네트워크와 API 키를 쓰지 않습니다.</p>
+      <p><code>43 passed</code>가 나오면 정상입니다. 네트워크와 API 키를 쓰지 않습니다.</p>
     </li>
     <li>
       <h3>실제 API 스모크 테스트</h3>
@@ -61,7 +61,7 @@ notepad .env</code></pre></div>
   </ol>
 
   <h2>평가 실행</h2>
-  <p>변형 A(LLM 단독)와 B(단순 RAG)를 PubMedQA 100문항과 도메인 셋으로 비교합니다. Claude API를 부르므로 비용이 듭니다. 처음에는 10문항으로 비용과 오류를 확인한 뒤 전체를 돌립니다.</p>
+  <p>변형 A(LLM 단독), B(단순 RAG), C(에이전트)를 PubMedQA 100문항과 도메인 셋으로 비교합니다. Claude API를 부르므로 비용이 듭니다. C는 문항마다 Claude를 3–4번 부르고 PubMed 검색도 여러 번 해서, B보다 비용이 2–3배 들고 시간도 더 걸립니다. 처음에는 10문항으로 비용과 오류를 확인한 뒤 전체를 돌립니다.</p>
   <ol class="steps">
     <li>
       <h3>Claude API 키 설정</h3>
@@ -80,18 +80,18 @@ notepad .env</code></pre></div>
     </li>
     <li>
       <h3>10문항 시험 실행</h3>
-      <div class="cmd"><pre><code>uv run bioscout-eval run --variants A,B --limit 10</code></pre></div>
-      <p>데이터셋마다 앞 10문항씩, 변형 2개를 돌립니다. 진행 줄마다 인용 수, 가짜 PMID 수, 비용이 찍히고 끝나면 결과표가 나옵니다. 질의당 비용이 <a href="design.html#harness">설계의 추정</a>과 크게 다르면 전체 실행 전에 알려 주세요.</p>
+      <div class="cmd"><pre><code>uv run bioscout-eval run --variants A,B,C --limit 10</code></pre></div>
+      <p>데이터셋마다 앞 10문항씩, 변형 3개를 돌립니다. 진행 줄마다 인용 수, 가짜 PMID 수, 비용이 찍히고 끝나면 결과표가 나옵니다. 질의당 비용이 <a href="design.html#harness">설계의 추정</a>과 크게 다르면 전체 실행 전에 알려 주세요.</p>
     </li>
     <li>
       <h3>전체 실행</h3>
-      <div class="cmd"><pre><code>uv run bioscout-eval run --variants A,B</code></pre></div>
-      <p>결과표는 <code>evals/reports/&lt;run_id&gt;.md</code>에 남습니다. 이 파일의 숫자만 진행 상황과 README에 옮겨 적습니다.</p>
+      <div class="cmd"><pre><code>uv run bioscout-eval run --variants A,B,C</code></pre></div>
+      <p>NCBI API 키가 없으면 PubMed가 초당 3건으로 제한돼, C가 있는 전체 실행은 검색 대기만 10분 가까이 걸릴 수 있습니다. 키를 넣으면 초당 10건입니다. 결과표는 <code>evals/reports/&lt;run_id&gt;.md</code>에 남습니다. 이 파일의 숫자만 진행 상황과 README에 옮겨 적습니다.</p>
     </li>
     <li>
       <h3>재채점과 재생</h3>
       <div class="cmd"><pre><code>uv run bioscout-eval report evals/runs/&lt;run_id&gt;
-$env:BIOSCOUT_CACHE_MODE = "readonly"; uv run bioscout-eval run --variants A,B</code></pre></div>
+$env:BIOSCOUT_CACHE_MODE = "readonly"; uv run bioscout-eval run --variants A,B,C</code></pre></div>
       <p>첫 줄은 기존 레코드로 결과표만 다시 만듭니다. 둘째 줄은 캐시된 응답만으로 같은 실행을 네트워크 없이 재현합니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_CACHE_MODE</code>로 되돌립니다.</p>
     </li>
   </ol>

@@ -84,7 +84,7 @@
 /* ── Edit this object to update the page. status: done | doing | todo | cut ── */
 const PROGRESS = {
   updated: "2026-11-06",
-  today: 2,
+  today: 3,
   days: [
     { day: 1, date: "11/3 (화)", title: "기반 + MCP 서버", tasks: [
       { t: "레포 스캐폴딩: uv, ruff, pytest, GitHub Actions CI", s: "done" },
@@ -109,9 +109,9 @@ const PROGRESS = {
     ]},
     { day: 3, date: "11/5 (목)", title: "에이전트", tasks: [
       { t: "답변 스키마 Pydantic 모델", s: "done", why: "평가 하네스가 먼저 필요해 Day 2에 작성 (src/bioscout/answer.py)" },
-      { t: "LangGraph 그래프: 계획, 검색, 선별, 인용 답변", s: "todo" },
-      { t: "MeSH 기반 검색어 재작성", s: "todo" },
-      { t: "변형 C 실행과 B 대비 원인 분석", s: "todo" },
+      { t: "LangGraph 그래프: 계획, 검색, 선별, 인용 답변", s: "doing", why: "11/6 코드와 오프라인 테스트 11개 완료(src/bioscout/agent/). C 실행 숫자가 나오면 완료" },
+      { t: "MeSH 기반 검색어 재작성", s: "doing", why: "계획 노드가 MeSH와 [tiab] 동의어로 검색어 2–4개를 씀. 효과는 C 실행으로 확인" },
+      { t: "변형 C 실행과 B 대비 원인 분석", s: "todo", why: "ANTHROPIC_API_KEY 필요. 원인 분석용 지표(원 논문이 답변 단계 초록에 들어갔나)는 추가해 둠" },
     ]},
     { day: 4, date: "11/6 (금)", title: "인용 검증", tasks: [
       { t: "judge 프롬프트", s: "todo" },
@@ -190,6 +190,21 @@ const PROGRESS = {
       blocked: [],
       numbers: [
         "main 커밋 9개를 github.com/Jinwooseol/bioscout에 push, 첫 CI 실행(ruff, pytest 32개) 통과",
+      ],
+    },
+    { date: "2026-11-06", day: 3, title: "에이전트 그래프 (변형 C)",
+      decided: [
+        "C의 답변 단계는 B와 같은 시스템 프롬프트, 스키마, 초록 상한 10건을 쓴다. B 대비 차이를 검색과 선별에서 온 것으로 해석하기 위해서다. 공유 프롬프트를 src/bioscout/prompts.py로 옮겼고, A와 B의 프롬프트 해시는 그대로임을 테스트로 고정했다.",
+        "모델이 도구를 자유롭게 부르는 루프 대신 계획 → 검색 → 선별 → (재검색 1회) → 답변의 정해진 그래프로 만들었다. 질의당 LLM 호출이 3–4회로 정해지고, 단계마다 JSON 호출 하나라 응답 캐시로 재생된다.",
+        "ClinicalTrials.gov와 본문은 C에서 뺐다. 인용 단위가 PMID이고 Day 4 judge가 초록으로 판정하므로, 거기에만 있는 근거는 채점할 수 없다.",
+        "C는 검색어가 여러 개라 recall@10을 B와 바로 비교할 수 없다. 원 논문이 답변 단계 초록에 들어갔는지(gold_in_context)를 새로 재서 같은 조건(초록 10건)으로 비교한다.",
+      ],
+      blocked: [
+        "API 키가 아직 없어 C도 실행하지 못했다. 그래프는 가짜 LLM으로 경로마다(1라운드, 재검색, 검색 0건, 단계별 거절, 상한) 테스트했다.",
+      ],
+      numbers: [
+        "단위 테스트 32 → 43개",
+        "변형 C 질의당 비용 추정 $0.12–0.24 (B의 2–3배)",
       ],
     },
   ],
