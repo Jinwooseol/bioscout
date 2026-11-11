@@ -83,7 +83,7 @@
 <script>
 /* ── Edit this object to update the page. status: done | doing | todo | cut ── */
 const PROGRESS = {
-  updated: "2026-11-06",
+  updated: "2026-11-11",
   today: 3,
   days: [
     { day: 1, date: "11/3 (화)", title: "기반 + MCP 서버", tasks: [
@@ -96,7 +96,7 @@ const PROGRESS = {
       { t: "오프라인 단위 테스트 17개", s: "done" },
       { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "done", why: "11/4 복원. 커밋 5개, origin 등록 완료" },
       { t: "실제 API 스모크 테스트", s: "done", why: "11/4 PC에서 도구 5개 모두 PASS" },
-      { t: "NCBI API 키 발급, .env 설정", s: "todo", why: "키 없이도 동작(초당 3건). 평가 전체 실행 전에 발급 권장" },
+      { t: "NCBI API 키 발급, .env 설정", s: "todo", why: "11/11 .env 생성(키 칸은 비움). NCBI 로그인이 NCBI 서버 오류로 실패해 발급 보류. 키 없이도 동작(초당 3건)" },
       { t: "GitHub 원격 저장소 연결과 첫 push", s: "done", why: "11/6 Jinwooseol/bioscout에 main 커밋 9개 push, GitHub Actions CI 통과" },
     ]},
     { day: 2, date: "11/4 (수)", title: "평가셋 + baseline", tasks: [
@@ -142,7 +142,7 @@ const PROGRESS = {
   metrics: [
     { v: "A. LLM 단독" }, { v: "B. 단순 RAG" }, { v: "C. 에이전트" }, { v: "D. 에이전트 + 검증" },
   ],
-  metricsNote: "A와 B는 API 키를 넣고 실행하면 채워집니다. 수치는 evals/reports/에서 생성된 값만 옮깁니다. LLM 없이 먼저 잰 값: PubMedQA 질문을 그대로 검색하면 원 논문이 상위 10건에 드는 비율 85/100 (11문항은 검색 결과 0건).",
+  metricsNote: "A와 B는 API 키를 넣고 실행하면 채워집니다. 수치는 evals/reports/에서 생성된 값만 옮깁니다. LLM 없이 먼저 잰 값: PubMedQA 질문을 그대로 검색하면 원 논문이 상위 10건에 드는 비율 85/100 (11/11 실시간 재측정도 85/100, 검색 결과 0건 10문항).",
   log: [
     { date: "2026-11-03", day: 1, title: "MCP 서버와 테스트 기반",
       decided: [
@@ -205,6 +205,22 @@ const PROGRESS = {
       numbers: [
         "단위 테스트 32 → 43개",
         "변형 C 질의당 비용 추정 $0.12–0.24 (B의 2–3배)",
+      ],
+    },
+    { date: "2026-11-11", day: 3, title: "PC 실행 환경 점검",
+      decided: [
+        "smoke_live.py가 첫 실행 뒤로는 실제 API가 아니라 캐시된 응답을 재생하고 있었다. mcp 클라이언트가 서버 프로세스에 시스템 변수 몇 개만 넘겨서, 셸에서 캐시를 꺼도 서버에 전달되지 않았다. BIOSCOUT_, NCBI_ 변수를 넘기고 캐시를 기본으로 끄게 고쳤다.",
+        "Claude Code에 bioscout MCP 서버를 이 폴더 전용(로컬 범위)으로 등록했다. 데스크톱 앱만 깔린 PC에는 PowerShell에 claude 명령이 없어, 앱에 들어 있는 claude.exe로 등록했다. 저장소의 .mcp.json은 사람이 승인해야 하고, 프로젝트 설정 파일로는 승인되지 않았다.",
+      ],
+      blocked: [
+        "NCBI 계정 로그인이 NCBI 서버 쪽 오류(AUTHENTICATION ERROR: member CustomMessage expected)로 실패해 NCBI API 키를 아직 받지 못했다. 키 없이 초당 3건으로 진행한다.",
+        "ANTHROPIC_API_KEY가 아직 없어 A, B, C를 실행하지 못했다. .env는 만들어 두었다.",
+      ],
+      numbers: [
+        "실제 API 스모크 테스트(캐시 끔): 도구 5개 모두 PASS. get_fulltext 92초, Europe PMC 응답 자체가 24–33초(curl로 확인)",
+        "check-datasets 실시간: PubMedQA PMID 100개, 도메인 must-cite 40개 모두 존재",
+        "질문 그대로 검색 recall@10 실시간 재측정: 85/100(11/4와 같음), 검색 결과 0건 11 → 10문항",
+        "단위 테스트 43개, ruff 통과",
       ],
     },
   ],
