@@ -1,6 +1,6 @@
 """Live smoke test: start the MCP server over stdio and call every tool against the real APIs.
 
-    uv run python scripts/smoke_live.py            # all five tools, real network
+    uv run python scripts/smoke_live.py            # all five tools, real network, cache off
     uv run python scripts/smoke_live.py --offline  # only start the server and list its tools
 
 Exit code 0 means every check passed.
@@ -10,12 +10,20 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 import time
 
 from mcp import Client, StdioServerParameters
 
-SERVER = StdioServerParameters(command=sys.executable, args=["-m", "bioscout.mcp_server"])
+# The stdio client hands the server only a few system variables, so forward ours. The cache is off
+# unless BIOSCOUT_CACHE_MODE says otherwise: a live check must reach the APIs, not replay old answers.
+_FORWARDED = {k: v for k, v in os.environ.items() if k.startswith(("BIOSCOUT_", "NCBI_"))}
+SERVER = StdioServerParameters(
+    command=sys.executable,
+    args=["-m", "bioscout.mcp_server"],
+    env={"BIOSCOUT_CACHE_MODE": "off"} | _FORWARDED,
+)
 
 CHECKS: list[tuple[str, dict, str]] = [
     (

@@ -8,7 +8,7 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
 - `uv sync`: install
 - `uv run pytest -q`: unit tests, fully offline (respx mocks + `tests/fixtures`)
 - `uv run ruff check . && uv run ruff format .`: lint and format (CI fails on either)
-- `uv run python scripts/smoke_live.py`: real-API check of all MCP tools (needs network)
+- `uv run python scripts/smoke_live.py`: real-API check of all MCP tools with the cache off (needs network)
 - `uv run bioscout-mcp`: run the MCP server over stdio
 - `uv run bioscout-eval run --variants A,B,C --limit 10`: eval run (needs `ANTHROPIC_API_KEY`, costs money);
   `check-datasets` and `retrieval` are free and need only PubMed
