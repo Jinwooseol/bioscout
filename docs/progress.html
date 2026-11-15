@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BioScout 진행 상황</title>
-<meta name="description" content="7일 일정의 작업별 상태, 평가 수치, 빌드 로그">
+<meta name="description" content="작업별 상태, 평가 수치, 작업 기록">
 <link rel="stylesheet" href="assets/style.css">
 <style>
   .plate-wrap { overflow-x: auto; margin: 28px 0 8px; }
@@ -18,7 +18,7 @@
     border-radius: 18px;
   }
   .plate .lab { font-size: 12.5px; color: var(--muted); text-align: center; align-self: center; }
-  .plate .lab.today { color: var(--ink); font-weight: 700; }
+  .plate .lab.current { color: var(--ink); font-weight: 700; }
   .plate a, .plate span.empty { display: grid; place-items: center; height: 30px; text-decoration: none; }
   .plate a .well { width: 22px; height: 22px; border-width: 1.75px; }
   .plate span.empty::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--rule); }
@@ -58,11 +58,10 @@
 <main>
   <h1 id="headline">진행 상황</h1>
   <p class="lead" id="summary"></p>
-  <p class="note" id="schedule-note"></p>
 
-  <div class="plate-wrap"><div class="plate" id="plate" role="group" aria-label="작업 플레이트: 열은 날짜, 웰 하나는 작업 하나"></div></div>
+  <div class="plate-wrap"><div class="plate" id="plate" role="group" aria-label="작업 플레이트: 열은 단계, 웰 하나는 작업 하나"></div></div>
   <div class="tally" id="tally"></div>
-  <p class="note">96-well 플레이트처럼 열은 Day 1–7, 행은 그날의 작업입니다. 웰을 누르면 해당 작업으로 이동합니다.</p>
+  <p class="note">96-well 플레이트처럼 열은 단계, 행은 그 단계의 작업입니다. 웰을 누르면 해당 작업으로 이동합니다.</p>
 
   <h2>평가 수치</h2>
   <div class="table-wrap"><table>
@@ -71,11 +70,11 @@
   </table></div>
   <p class="note" id="metrics-note"></p>
 
-  <h2>일자별 작업</h2>
+  <h2>단계별 작업</h2>
   <div id="days"></div>
 
-  <h2>빌드 로그</h2>
-  <p>매일 마지막 20분에 그날의 결정, 막힌 점, 움직인 숫자를 적습니다. LinkedIn 글과 면접 답변의 재료입니다.</p>
+  <h2>작업 기록</h2>
+  <p>작업을 마칠 때마다 결정한 것, 막힌 점, 움직인 숫자를 적습니다. 최근 기록이 위에 있습니다.</p>
   <div class="log" id="log"></div>
 </main>
 
@@ -84,11 +83,8 @@
 <script>
 /* ── Edit this object to update the page. status: done | doing | todo | cut ── */
 const PROGRESS = {
-  updated: "2026-11-15",
-  today: 4,
-  scheduleNote: "날짜는 처음 계획(11/3–11/9) 기준입니다. 실제로는 Day 3을 11/15에 마쳐 일정이 밀렸습니다. Day 번호는 날짜가 아니라 작업 묶음의 순서로 보면 됩니다.",
-  days: [
-    { day: 1, date: "11/3 (화)", title: "기반 + MCP 서버", tasks: [
+  phases: [
+    { phase: 1, title: "기반 + MCP 서버", tasks: [
       { t: "레포 스캐폴딩: uv, ruff, pytest, GitHub Actions CI", s: "done" },
       { t: "PubMed 클라이언트: esearch, esummary, efetch 파싱", s: "done" },
       { t: "Europe PMC 오픈액세스 본문 조회", s: "done" },
@@ -96,47 +92,46 @@ const PROGRESS = {
       { t: "SQLite 응답 캐시와 readonly 재생 모드", s: "done" },
       { t: "MCP 도구 5종과 에이전트용 오류 메시지", s: "done" },
       { t: "오프라인 단위 테스트 17개", s: "done" },
-      { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "done", why: "11/4 복원. 커밋 5개, origin 등록 완료" },
-      { t: "실제 API 스모크 테스트", s: "done", why: "11/4 PC에서 도구 5개 모두 PASS" },
-      { t: "NCBI API 키 발급, .env 설정", s: "todo", why: "11/11 .env 생성(키 칸은 비움). NCBI 로그인이 NCBI 서버 오류로 실패해 발급 보류. 키 없이도 동작(초당 3건)" },
-      { t: "GitHub 원격 저장소 연결과 첫 push", s: "done", why: "11/6 Jinwooseol/bioscout에 main 커밋 9개 push, GitHub Actions CI 통과" },
+      { t: "PC에서 Git 기록 복원 (setup.ps1 1회)", s: "done", why: "복원 완료. 커밋 5개, origin 등록" },
+      { t: "실제 API 스모크 테스트", s: "done", why: "PC에서 도구 5개 모두 PASS" },
+      { t: "NCBI API 키 발급, .env 설정", s: "todo", why: ".env 생성(키 칸은 비움). NCBI 로그인이 NCBI 서버 오류로 실패해 발급 보류. 키 없이도 동작(초당 3건)" },
+      { t: "GitHub 원격 저장소 연결과 첫 push", s: "done", why: "Jinwooseol/bioscout에 push, GitHub Actions CI 통과" },
     ]},
-    { day: 2, date: "11/4 (수)", title: "평가셋 + baseline", tasks: [
+    { phase: 2, title: "평가셋 + baseline", tasks: [
       { t: "PubMedQA PQA-L에서 100문항 무작위 추출" , s: "done", why: "시드 2026, yes 66 · no 27 · maybe 7. PMID · 질문 · 라벨만 저장" },
       { t: "도메인 셋 작성: MSI, dPCR, liquid biopsy (15문항 먼저)", s: "doing", why: "초안 15문항 완료(must-cite PMID 40개 모두 PubMed 확인). 저자가 evals/review/domain_review.md로 검토하면 완료" },
       { t: "평가 하네스와 결과 스키마", s: "done", why: "answer.py, llm.py, evals/ 패키지, bioscout-eval CLI, 테스트 15개" },
-      { t: "변형 A (LLM 단독) 실행", s: "done", why: "11/15 전체 115문항 실행(20261115-195946-ABC)" },
-      { t: "변형 B (단순 RAG) 실행", s: "done", why: "11/15 전체 115문항 실행. 도메인 15문항 중 13개는 질문 그대로 검색하면 0건. 원 논문 recall@10 85%" },
+      { t: "변형 A (LLM 단독) 실행", s: "done", why: "전체 115문항 실행(20261115-195946-ABC)" },
+      { t: "변형 B (단순 RAG) 실행", s: "done", why: "전체 115문항 실행. 도메인 15문항 중 13개는 질문 그대로 검색하면 0건. 원 논문 recall@10 85%" },
       { t: "결과표 v1, 가짜 PMID 비율 측정", s: "done", why: "115문항: 세 변형 모두 가짜 PMID 0%(인용 1,681건). evals/reports/20261115-195946-ABC" },
     ]},
-    { day: 3, date: "11/5 (목)", title: "에이전트", tasks: [
-      { t: "답변 스키마 Pydantic 모델", s: "done", why: "평가 하네스가 먼저 필요해 Day 2에 작성 (src/bioscout/answer.py)" },
-      { t: "LangGraph 그래프: 계획, 검색, 선별, 인용 답변", s: "done", why: "11/6 코드와 오프라인 테스트 11개(src/bioscout/agent/), 11/15 첫 실행 20문항" },
-      { t: "MeSH 기반 검색어 재작성", s: "done", why: "11/15 효과 확인: 도메인 must-cite는 B 0% → C 43–53%. 넓은 검색이 PubMedQA 원 논문을 놓치던 문제는 질문 그대로 검색을 함께 돌려 해결(40% → 90%)" },
-      { t: "변형 C 실행과 B 대비 원인 분석", s: "done", why: "11/15 20문항 실행, 원인 분석, 검색 수정, 재실행. 원 논문이 답변 초록에 든 비율 C 40% → 90%(B와 같음). 전체 115문항은 Day 4 결과표와 함께" },
+    { phase: 3, title: "에이전트", tasks: [
+      { t: "답변 스키마 Pydantic 모델", s: "done", why: "평가 하네스가 먼저 필요해 그 단계에서 작성 (src/bioscout/answer.py)" },
+      { t: "LangGraph 그래프: 계획, 검색, 선별, 인용 답변", s: "done", why: "코드와 오프라인 테스트(src/bioscout/agent/), 20문항 첫 실행" },
+      { t: "MeSH 기반 검색어 재작성", s: "done", why: "효과 확인: 도메인 must-cite는 B 0% → C 43–53%. 넓은 검색이 PubMedQA 원 논문을 놓치던 문제는 질문 그대로 검색을 함께 돌려 해결(40% → 90%)" },
+      { t: "변형 C 실행과 B 대비 원인 분석", s: "done", why: "20문항 실행, 원인 분석, 검색 수정, 재실행. 원 논문이 답변 초록에 든 비율 C 40% → 90%(B와 같음). 전체 115문항은 인용 검증 단계에서 실행" },
     ]},
-    { day: 4, date: "11/6 (금)", title: "인용 검증", tasks: [
-      { t: "A, B, C 전체 115문항 실행", s: "done", why: "11/15 완료(20261115-195946-ABC). 답변 345개, 오류와 거절 0건, 새로 쓴 비용 $17.80" },
-      { t: "judge 프롬프트", s: "done", why: "11/15 judge 구현, 실제 답변 66문장으로 시험 판정. 번호가 어긋난 인용(10430922)을 unsupported로 잡음. 전체 판정과 보정은 아래 작업" },
-      { t: "전체 실행 판정 (인용 문장 1,151개)", s: "done", why: "11/15 완료. 오류 0건, $13.37. 수치는 보정 전이라 잠정" },
-      { t: "보정셋 60쌍 라벨링, Cohen's kappa", s: "doing", why: "11/15 추출과 채점 도구 구현, evals/review/calibration.md 생성(60쌍). 직접 라벨링한 뒤 calibrate-score를 실행하면 완료" },
-      { t: "검증, 재검색, 삭제 루프", s: "todo" },
+    { phase: 4, title: "인용 검증", tasks: [
+      { t: "A, B, C 전체 115문항 실행", s: "done", why: "완료(20261115-195946-ABC). 답변 345개, 오류와 거절 0건, 새로 쓴 비용 $17.80" },
+      { t: "judge 프롬프트", s: "done", why: "judge 구현, 실제 답변 66문장으로 시험 판정. 번호가 어긋난 인용(10430922)을 unsupported로 잡음. 전체 판정과 보정은 아래 작업" },
+      { t: "전체 실행 판정 (인용 문장 1,151개)", s: "done", why: "완료. 오류 0건, $13.37. 수치는 보정 전이라 잠정" },
+      { t: "보정셋 60쌍 라벨링, Cohen's kappa", s: "doing", why: "추출과 채점 도구 구현, evals/review/calibration.md 생성(60쌍). 직접 라벨링한 뒤 calibrate-score를 실행하면 완료" },
+      { t: "검증, 고쳐 쓰기, 삭제 루프 (변형 D)", s: "doing", why: "코드와 오프라인 테스트 6개 완료. judge 보정 뒤 실행해 수치를 내면 완료" },
       { t: "변형 D 실행, 전체 결과표", s: "todo" },
-      { t: "일정 판단: 축소할지 결정", s: "todo" },
     ]},
-    { day: 5, date: "11/7 (토)", title: "관측 · CI · 개선", tasks: [
+    { phase: 5, title: "관측 · CI · 개선", tasks: [
       { t: "Langfuse 트레이스", s: "todo" },
       { t: "비용, 지연 집계", s: "todo" },
       { t: "CI 평가 게이트 (20문항 재생)", s: "todo" },
       { t: "실패 10건 유형 분류, 개선 1회", s: "todo" },
     ]},
-    { day: 6, date: "11/8 (일)", title: "데모", tasks: [
+    { phase: 6, title: "데모", tasks: [
       { t: "Streamlit UI: 답변, 인용 카드, 검증 배지", s: "todo" },
       { t: "Dockerfile", s: "todo" },
       { t: "Hugging Face Spaces 배포", s: "todo" },
       { t: "세션당 질의 수 제한, 예시 질문 캐시", s: "todo" },
     ]},
-    { day: 7, date: "11/9 (월)", title: "공개", tasks: [
+    { phase: 7, title: "공개", tasks: [
       { t: "README 결과표와 차트", s: "todo" },
       { t: "홈페이지 케이스 스터디", s: "todo" },
       { t: "LinkedIn 글", s: "todo" },
@@ -149,9 +144,9 @@ const PROGRESS = {
     { v: "C. 에이전트", fake: "0%", precision: "86%", coverage: "93%", accuracy: "76%", cost: "$0.148" },
     { v: "D. 에이전트 + 검증" },
   ],
-  metricsNote: "11/15 전체 실행(20261115-195946-ABC): PubMedQA 100 + 도메인 15문항. Citation precision과 coverage는 judge(프롬프트 f7cb1b33c1a7)가 인용 문장 1,151개를 판정한 값이다. judge를 사람 라벨 60쌍과 비교하기 전이라 잠정이다. 정답률은 PubMedQA 100문항 기준이고, 다수 라벨(yes)만 찍어도 66%다. 가짜 PMID는 존재 여부만 본다.",
+  metricsNote: "전체 실행(20261115-195946-ABC): PubMedQA 100 + 도메인 15문항. Citation precision과 coverage는 judge(프롬프트 f7cb1b33c1a7)가 인용 문장 1,151개를 판정한 값이다. judge를 사람 라벨 60쌍과 비교하기 전이라 잠정이다. 정답률은 PubMedQA 100문항 기준이고, 다수 라벨(yes)만 찍어도 66%다. 가짜 PMID는 존재 여부만 본다.",
   log: [
-    { date: "2026-11-03", day: 1, title: "MCP 서버와 테스트 기반",
+    { phase: 1, title: "MCP 서버와 테스트 기반",
       decided: [
         "MCP Python SDK가 2.x(2.3.0)로 올라가며 FastMCP가 MCPServer로 바뀌었다. 처음부터 2.x 기준으로 작성했다.",
         "업스트림 장애를 짧은 ToolError로 바꿨다. 스모크 테스트에서 스택 트레이스가 그대로 에이전트에 가는 것을 발견했다.",
@@ -165,9 +160,9 @@ const PROGRESS = {
         "단위 테스트 17개 통과, MCP 도구 5개, stdio로 서버 기동 확인",
       ],
     },
-    { date: "2026-11-04", day: 2, title: "PC 이전과 평가 하네스",
+    { phase: 2, title: "PC 이전과 평가 하네스",
       decided: [
-        "평가 하네스가 답변 형식을 먼저 알아야 해서 Day 3의 답변 스키마(CitedAnswer)를 Day 2로 당겼다. 변형, 데모, 채점이 모두 이 모델을 쓴다.",
+        "평가 하네스가 답변 형식을 먼저 알아야 해서 에이전트 단계의 답변 스키마(CitedAnswer)를 평가 하네스 단계로 당겼다. 변형, 데모, 채점이 모두 이 모델을 쓴다.",
         "모든 변형에 같은 모델(claude-opus-5-5), 같은 effort(medium), 같은 JSON 스키마를 쓴다. 결과 차이를 설계에서 온 것으로 해석하기 위해서다.",
         "Claude 응답도 요청 전체를 키로 SQLite에 캐시한다. 재채점과 CI 재생에 API 비용이 들지 않는다.",
         "안전 분류기가 생의학 질문을 거절할 수 있어 fallbacks: \"default\"를 켜고, 실제로 답한 모델과 거절 수를 레코드에 남긴다.",
@@ -190,20 +185,20 @@ const PROGRESS = {
         "단위 테스트 17 → 32개",
       ],
     },
-    { date: "2026-11-06", day: 2, title: "GitHub 첫 push",
+    { phase: 2, title: "GitHub 첫 push",
       decided: [
-        "Day 2 변경분을 데이터셋, 평가 하네스, 문서 세 커밋으로 나눴다. 하네스 테스트가 PubMedQA 파일을 읽어서 데이터셋을 먼저 커밋했다. 어느 커밋을 꺼내도 테스트가 통과한다.",
+        "평가 하네스 변경분을 데이터셋, 평가 하네스, 문서 세 커밋으로 나눴다. 하네스 테스트가 PubMedQA 파일을 읽어서 데이터셋을 먼저 커밋했다. 어느 커밋을 꺼내도 테스트가 통과한다.",
       ],
       blocked: [],
       numbers: [
         "main 커밋 9개를 github.com/Jinwooseol/bioscout에 push, 첫 CI 실행(ruff, pytest 32개) 통과",
       ],
     },
-    { date: "2026-11-06", day: 3, title: "에이전트 그래프 (변형 C)",
+    { phase: 3, title: "에이전트 그래프 (변형 C)",
       decided: [
         "C의 답변 단계는 B와 같은 시스템 프롬프트, 스키마, 초록 상한 10건을 쓴다. B 대비 차이를 검색과 선별에서 온 것으로 해석하기 위해서다. 공유 프롬프트를 src/bioscout/prompts.py로 옮겼고, A와 B의 프롬프트 해시는 그대로임을 테스트로 고정했다.",
         "모델이 도구를 자유롭게 부르는 루프 대신 계획 → 검색 → 선별 → (재검색 1회) → 답변의 정해진 그래프로 만들었다. 질의당 LLM 호출이 3–4회로 정해지고, 단계마다 JSON 호출 하나라 응답 캐시로 재생된다.",
-        "ClinicalTrials.gov와 본문은 C에서 뺐다. 인용 단위가 PMID이고 Day 4 judge가 초록으로 판정하므로, 거기에만 있는 근거는 채점할 수 없다.",
+        "ClinicalTrials.gov와 본문은 C에서 뺐다. 인용 단위가 PMID이고 judge가 초록으로 판정하므로, 거기에만 있는 근거는 채점할 수 없다.",
         "C는 검색어가 여러 개라 recall@10을 B와 바로 비교할 수 없다. 원 논문이 답변 단계 초록에 들어갔는지(gold_in_context)를 새로 재서 같은 조건(초록 10건)으로 비교한다.",
       ],
       blocked: [
@@ -214,7 +209,7 @@ const PROGRESS = {
         "변형 C 질의당 비용 추정 $0.12–0.24 (B의 2–3배)",
       ],
     },
-    { date: "2026-11-11", day: 3, title: "PC 실행 환경 점검",
+    { phase: 3, title: "PC 실행 환경 점검",
       decided: [
         "smoke_live.py가 첫 실행 뒤로는 실제 API가 아니라 캐시된 응답을 재생하고 있었다. mcp 클라이언트가 서버 프로세스에 시스템 변수 몇 개만 넘겨서, 셸에서 캐시를 꺼도 서버에 전달되지 않았다. BIOSCOUT_, NCBI_ 변수를 넘기고 캐시를 기본으로 끄게 고쳤다.",
         "Claude Code에 bioscout MCP 서버를 이 폴더 전용(로컬 범위)으로 등록했다. 데스크톱 앱만 깔린 PC에는 PowerShell에 claude 명령이 없어, 앱에 들어 있는 claude.exe로 등록했다. 저장소의 .mcp.json은 사람이 승인해야 하고, 프로젝트 설정 파일로는 승인되지 않았다.",
@@ -226,13 +221,13 @@ const PROGRESS = {
       numbers: [
         "실제 API 스모크 테스트(캐시 끔): 도구 5개 모두 PASS. get_fulltext 92초, Europe PMC 응답 자체가 24–33초(curl로 확인)",
         "check-datasets 실시간: PubMedQA PMID 100개, 도메인 must-cite 40개 모두 존재",
-        "질문 그대로 검색 recall@10 실시간 재측정: 85/100(11/4와 같음), 검색 결과 0건 11 → 10문항",
+        "질문 그대로 검색 recall@10 실시간 재측정: 85/100(처음 측정과 같음), 검색 결과 0건 11 → 10문항",
         "단위 테스트 43개, ruff 통과",
       ],
     },
-    { date: "2026-11-15", day: 3, title: "첫 A·B·C 실행(20문항)과 원인 분석",
+    { phase: 3, title: "첫 A·B·C 실행(20문항)과 원인 분석",
       decided: [
-        "가짜 PMID 비율은 세 변형 모두 0%였다. A는 확실하지 않으면 인용을 비웠다(PubMedQA 문장 인용률 4.8%). 존재 확인만으로는 변형이 갈리지 않으므로, 결과의 중심은 Day 4 judge의 citation precision이다.",
+        "가짜 PMID 비율은 세 변형 모두 0%였다. A는 확실하지 않으면 인용을 비웠다(PubMedQA 문장 인용률 4.8%). 존재 확인만으로는 변형이 갈리지 않으므로, 결과의 중심은 judge의 citation precision이다.",
         "A가 기억으로 단 도메인 인용 32개는 모두 실제 논문이었고, 하나만 빼고 주제도 맞았다. 예외는 dom-dpcr-01이다. Vogelstein의 'Digital PCR'(10430926, must-cite)을 인용하려다 같은 PNAS 호의 유방암 유전자 발현 논문 10430922를 적었다. 존재 확인을 통과하는 '실제로 있지만 틀린 인용'의 첫 사례다.",
         "B는 PubMedQA에서 강하고(원 논문 인용 90%) 도메인에서 약하다. 도메인 10문항 중 9개는 검색 결과가 0건이라 인용 없이 답했다(must-cite 0%). PubMedQA 질문은 원 논문 제목과 거의 같아서, 질문 그대로 검색하면 사실상 정답 논문이 나온다. 도메인 질문은 길어서 PubMed가 모든 단어를 AND로 묶어 0건이 된다.",
         "C는 도메인 must-cite recall이 가장 높았다(53%, A 42%, B 0%). 하지만 PubMedQA 원 논문은 10문항 중 4개만 찾았다(B는 9개). 계획 노드의 넓은 MeSH 검색은 수백에서 수천 건을 내고, 상위 10건은 최근 논문이 차지해 1990년대 원 논문이 빠진다. C는 B가 하는 검색을 하지 않으니 B보다 덜 찾을 수 있다. 질문 그대로 검색을 1라운드에 함께 넣으면 C의 후보가 B의 후보를 포함한다.",
@@ -250,7 +245,7 @@ const PROGRESS = {
         "도메인 must-cite recall: A 42%, B 0%, C 53%. 인용이 달린 문장: A 77%, B 20%, C 100%",
       ],
     },
-    { date: "2026-11-15", day: 3, title: "C 검색 수정과 재실행",
+    { phase: 3, title: "C 검색 수정과 재실행",
       decided: [
         "C의 1라운드에 질문 그대로 검색(B의 검색)을 더하고, 그 결과를 선별 후보 맨 앞에 둔다(AgentConfig.search_question, 기본 켬). C가 고를 후보에 B의 답변 초록 10건이 늘 들어가므로, 검색 단계에서 C가 B보다 덜 찾는 일이 없다.",
         "선별 노드의 새 검색어도 계획 노드와 같은 형식 규칙(QUERY_SYNTAX)을 따르게 했다. 문장이나 키워드 나열은 PubMed가 긴 AND 하나로 처리하기 때문이다.",
@@ -271,7 +266,7 @@ const PROGRESS = {
         "단위 테스트 43 → 46개. 가끔 실패하던 test_run_writes_records_and_report는 수정 뒤 30회 연속 통과",
       ],
     },
-    { date: "2026-11-15", day: 4, title: "인용 판정 judge 구현",
+    { phase: 4, title: "인용 판정 judge 구현",
       decided: [
         "judge는 문장마다 한 번 부르고, 그 문장이 인용한 초록을 모두 준다. 인용별 판정과 문장 판정을 한 호출에서 받는다. 초록 둘이 나눠 뒷받침하는 문장을 문장 단위로 볼 수 있다.",
         "Citation precision은 supported 인용만 센다. partial은 따로 보고한다. Coverage의 분모는 답변의 전체 문장이고, 인용 없는 문장은 뒷받침되지 않은 것으로 본다.",
@@ -290,7 +285,7 @@ const PROGRESS = {
         "전체 실행 20261115-195946-ABC: A와 B 115문항 완료, C 진행 중, 오류 0건",
       ],
     },
-    { date: "2026-11-15", day: 4, title: "전체 115문항 결과와 judge 시험 판정",
+    { phase: 4, title: "전체 115문항 결과와 judge 시험 판정",
       decided: [
         "115문항에서도 가짜 PMID는 세 변형 모두 0%였다(인용 1,681건). 존재 확인만으로는 변형이 갈리지 않는다는 20문항의 결론이 그대로다.",
         "정답률은 A 77%, B 75%, C 76%로 차이가 없다(다수 라벨 66%). 원 논문이 답변 초록에 있을 때는 B 87%, C 79%다. C는 원 논문 말고도 다른 논문을 함께 읽어 maybe로 답한 것이 23번이다(정답이 maybe인 문항은 7개). PubMedQA 라벨은 원 논문 한 편의 결론이라, 여러 논문을 종합하는 방식에는 불리하다. 정답률을 C의 성패 기준으로 쓰지 않는다.",
@@ -317,7 +312,7 @@ const PROGRESS = {
         "단위 테스트 57 → 58개",
       ],
     },
-    { date: "2026-11-15", day: 4, title: "전체 판정 결과",
+    { phase: 4, title: "전체 판정 결과",
       decided: [
         "Coverage(답변 문장 중 인용한 초록이 내용을 모두 뒷받침한 비율)는 A 6%, B 82%, C 93%다. 답변 단위로 보면, 모든 문장이 확인된 답변은 A 0개, B 62개, C 80개다. 확인된 문장이 하나도 없는 답변은 A 98개, B 24개, C 0개다.",
         "Citation precision은 B 91%, C 86%, A 51%다. PubMedQA 원 논문을 인용한 경우는 B와 C 모두 97%가 supported이고, 다른 논문을 인용한 경우는 B 83%, C 84%다. C는 다른 논문을 B의 3배(629건 대 192건) 인용해서 전체 precision이 낮다. 인용의 질이 낮은 것이 아니라 인용의 구성이 다르다.",
@@ -336,7 +331,7 @@ const PROGRESS = {
         "판정 1,151문장, LLM 호출 1,149회, 오류 0건, 약 8분, $13.37(시험 판정 $0.83 포함)",
       ],
     },
-    { date: "2026-11-15", day: 4, title: "judge 보정 도구",
+    { phase: 4, title: "judge 보정 도구",
       decided: [
         "보정 표본은 judge 판정별로 같은 수를 뽑고, 각 판정 안에서는 변형 A, B, C에서 번갈아 뽑는다. 전체 인용의 86%가 supported라 무작위로 뽑으면 unsupported가 1쌍도 안 나오고, 그러면 judge가 틀린 인용을 잡는지 확인할 수 없다.",
         "라벨링 파일에는 judge 판정과 변형을 적지 않고 순서를 섞는다. judge 판정을 보고 라벨을 달면 일치도가 부풀려진다. 어느 쌍인지는 옆의 pairs.json에만 남긴다.",
@@ -353,6 +348,23 @@ const PROGRESS = {
         "단위 테스트 58 → 67개",
       ],
     },
+    { phase: 4, title: "변형 D 검증 루프",
+      decided: [
+        "D는 C와 같은 그래프에 verify, revise, finish 노드를 더한 것이다. 앞부분이 C와 같은 요청을 보내므로 캐시된 응답이 재생되고, D와 C의 차이는 검증 단계에서만 나온다. C의 프롬프트 해시가 바뀌지 않게 테스트로 고정했다.",
+        "판정 뒤 인용을 정리한다. 문장을 지지한 인용만 남기고, 없으면 부분 지지 인용을 남긴다.",
+        "부족한 문장은 다시 검색하지 않고, 답변에 쓴 초록 안에서 한 번 고쳐 쓴다. 전체 판정에서 C의 문장 632개 중 근거 없음은 0개였고, 부분 지지 40개는 대부분 초록에 없는 세부를 덧붙인 경우였다. 주장을 초록에 맞게 좁히면 풀리는 문제다. 재검색은 D를 평가한 뒤에도 근거 없는 문장이 문제로 남으면 더한다.",
+        "고친 뒤에도 부분 지지면 표시를 단 채 남기고, 근거 없음이면 지운다. 지운 문장은 이유와 함께 dropped에 남긴다. judge 호출이 거절된 문장은 지우지 않고 판정 없음으로 둔다.",
+        "D를 같은 judge로 채점하면 precision이 구조적으로 높게 나온다. D의 precision은 judge가 supported라 한 인용을 사람도 그렇게 보는 비율만큼만 믿을 수 있고, 그 비율은 보정 표본에서 나온다.",
+        "문서와 코드에는 무엇을 했는지만 적고, 언제 했는지는 적지 않는다. 진행 상황은 단계별 작업 상태만 보여 준다. Git에 올리는 내용은 영어를 기본으로 한다.",
+      ],
+      blocked: [
+        "D는 아직 실행하지 않았다. judge 프롬프트가 바뀌면 D의 답변도 달라지므로, judge 보정이 끝난 뒤에 돌린다.",
+      ],
+      numbers: [
+        "단위 테스트 67 → 73개",
+        "D 프롬프트 해시 e854d9416976. A, B, C의 해시는 그대로",
+      ],
+    },
   ],
 };
 
@@ -362,27 +374,27 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const wellClass = (s) => "well " + (s === "done" ? "done" : s === "doing" ? "doing" : s === "cut" ? "cut" : "");
 
-const all = PROGRESS.days.flatMap((d) => d.tasks);
+const all = PROGRESS.phases.flatMap((p) => p.tasks);
 const count = (s) => all.filter((t) => t.s === s).length;
-const todayDay = PROGRESS.days.find((d) => d.day === PROGRESS.today);
+const open = (p) => p.tasks.filter((t) => t.s !== "done" && t.s !== "cut").length;
+// The phase being worked on: the latest one with a task in progress, else the first with open tasks.
+const current = [...PROGRESS.phases].reverse().find((p) => p.tasks.some((t) => t.s === "doing"))
+  ?? PROGRESS.phases.find((p) => open(p) > 0);
 
-$("headline").textContent = `Day ${PROGRESS.today} / 7: ${todayDay.title}`;
 $("summary").textContent =
-  `작업 ${all.length}개 중 ${count("done")}개 완료. ` +
-  `Day ${PROGRESS.today}에 남은 작업은 ${todayDay.tasks.filter((t) => t.s !== "done" && t.s !== "cut").length}개입니다. ` +
-  `마지막 갱신 ${PROGRESS.updated}.`;
-$("schedule-note").textContent = PROGRESS.scheduleNote || "";
+  `작업 ${all.length}개 중 ${count("done")}개 완료, ${count("doing")}개 진행 중. ` +
+  (current ? `지금 단계는 "${current.title}"이고, 이 단계에 남은 작업은 ${open(current)}개입니다.` : "모든 작업을 마쳤습니다.");
 
 /* Plate */
-const maxRows = Math.max(...PROGRESS.days.map((d) => d.tasks.length));
-let plate = `<span></span>` + PROGRESS.days.map((d) =>
-  `<span class="lab${d.day === PROGRESS.today ? " today" : ""}">${d.day}</span>`).join("");
+const maxRows = Math.max(...PROGRESS.phases.map((p) => p.tasks.length));
+let plate = `<span></span>` + PROGRESS.phases.map((p) =>
+  `<span class="lab${p === current ? " current" : ""}">${p.phase}</span>`).join("");
 for (let r = 0; r < maxRows; r++) {
   plate += `<span class="lab">${ROWS.charAt(r)}</span>`;
-  for (const d of PROGRESS.days) {
-    const t = d.tasks.at(r);
+  for (const p of PROGRESS.phases) {
+    const t = p.tasks.at(r);
     plate += t
-      ? `<a href="#t-${d.day}-${r}" title="Day ${d.day} ${ROWS.charAt(r)}: ${esc(t.t)} (${LABEL[t.s]})" aria-label="Day ${d.day} ${ROWS.charAt(r)}: ${esc(t.t)}, ${LABEL[t.s]}"><i class="${wellClass(t.s)}"></i></a>`
+      ? `<a href="#t-${p.phase}-${r}" title="${esc(p.title)} ${ROWS.charAt(r)}: ${esc(t.t)} (${LABEL[t.s]})" aria-label="${esc(p.title)} ${ROWS.charAt(r)}: ${esc(t.t)}, ${LABEL[t.s]}"><i class="${wellClass(t.s)}"></i></a>`
       : `<span class="empty" aria-hidden="true"></span>`;
   }
 }
@@ -396,21 +408,22 @@ $("metrics").innerHTML = PROGRESS.metrics.map((m) =>
   `<tr><td>${esc(m.v)}</td><td class="num">${cell(m.fake)}</td><td class="num">${cell(m.precision)}</td><td class="num">${cell(m.coverage)}</td><td class="num">${cell(m.accuracy)}</td><td class="num">${cell(m.cost)}</td></tr>`).join("");
 $("metrics-note").textContent = PROGRESS.metricsNote;
 
-/* Days */
-$("days").innerHTML = PROGRESS.days.map((d) => `
-  <section class="day" id="day-${d.day}">
-    <h3>Day ${d.day}. ${esc(d.title)} <span class="when">${esc(d.date)}</span></h3>
-    <ul>${d.tasks.map((t, i) => `
-      <li id="t-${d.day}-${i}"><i class="${wellClass(t.s)}" role="img" aria-label="${LABEL[t.s]}"></i>
+/* Phases */
+$("days").innerHTML = PROGRESS.phases.map((p) => `
+  <section class="day" id="phase-${p.phase}">
+    <h3>${p.phase}. ${esc(p.title)}</h3>
+    <ul>${p.tasks.map((t, i) => `
+      <li id="t-${p.phase}-${i}"><i class="${wellClass(t.s)}" role="img" aria-label="${LABEL[t.s]}"></i>
         <div>${ROWS.charAt(i)}. ${esc(t.t)}${t.why ? `<span class="why">${esc(t.why)}</span>` : ""}</div></li>`).join("")}
     </ul>
   </section>`).join("");
 
 /* Log, newest first */
 const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+const phaseTitle = (n) => PROGRESS.phases.find((p) => p.phase === n)?.title ?? "";
 $("log").innerHTML = [...PROGRESS.log].reverse().map((e) => `
   <article>
-    <h3>Day ${e.day}. ${esc(e.title)} <span class="small">${esc(e.date)}</span></h3>
+    <h3>${esc(e.title)} <span class="small">${esc(phaseTitle(e.phase))}</span></h3>
     <dl>
       ${e.decided?.length ? `<dt>결정</dt><dd>${list(e.decided)}</dd>` : ""}
       ${e.blocked?.length ? `<dt>막힌 점</dt><dd>${list(e.blocked)}</dd>` : ""}

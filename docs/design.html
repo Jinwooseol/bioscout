@@ -21,11 +21,11 @@
 
 <main>
   <h1>설계</h1>
-  <p class="lead">1주 안에 "에이전트를 만들었다"가 아니라 "평가로 인용 정확도를 얼마나 올렸다"는 숫자를 남기는 것이 목표입니다. 그래서 평가셋과 baseline을 먼저 만들고, 기능은 하루에 하나씩 더하며 숫자로 효과를 확인합니다.</p>
+  <p class="lead">"에이전트를 만들었다"가 아니라 "평가로 인용 정확도를 얼마나 올렸다"는 숫자를 남기는 것이 목표입니다. 그래서 평가셋과 baseline을 먼저 만들고, 기능은 하루에 하나씩 더하며 숫자로 효과를 확인합니다.</p>
 
   <h2>성공 기준</h2>
   <div class="table-wrap"><table>
-    <thead><tr><th>기준</th><th>목표 (Day 7)</th></tr></thead>
+    <thead><tr><th>기준</th><th>목표</th></tr></thead>
     <tbody>
       <tr><td>평가 규모</td><td>PubMedQA 100문항 + 도메인 25문항, 변형 4개(A–D) 비교표</td></tr>
       <tr><td>가짜 PMID 비율 (변형 D)</td><td>0%</td></tr>
@@ -48,18 +48,18 @@
 
       <rect class="box planned" x="20" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="145" y="46" text-anchor="middle">Streamlit 데모</text>
-      <text class="s" x="145" y="66" text-anchor="middle">답변 · 인용 카드 · 검증 배지 (Day 6)</text>
+      <text class="s" x="145" y="66" text-anchor="middle">답변 · 인용 카드 · 검증 배지 (예정)</text>
 
       <rect class="box accent" x="325" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="450" y="46" text-anchor="middle">평가 하네스</text>
-      <text class="s" x="450" y="66" text-anchor="middle">변형 A–C 구현 · D는 Day 4</text>
+      <text class="s" x="450" y="66" text-anchor="middle">변형 A–D 구현</text>
 
       <rect class="box planned" x="630" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="755" y="46" text-anchor="middle">결과표 · CI 게이트</text>
-      <text class="s" x="755" y="66" text-anchor="middle">PR마다 20문항 재생 평가 (Day 5)</text>
+      <text class="s" x="755" y="66" text-anchor="middle">PR마다 20문항 재생 평가 (예정)</text>
 
       <rect class="group" x="20" y="130" width="860" height="170" rx="12"/>
-      <text class="t" x="40" y="157">리서치 에이전트 (LangGraph, Day 3–4)</text>
+      <text class="t" x="40" y="157">리서치 에이전트 (LangGraph)</text>
 
       <rect class="box accent" x="40" y="180" width="185" height="64" rx="10"/>
       <text class="t" x="132.5" y="207" text-anchor="middle">계획</text>
@@ -70,9 +70,9 @@
       <rect class="box accent" x="470" y="180" width="185" height="64" rx="10"/>
       <text class="t" x="562.5" y="207" text-anchor="middle">인용 답변 생성</text>
       <text class="s" x="562.5" y="227" text-anchor="middle">문장마다 PMID · JSON</text>
-      <rect class="box planned" x="685" y="180" width="185" height="64" rx="10" style="stroke:var(--cy5)"/>
+      <rect class="box accent" x="685" y="180" width="185" height="64" rx="10"/>
       <text class="t" x="777.5" y="207" text-anchor="middle">인용 검증</text>
-      <text class="s" x="777.5" y="227" text-anchor="middle">문장–초록 지지 판정</text>
+      <text class="s" x="777.5" y="227" text-anchor="middle">판정 · 고쳐 쓰기 · 삭제</text>
 
       <path class="edge" d="M145 80V130" marker-end="url(#a)"/>
       <path class="edge" d="M450 80V130" marker-end="url(#a)"/>
@@ -80,16 +80,15 @@
       <path class="edge" d="M225 212H255" marker-end="url(#a)"/>
       <path class="edge" d="M440 212H470" marker-end="url(#a)"/>
       <path class="edge" d="M655 212H685" marker-end="url(#a)"/>
-      <path class="edge loop" d="M777.5 244V270H347.5V246" marker-end="url(#aloop)"/>
-      <text class="s" x="562.5" y="290" text-anchor="middle">근거 없는 문장 → 재검색, 그래도 없으면 삭제</text>
+      <text class="s" x="870" y="266" text-anchor="end">부족한 문장은 고쳐 쓰고, 근거가 없으면 삭제</text>
 
       <rect class="box accent" x="20" y="340" width="520" height="70" rx="10"/>
-      <text class="t" x="280" y="366" text-anchor="middle">Bio MCP 서버 (구현됨, Day 1)</text>
+      <text class="t" x="280" y="366" text-anchor="middle">Bio MCP 서버 (구현됨)</text>
       <text class="s" x="280" y="386" text-anchor="middle">search_pubmed · get_abstracts · check_pmids · get_fulltext · search_trials</text>
 
       <rect class="box planned" x="630" y="340" width="250" height="70" rx="10"/>
       <text class="t" x="755" y="366" text-anchor="middle">Langfuse</text>
-      <text class="s" x="755" y="386" text-anchor="middle">트레이스 · 토큰 비용 · 지연 (Day 5)</text>
+      <text class="s" x="755" y="386" text-anchor="middle">트레이스 · 토큰 비용 · 지연 (예정)</text>
 
       <path class="edge" d="M280 300V340" marker-end="url(#a)"/>
       <text class="s" x="290" y="325">MCP 도구 호출</text>
@@ -107,7 +106,7 @@
       <path class="edge" d="M270 480H330" marker-end="url(#a)"/>
       <text class="s" x="300" y="470" text-anchor="middle">미스만</text>
     </svg>
-    <figcaption>초록색 실선 상자는 구현을 마친 부분, 점선 상자는 예정된 부분입니다. 붉은 점선은 인용 검증 루프입니다.</figcaption>
+    <figcaption>초록색 실선 상자는 구현을 마친 부분, 점선 상자는 예정된 부분입니다.</figcaption>
   </figure>
 
   <h3>구성 요소</h3>
@@ -119,14 +118,14 @@
       <tr><td>HTTP · 캐시</td><td>호스트별 속도 제한, 429/5xx 재시도, SQLite 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성. <a href="#harness">상세 설계</a></td><td><code>src/bioscout/evals/</code>, <code>evals/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행. <a href="#agent">상세 설계</a></td><td><code>src/bioscout/agent/</code></td><td><span class="tag built">구현됨</span></td></tr>
-      <tr><td>인용 검증기</td><td>문장과 인용 초록을 맞대어 지지 / 부분 지지 / 근거 없음으로 판정, 재검색·삭제 결정. <a href="#judge">judge 상세 설계</a></td><td><code>src/bioscout/verifier/</code></td><td><span class="tag built">judge 구현됨</span> <span class="tag">루프 Day 4</span></td></tr>
-      <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">Day 5</span></td></tr>
-      <tr><td>데모</td><td>Streamlit UI, Docker, Hugging Face Spaces 배포</td><td><code>app/</code></td><td><span class="tag">Day 6</span></td></tr>
+      <tr><td>인용 검증기</td><td>문장과 인용 초록을 맞대어 지지 / 부분 지지 / 근거 없음으로 판정하고, 부족한 문장은 고쳐 쓰거나 삭제. <a href="#judge">judge</a>, <a href="#verify">검증 루프</a></td><td><code>src/bioscout/verifier/</code></td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">예정</span></td></tr>
+      <tr><td>데모</td><td>Streamlit UI, Docker, Hugging Face Spaces 배포</td><td><code>app/</code></td><td><span class="tag">예정</span></td></tr>
     </tbody>
   </table></div>
 
   <h2>데이터 계약</h2>
-  <p>에이전트는 자유 텍스트가 아니라 아래 구조로 답합니다. 문장 단위로 인용과 판정이 붙어 있어야 데모는 배지를 그리고, 평가 하네스는 지표를 계산할 수 있습니다. 평가 하네스가 먼저 필요해 Day 2에 <code>src/bioscout/answer.py</code>의 Pydantic 모델로 고정했습니다.</p>
+  <p>에이전트는 자유 텍스트가 아니라 아래 구조로 답합니다. 문장 단위로 인용과 판정이 붙어 있어야 데모는 배지를 그리고, 평가 하네스는 지표를 계산할 수 있습니다. 평가 하네스가 먼저 필요해 <code>src/bioscout/answer.py</code>의 Pydantic 모델로 먼저 고정했습니다.</p>
 <pre><code>{
   "question": "MSI-H 대장암에서 PD-1 억제제 반응률은 MSS보다 높은가?",
   "decision": "yes",                   // yes | no | maybe | not_applicable (PubMedQA 채점용)
@@ -138,9 +137,9 @@
       "evidence": "초록에서 판정 근거가 된 문장"
     }
   ],
-  "dropped": [ { "text": "...", "citations": ["10000003"], "reason": "pmid_not_found" } ],
+  "dropped": [ { "text": "...", "citations": ["10000003"], "reason": "unsupported" } ],  // not_backed | unsupported
   "searches": [ { "query": "\"microsatellite instability\"[MeSH] AND ...", "pmids": ["..."] } ],
-  "context_pmids": ["10000002"],       // 답변 단계에 초록을 준 PMID (Day 3 추가)
+  "context_pmids": ["10000002"],       // 답변 단계에 초록을 준 PMID
   "usage": { "usd": 0.0, "latency_ms": 0, "tool_calls": 0, "model": "claude-opus-5-5" }
 }</code></pre>
 
@@ -178,13 +177,13 @@
       <tr><td>A. LLM 단독</td><td>도구 없이 답변 + PMID 인용 요청</td><td>인용 환각이 실제로 얼마나 일어나는가</td></tr>
       <tr><td>B. 단순 RAG</td><td>질문 그대로 PubMed 상위 10건 초록 → 답변</td><td>일반적인 RAG의 한계</td></tr>
       <tr><td>C. 에이전트</td><td>질문 분해, MeSH 검색어, 초록 선별, 재검색 1회. <a href="#agent">상세 설계</a></td><td>에이전트 설계의 효과</td></tr>
-      <tr><td>D. 에이전트 + 검증</td><td>C + 인용 검증 · 재검색 루프</td><td>검증 루프의 효과와 그 비용</td></tr>
+      <tr><td>D. 에이전트 + 검증</td><td>C + 인용 판정, 인용 정리, 고쳐 쓰기 1회, 삭제. <a href="#verify">상세 설계</a></td><td>검증 루프의 효과와 그 비용</td></tr>
     </tbody>
   </table></div>
   <p class="callout warn">PubMedQA 질문은 논문 제목에서 만들어져 검색 성공률이 낙관적으로 나오고, 모델이 학습 중 봤을 가능성도 있습니다. 그래서 직접 만든 도메인 셋 결과를 항상 함께 제시합니다.</p>
 
-  <h2 id="harness">평가 하네스 (Day 2)</h2>
-  <p>평가 하네스는 "문항 × 변형"마다 답변을 하나 받아, 사람 손을 거치지 않는 결정적 지표부터 채점합니다. 판정이 필요한 지표(citation precision, coverage)는 judge를 보정한 뒤 Day 4에 같은 레코드 위에 더합니다. 그래서 Day 2 레코드는 나중에 다시 실행하지 않고 재채점할 수 있게 원자료를 모두 남깁니다.</p>
+  <h2 id="harness">평가 하네스</h2>
+  <p>평가 하네스는 "문항 × 변형"마다 답변을 하나 받아, 사람 손을 거치지 않는 결정적 지표부터 채점합니다. 판정이 필요한 지표(citation precision, coverage)는 judge가 같은 레코드 위에 더합니다. 그래서 레코드는 나중에 다시 실행하지 않고 재채점할 수 있게 원자료를 모두 남깁니다.</p>
 
   <figure class="bleed">
     <svg viewBox="0 0 900 580" role="img" aria-labelledby="run-title">
@@ -201,7 +200,7 @@
       <text class="s" x="115" y="166" text-anchor="middle">초안 · must-cite PMID · 핵심 포인트</text>
       <rect class="box planned" x="20" y="200" width="190" height="60" rx="10"/>
       <text class="t" x="115" y="226" text-anchor="middle">범위 밖 10</text>
-      <text class="s" x="115" y="246" text-anchor="middle">Day 4 이후</text>
+      <text class="s" x="115" y="246" text-anchor="middle">judge 판정 뒤</text>
 
       <rect class="group" x="250" y="20" width="330" height="270" rx="12"/>
       <text class="t" x="268" y="46">러너: 문항 × 변형, 동시 4개</text>
@@ -211,9 +210,9 @@
       <rect class="box accent" id="v-b" x="270" y="136" width="290" height="56" rx="10"/>
       <text class="t" x="415" y="160" text-anchor="middle">B. 단순 RAG</text>
       <text class="s" x="415" y="179" text-anchor="middle">질문 그대로 검색 10건 → 초록 → 답변</text>
-      <rect class="box planned" x="270" y="208" width="290" height="56" rx="10"/>
+      <rect class="box accent" x="270" y="208" width="290" height="56" rx="10"/>
       <text class="t" x="415" y="232" text-anchor="middle">C · D</text>
-      <text class="s" x="415" y="251" text-anchor="middle">에이전트(구현됨), + 인용 검증(Day 4)</text>
+      <text class="s" x="415" y="251" text-anchor="middle">에이전트, 에이전트 + 인용 검증</text>
 
       <rect class="box strong" x="640" y="64" width="240" height="56" rx="10"/>
       <text class="t" x="760" y="88" text-anchor="middle">Claude API</text>
@@ -256,7 +255,7 @@
       <text class="s" x="770" y="551" text-anchor="middle">리포트 수치만 옮겨 적음</text>
       <path class="edge" d="M770 476V506" marker-end="url(#r)"/>
     </svg>
-    <figcaption>초록색 실선은 구현을 마친 부분, 점선은 예정된 부분입니다. 문항별 레코드에는 답변 원문까지 남겨, Day 4에 judge 지표를 더할 때 다시 실행하지 않고 재채점합니다.</figcaption>
+    <figcaption>초록색 실선은 구현을 마친 부분, 점선은 예정된 부분입니다. 문항별 레코드에는 답변 원문까지 남겨, judge 지표를 더할 때 다시 실행하지 않고 재채점합니다.</figcaption>
   </figure>
 
   <h3>파일 구성</h3>
@@ -291,13 +290,13 @@
  "error": null}</code></pre>
   <p class="note">예시의 PMID는 가상 번호입니다. 실제처럼 보이는 가짜 인용은 테스트 픽스처 밖에 두지 않습니다.</p>
 
-  <h3>Day 2에 계산하는 지표 (결정적)</h3>
+  <h3>판정 없이 계산하는 지표 (결정적)</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>지표</th><th>계산</th><th>대상</th></tr></thead>
     <tbody>
       <tr><td>가짜 PMID 비율</td><td>PubMed에 없는 인용 PMID 수 ÷ 전체 인용 PMID 수 (전 문항 합산)</td><td>전체</td></tr>
       <tr><td>가짜 인용 답변 비율</td><td>없는 PMID가 하나라도 있는 답변 ÷ 답변 수</td><td>전체</td></tr>
-      <tr><td>인용 부착률</td><td>PMID가 1개 이상 붙은 문장 ÷ 문장 수. Day 4 coverage의 상한</td><td>전체</td></tr>
+      <tr><td>인용 부착률</td><td>PMID가 1개 이상 붙은 문장 ÷ 문장 수. coverage의 상한</td><td>전체</td></tr>
       <tr><td>정답률</td><td>답변의 <code>decision</code>이 PubMedQA 라벨과 같은 비율</td><td>PubMedQA</td></tr>
       <tr><td>원 논문 검색률 (recall@10)</td><td>문항의 원 PMID가 검색 상위 10건에 든 비율. 검색이 없는 A는 해당 없음</td><td>PubMedQA</td></tr>
       <tr><td>원 논문 인용률</td><td>원 PMID를 실제로 인용한 비율</td><td>PubMedQA</td></tr>
@@ -330,12 +329,12 @@
   </table></div>
   <p class="note">Opus 5.5 단가(입력 $4, 출력 $20 / 백만 토큰) 기준 추정입니다. <code>--limit 10</code> 실행의 실측값으로 바꿔 적습니다.</p>
 
-  <h2 id="agent">리서치 에이전트 (Day 3) <span class="tag built">구현됨</span></h2>
+  <h2 id="agent">리서치 에이전트 <span class="tag built">구현됨</span></h2>
   <p>변형 C는 B와 같은 답변 단계에 "무엇을 읽을지 고르는 일"만 더합니다. 질문을 개념으로 나눠 검색어를 쓰고, 찾은 초록을 읽어 근거가 되는 논문만 고르고, 부족하면 한 번 더 찾습니다. 답변 단계의 시스템 프롬프트, 출력 스키마, 초록 수 상한(10건)은 B와 같습니다. 그래서 B와 C의 차이는 "어떤 초록을 읽었나"에서만 나옵니다.</p>
 
   <figure class="bleed">
     <svg viewBox="0 0 900 400" role="img" aria-labelledby="agent-title">
-      <title id="agent-title">에이전트 그래프: 질문이 계획, 검색, 선별을 거치고, 근거가 부족하면 새 검색어로 한 번 더 검색한 뒤 인용 답변을 만든다. Day 4에는 답변 뒤에 인용 검증이 붙는다</title>
+      <title id="agent-title">에이전트 그래프: 질문이 계획, 검색, 선별을 거치고, 근거가 부족하면 새 검색어로 한 번 더 검색한 뒤 인용 답변을 만든다. 변형 D에서는 답변 뒤에 인용 검증이 붙는다</title>
       <defs>
         <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
         <marker id="gloop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
@@ -383,17 +382,17 @@
       <rect class="box accent" x="170" y="190" width="200" height="72" rx="10"/>
       <text class="t" x="270" y="216" text-anchor="middle">평가 하네스 · 데모</text>
       <text class="s" x="270" y="236" text-anchor="middle">변형 C로 채점</text>
-      <text class="s" x="270" y="252" text-anchor="middle">Day 6 데모도 같은 그래프</text>
+      <text class="s" x="270" y="252" text-anchor="middle">데모도 같은 그래프</text>
       <path class="edge" d="M420 226H372" marker-end="url(#g)"/>
 
-      <rect class="box planned" x="670" y="310" width="210" height="64" rx="10" style="stroke:var(--cy5)"/>
-      <text class="t" x="775" y="336" text-anchor="middle">인용 검증 (Day 4)</text>
+      <rect class="box accent" x="670" y="310" width="210" height="64" rx="10" style="stroke:var(--cy5)"/>
+      <text class="t" x="775" y="336" text-anchor="middle">인용 검증 · 고쳐 쓰기</text>
       <text class="s" x="775" y="356" text-anchor="middle">변형 D에만 붙는 노드</text>
       <path class="edge loop" d="M775 262V308" marker-end="url(#gloop)"/>
-      <path class="edge loop" d="M670 342H395V160H480V134" marker-end="url(#gloop)"/>
-      <text class="s" x="532" y="364" text-anchor="middle">근거 없는 문장은 다시 검색, 그래도 없으면 삭제</text>
+      <text class="s" x="655" y="338" text-anchor="end">부족한 문장은 한 번 고쳐 쓰고,</text>
+      <text class="s" x="655" y="356" text-anchor="end">그래도 근거가 없으면 삭제</text>
     </svg>
-    <figcaption>초록색 상자는 구현된 부분입니다. 붉은 점선은 Day 4에 변형 D로 붙일 검증 루프입니다. 순환이 있는 그래프라 LangGraph로 만들었습니다.</figcaption>
+    <figcaption>초록색 상자는 구현된 부분입니다. 붉은 테두리의 인용 검증은 변형 D에만 붙습니다. 판정과 고쳐 쓰기가 순환해서 LangGraph로 만들었습니다.</figcaption>
   </figure>
 
   <h3>노드</h3>
@@ -424,11 +423,11 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     <tbody>
       <tr><td>답변 단계는 B와 같은 시스템 프롬프트, 스키마, 초록 상한 10건</td><td>B 대비 개선이 검색·선별에서 왔다고 말할 수 있음. 공유 프롬프트는 <code>src/bioscout/prompts.py</code>로 옮겨 두 변형이 같은 상수를 씀</td><td>에이전트 전용 답변 프롬프트</td></tr>
       <tr><td>정해진 그래프 + 조건부 재검색 1회</td><td>질의당 LLM 호출이 3–4회로 정해져 비용 상한이 분명함. 단계마다 JSON 호출 하나라 응답 캐시로 재생되고, 가짜 LLM으로 단계별 테스트 가능</td><td>모델이 도구를 자유롭게 부르는 tool-use 루프. 호출 수가 문항마다 달라 비용과 재현성이 흔들림</td></tr>
-      <tr><td>1라운드에 질문 그대로 검색도 실행하고, 그 결과를 후보 맨 앞에 둠 (11/15 추가)</td><td>첫 실행에서 넓은 MeSH 검색이 PubMedQA 원 논문을 상위 10건에서 놓쳐, C가 B보다 덜 찾았음(원 논문이 답변 초록에 든 비율 40% vs 90%). 이렇게 하면 C가 고를 후보에 B가 답변에 쓰는 초록 10건이 늘 들어감</td><td>계획 노드에 논문 제목 같은 검색어를 쓰게 하기. PubMedQA에만 맞춘 요령이 됨</td></tr>
-      <tr><td>선별 노드의 새 검색어도 계획과 같은 형식 규칙(<code>QUERY_SYNTAX</code>)을 따름 (11/15 추가)</td><td>첫 실행에서 선별 노드가 쓴 키워드 나열은 PubMed가 단어마다 AND로 묶어 0–3건만 돌려준 경우가 많았음</td><td>형식 자유</td></tr>
-      <tr><td>LangGraph <code>StateGraph</code></td><td>Day 4 검증 루프(조건 분기와 순환)를 노드 하나로 붙이고, Day 5에 Langfuse가 노드 단위로 트레이스함</td><td>순수 async 함수 체인</td></tr>
+      <tr><td>1라운드에 질문 그대로 검색도 실행하고, 그 결과를 후보 맨 앞에 둠</td><td>첫 실행에서 넓은 MeSH 검색이 PubMedQA 원 논문을 상위 10건에서 놓쳐, C가 B보다 덜 찾았음(원 논문이 답변 초록에 든 비율 40% vs 90%). 이렇게 하면 C가 고를 후보에 B가 답변에 쓰는 초록 10건이 늘 들어감</td><td>계획 노드에 논문 제목 같은 검색어를 쓰게 하기. PubMedQA에만 맞춘 요령이 됨</td></tr>
+      <tr><td>선별 노드의 새 검색어도 계획과 같은 형식 규칙(<code>QUERY_SYNTAX</code>)을 따름</td><td>첫 실행에서 선별 노드가 쓴 키워드 나열은 PubMed가 단어마다 AND로 묶어 0–3건만 돌려준 경우가 많았음</td><td>형식 자유</td></tr>
+      <tr><td>LangGraph <code>StateGraph</code></td><td>검증 루프(조건 분기와 순환)를 노드로 붙이고, Langfuse가 노드 단위로 트레이스함</td><td>순수 async 함수 체인</td></tr>
       <tr><td>선별은 제목이 아니라 초록 전체를 읽음</td><td>근거는 초록의 결과·결론에 있음. 후보 25건이면 입력 약 9K 토큰</td><td>제목만 보고 고르기</td></tr>
-      <tr><td>ClinicalTrials.gov와 본문은 변형 C에서 쓰지 않음</td><td>인용 단위가 PMID이고 Day 4 judge는 초록으로 판정함. 시험 등록 정보나 본문에만 있는 근거는 채점도 검증도 할 수 없음. "일정이 밀릴 때" 1번과도 같음</td><td>도구 5개 모두 사용</td></tr>
+      <tr><td>ClinicalTrials.gov와 본문은 변형 C에서 쓰지 않음</td><td>인용 단위가 PMID이고 judge는 초록으로 판정함. 시험 등록 정보나 본문에만 있는 근거는 채점도 검증도 할 수 없음. "범위를 줄여야 할 때" 1번과도 같음</td><td>도구 5개 모두 사용</td></tr>
       <tr><td>선별이 후보에 없는 PMID를 고르면 버림</td><td>답변 단계에는 실제로 가져온 초록만 들어감. 답변의 인용 검사는 하지 않음(변형 D의 일)</td><td>답변 후 인용 필터링</td></tr>
       <tr><td>그래프 설정값도 <code>prompt_sha</code>에 포함</td><td>검색어 수나 라운드 수만 바꾼 실행도 다른 실행으로 기록됨. A·B의 해시는 바뀌지 않게 유지</td><td>프롬프트만 해시</td></tr>
     </tbody>
@@ -444,7 +443,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td>인용</td><td>원 논문을 인용했나 (<code>gold_cited</code>)</td><td>예</td></tr>
     </tbody>
   </table></div>
-  <p>C가 B보다 원 논문을 덜 인용했다면, 이 세 숫자로 검색에서 못 찾은 것인지, 찾고도 버린 것인지, 읽고도 인용하지 않은 것인지 나눌 수 있습니다. Day 3의 "B 대비 원인 분석"은 이 표에서 시작합니다.</p>
+  <p>C가 B보다 원 논문을 덜 인용했다면, 이 세 숫자로 검색에서 못 찾은 것인지, 찾고도 버린 것인지, 읽고도 인용하지 않은 것인지 나눌 수 있습니다. "B 대비 원인 분석"은 이 표에서 시작합니다.</p>
 
   <h3>비용 추정과 테스트</h3>
   <div class="table-wrap"><table>
@@ -455,7 +454,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
   </table></div>
   <p>테스트는 가짜 LLM과 가짜 PubMed로 네트워크 없이 돌립니다. 확인할 것: 한 라운드로 끝나는 경로, 재검색 경로와 2라운드 상한, 검색 결과 0건, 단계별 거절, 후보 밖 PMID 무시, 답변 단계에 선택 초록만 들어가는지, A·B 프롬프트 해시 유지.</p>
 
-  <h2 id="judge">인용 판정 judge (Day 4) <span class="tag built">judge 구현됨</span> <span class="tag">검증 루프 예정</span></h2>
+  <h2 id="judge">인용 판정 judge <span class="tag built">구현됨</span></h2>
   <p>judge는 답변의 문장 하나와 그 문장이 인용한 초록들을 받아, 초록이 문장을 뒷받침하는지 판정합니다. 평가에서는 이 판정으로 citation precision과 coverage를 계산합니다. 변형 D에서는 같은 judge가 답변을 보여 주기 전에 문장을 걸러 냅니다.</p>
 
   <h3>판정 단위와 기준</h3>
@@ -522,9 +521,9 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
   <p>판정별로 같은 수를 뽑은 표본이라, 여기서 나온 일치율은 전체 인용의 일치율과 다릅니다. 이 표본은 judge가 세 판정을 사람처럼 가르는지를 보려는 것입니다. 같은 실행과 같은 시드로는 늘 같은 60쌍이 나옵니다. 라벨이 적힌 파일은 덮어쓰지 않습니다.</p>
 
   <h3>시험 판정과 비용</h3>
-  <p>11/15 전체 실행의 답변 19개(인용 문장 66개)에 judge를 돌렸습니다. A가 번호를 4만큼 틀리게 적은 인용(10430922)은 <code>unsupported</code>로 판정됐습니다. judge가 옮긴 근거 구절 102개는 모두 초록에서 확인됐습니다. 비용은 문장당 약 $0.013(입력 2.0K, 출력 0.2K 토큰)입니다. 판정도 캐시되므로 다시 돌릴 때는 비용이 들지 않습니다.</p>
+  <p>전체 실행의 답변 19개(인용 문장 66개)에 judge를 먼저 돌렸습니다. A가 번호를 4만큼 틀리게 적은 인용(10430922)은 <code>unsupported</code>로 판정됐습니다. judge가 옮긴 근거 구절 102개는 모두 초록에서 확인됐습니다. 비용은 문장당 약 $0.013(입력 2.0K, 출력 0.2K 토큰)입니다. 판정도 캐시되므로 다시 돌릴 때는 비용이 들지 않습니다.</p>
 
-  <h3>전체 판정 결과 (11/15, 보정 전)</h3>
+  <h3>전체 판정 결과 (보정 전)</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>변형</th><th>Citation precision</th><th>Partial 인용</th><th>Coverage</th><th>모든 문장이 확인된 답변</th><th>확인된 문장이 없는 답변</th></tr></thead>
     <tbody>
@@ -548,12 +547,68 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     </tbody>
   </table></div>
 
+  <h2 id="verify">검증 루프 (변형 D) <span class="tag built">구현됨</span> <span class="tag">실행 전</span></h2>
+  <p>변형 D는 C의 답변을 받아, 문장마다 judge로 확인한 뒤 내보냅니다. 앞부분(계획, 검색, 선별, 답변)은 C와 같은 그래프이고 같은 요청을 보냅니다. 그래서 캐시된 C의 응답이 그대로 재생되고, D와 C의 차이는 검증 단계에서만 나옵니다.</p>
+
+  <h3>노드</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>노드</th><th>하는 일</th><th>호출</th></tr></thead>
+    <tbody>
+      <tr><td><code>verify</code></td><td>아직 판정이 없는 문장을 인용한 초록과 맞대어 judge로 판정함. 판정에 따라 인용을 정리함: <code>supported</code> 인용만 남기고, 없으면 <code>partial</code> 인용을 남김. 에이전트가 가져온 적 없는 PMID는 초록이 없으므로 근거 없음으로 봄</td><td>문장당 LLM 1회, 동시에</td></tr>
+      <tr><td><code>revise</code></td><td>완전히 뒷받침되지 않은 문장(<code>partial</code>, <code>unsupported</code>, 인용 없는 문장)을 모아, 답변에 쓴 초록 안에서 고쳐 쓰게 함. 뒷받침되지 않는 부분을 빼거나 좁히고, 대상과 수치를 초록에 맞춤. 남길 내용이 없으면 빈 문장을 돌려주고 그 문장은 삭제됨</td><td>답변당 LLM 1회, 필요할 때만</td></tr>
+      <tr><td><code>verify</code> (다시)</td><td>고쳐 쓴 문장만 다시 판정함</td><td>고친 문장당 LLM 1회</td></tr>
+      <tr><td><code>finish</code></td><td>근거 없음으로 남은 문장을 삭제하고 <code>dropped</code>에 이유와 함께 기록함. 부분 지지 문장은 판정을 단 채 남김</td><td>없음</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>문장이 끝나는 곳</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>상황</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>처음 판정이 <code>supported</code></td><td>유지. 지지한 인용만 남김</td></tr>
+      <tr><td>고쳐 쓴 뒤 <code>supported</code></td><td>고쳐 쓴 문장으로 유지</td></tr>
+      <tr><td>고쳐 쓴 뒤에도 <code>partial</code></td><td>유지하고 부분 지지로 표시. 더 고쳐 쓰지 않음</td></tr>
+      <tr><td>고쳐 쓴 뒤에도 <code>unsupported</code></td><td>삭제. 이유 <code>unsupported</code></td></tr>
+      <tr><td>초록에 남길 내용이 없음</td><td>삭제. 이유 <code>not_backed</code></td></tr>
+      <tr><td>judge나 수정 호출이 거절됨</td><td>문장을 그대로 두고 판정 없음으로 남김</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>C와 같은 그래프에 검증 노드만 더함</td><td>앞부분이 C와 같은 요청을 보내 캐시된 응답을 재생함. D와 C의 차이를 검증 단계의 효과로 읽을 수 있음. C의 프롬프트 해시는 바뀌지 않게 테스트로 고정</td><td>D 전용 파이프라인</td></tr>
+      <tr><td>인용 정리: 지지한 인용만 남김</td><td>문장을 뒷받침하지 않는 인용이 빠져 precision이 오름. 문장 판정이 <code>supported</code>이면 지지한 인용만으로도 그 판정이 유지됨</td><td>인용을 그대로 두고 문장만 걸러 내기</td></tr>
+      <tr><td>부족한 문장은 다시 검색하지 않고, 답변에 쓴 초록 안에서 한 번 고쳐 씀</td><td>전체 판정에서 C의 문장 632개 중 근거 없음은 0개였고, 부분 지지 40개는 대부분 초록에 없는 세부(수치, 대상)를 덧붙인 경우였음. 주장을 초록에 맞게 좁히면 해결됨. 재검색은 문장마다 LLM 호출 2회와 검색이 더 들고, 새 초록을 다시 선별해야 함</td><td>문장마다 재검색. D를 평가한 뒤에도 근거 없는 문장이 문제로 남으면 추가</td></tr>
+      <tr><td>고쳐 쓰기는 한 번, 답변당 호출 한 번</td><td>비용 상한이 분명함. 한 번 고쳐도 부분 지지면 표시하고 넘어감</td><td>지지가 될 때까지 반복</td></tr>
+      <tr><td>부분 지지 문장은 지우지 않고 표시</td><td>주제가 맞는 근거가 있고, 읽는 사람이 판단할 수 있음. 지우면 답변이 빈약해짐</td><td>부분 지지도 삭제</td></tr>
+      <tr><td>확인하지 못한 문장은 지우지 않음</td><td>judge 호출이 거절된 것은 문장의 잘못이 아님. 판정 없음으로 남겨 화면에서 구별함</td><td>확인 못 한 문장 삭제</td></tr>
+      <tr><td>삭제한 문장을 이유와 함께 기록</td><td>무엇이 빠졌는지 추적할 수 있고, 평가에서 답변당 삭제 문장 수를 집계함</td><td>조용히 삭제</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>D의 수치를 읽는 법</h3>
+  <p>D는 judge로 거른 답변입니다. 그 답변을 같은 judge로 다시 채점하면 precision은 구조적으로 높게 나옵니다. 그래서 D의 citation precision은 "judge가 <code>supported</code>라고 한 인용을 사람도 그렇게 보는 비율"만큼만 믿을 수 있고, 이 비율은 <a href="#calibration">보정</a> 표본에서 나옵니다. D의 결과는 보정 결과, 답변당 삭제한 문장 수, coverage, 비용과 함께 봅니다.</p>
+
+  <h3>비용 추정과 테스트</h3>
+  <p>질의당 비용은 C에 문장 판정(문장당 약 $0.013, 답변당 5–6문장)과 수정 호출(필요한 답변에만 약 $0.03)이 더해져 약 $0.22–0.25로 예상합니다. 이미 판정한 실행과 같은 문항으로 D를 돌리면 C 단계와 고치지 않은 문장의 판정이 캐시에서 재생되므로, 새로 드는 비용은 수정 호출과 고친 문장의 재판정뿐입니다. judge 프롬프트가 바뀌면 D의 답변도 달라지므로, D 실행은 judge 보정 뒤에 합니다.</p>
+  <p>테스트는 가짜 LLM으로 경로마다 확인합니다. 인용 정리, 고쳐 쓴 뒤 재판정, 한 번 뒤에는 더 고치지 않음, 두 가지 삭제, 인용 없는 문장, 거절된 호출입니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/verifier/revise.py</code></td><td>인용 정리 규칙, 수정 프롬프트와 스키마, <code>revise_sentences()</code>, <code>VerifyConfig</code></td></tr>
+      <tr><td><code>src/bioscout/agent/graph.py</code></td><td><code>verify</code>, <code>revise</code>, <code>finish</code> 노드. <code>ResearchAgent(..., verify=VerifyConfig())</code>일 때만 붙음</td></tr>
+      <tr><td><code>bioscout-eval run --variants D</code></td><td>변형 D 실행. 리포트에 답변당 삭제 문장 수가 더해짐</td></tr>
+    </tbody>
+  </table></div>
+
   <h2>기술 결정</h2>
   <div class="table-wrap"><table>
     <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
     <tbody>
       <tr><td>MCP SDK 2.x의 <code>MCPServer</code> 사용</td><td>현재 SDK 기준. 1.x의 FastMCP가 2.x에서 이름이 바뀌었으므로 처음부터 2.x로 작성</td><td><code>mcp&lt;2</code> 고정</td></tr>
-      <tr><td>검색 엔진은 PubMed API 자체</td><td>3,700만 건 인덱싱 없이 1주 안에 가능하고, 관련도 정렬 품질이 충분. 대신 검색어 재작성을 에이전트의 일로 둠</td><td>자체 벡터DB 인덱싱</td></tr>
+      <tr><td>검색 엔진은 PubMed API 자체</td><td>3,700만 건을 인덱싱하지 않고 바로 쓸 수 있고, 관련도 정렬 품질이 충분. 대신 검색어 재작성을 에이전트의 일로 둠</td><td>자체 벡터DB 인덱싱</td></tr>
       <tr><td>SQLite 응답 캐시 + readonly 모드</td><td>NCBI 속도 제한 준수, 평가 재현성, CI에서 네트워크 없이 재생</td><td>매번 실시간 호출</td></tr>
       <tr><td>업스트림 오류를 짧은 도구 오류로 변환</td><td>에이전트가 스택 트레이스 대신 "재시도하거나 다른 도구 사용"을 읽고 행동</td><td>예외 그대로 전달</td></tr>
       <tr><td>테스트 픽스처는 가상 데이터</td><td>인용 진실성을 다루는 프로젝트에서 실제처럼 보이는 가짜 인용을 만들지 않음</td><td>실제 응답 녹화본 커밋</td></tr>
@@ -572,8 +627,8 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     <li>임상 의사결정 지원. Intended use는 "연구 문헌 탐색 보조"</li>
   </ul>
 
-  <h2>일정이 밀릴 때</h2>
-  <p>기능을 줄이고 평가는 지킵니다. Day 4 저녁에 판단하며, 아래 순서로 덜어냅니다.</p>
+  <h2>범위를 줄여야 할 때</h2>
+  <p>기능을 줄이고 평가는 지킵니다. 아래 순서로 덜어냅니다.</p>
   <ol>
     <li>ClinicalTrials.gov 도구를 평가에서 제외</li>
     <li>모델 간 비교 실험 제외</li>
@@ -583,6 +638,6 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
   <p>끝까지 지킬 것: 변형 A · B · D 비교, 가짜 PMID 비율, citation precision, judge 일치도.</p>
 </main>
 
-<footer>일정과 상태는 <a href="progress.html">진행 상황</a>에서 관리합니다.</footer>
+<footer>작업 상태는 <a href="progress.html">진행 상황</a>에서 봅니다.</footer>
 </body>
 </html>

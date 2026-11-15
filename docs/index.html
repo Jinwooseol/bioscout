@@ -42,7 +42,7 @@
       <li class="dropped">
         <span class="well uns" role="img" aria-label="근거 없음"></span>
         <div><span class="claim">반응은 모든 환자에서 2년 이상 지속된다.</span> <span class="cite">PMID 10000003</span>
-          <span class="why">PubMed에 없는 PMID라 재검색 후에도 근거를 못 찾아 답변에서 삭제</span></div>
+          <span class="why">PubMed에 없는 PMID라 근거가 없고, 고쳐 쓸 내용도 초록에 없어 답변에서 삭제</span></div>
       </li>
     </ol>
     <div class="verdicts">
@@ -85,9 +85,9 @@
   <div class="table-wrap"><table>
     <thead><tr><th>이점</th><th>내용</th><th>상태</th></tr></thead>
     <tbody>
-      <tr><td>인용을 시스템이 검사</td><td>답변의 모든 PMID를 PubMed에 조회해 존재를 확인합니다. 이어서 문장과 초록을 맞대어 지지, 부분 지지, 근거 없음으로 판정하고, 다시 검색해도 근거가 없는 문장은 삭제합니다</td><td><span class="tag built">존재 확인, 판정 구현됨</span> <span class="tag">삭제 루프 Day 4</span></td></tr>
+      <tr><td>인용을 시스템이 검사</td><td>답변의 모든 PMID를 PubMed에 조회해 존재를 확인합니다. 이어서 문장과 초록을 맞대어 지지, 부분 지지, 근거 없음으로 판정합니다. 부족한 문장은 초록에 있는 내용으로 한 번 고쳐 쓰고, 그래도 근거가 없으면 삭제합니다</td><td><span class="tag built">구현됨</span> <span class="tag">검증 변형 평가 전</span></td></tr>
       <tr><td>PubMed를 직접 검색</td><td>웹 페이지가 아니라 NCBI의 PubMed를 PMID 단위로 조회합니다. 질문을 MeSH 용어와 동의어 검색식으로 바꾸고, 초록을 읽어 근거가 되는 논문만 골라 답변에 씁니다</td><td><span class="tag built">구현됨</span></td></tr>
-      <tr><td>성능이 숫자로 공개됨</td><td>같은 모델로 LLM 단독, 단순 RAG, 에이전트, 에이전트 + 검증을 비교합니다. 가짜 PMID 비율, 인용 정확도, 질의당 비용과 시간이 리포트로 남고, 응답 캐시로 같은 실행을 다시 재생할 수 있습니다</td><td><span class="tag built">A–C 구현됨</span> <span class="tag">검증 변형 Day 4</span></td></tr>
+      <tr><td>성능이 숫자로 공개됨</td><td>같은 모델로 LLM 단독, 단순 RAG, 에이전트, 에이전트 + 검증을 비교합니다. 가짜 PMID 비율, 인용 정확도, 질의당 비용과 시간이 리포트로 남고, 응답 캐시로 같은 실행을 다시 재생할 수 있습니다</td><td><span class="tag built">A–D 구현됨</span> <span class="tag">D 평가 전</span></td></tr>
       <tr><td>도구를 떼어 쓸 수 있음</td><td>PubMed 검색, 초록, PMID 확인, 오픈액세스 본문, 임상시험 검색을 MCP 서버로 제공합니다. Claude Code나 Claude Desktop 같은 MCP 지원 에이전트에 그대로 연결됩니다. 공개 API만 써서 구독료가 없고, 드는 비용은 LLM 호출뿐입니다</td><td><span class="tag built">구현됨</span></td></tr>
     </tbody>
   </table></div>
@@ -114,7 +114,7 @@
   <ul>
     <li>초록만 읽습니다. 본문에만 있는 근거는 찾지도 판정하지도 못합니다.</li>
     <li>인용 정확도 수치는 잠정입니다. judge가 답변과 같은 모델이고, 사람 라벨과 맞는지 확인하는 일이 남아 있습니다.</li>
-    <li>근거 없는 문장을 답변에서 빼는 단계와 화면은 아직 구현 전입니다. 맨 위 예시는 목표로 하는 출력 형식입니다.</li>
+    <li>근거 없는 문장을 고쳐 쓰거나 빼는 단계는 만들었지만 아직 평가하지 않았고, 화면은 구현 전입니다. 맨 위 예시는 목표로 하는 출력 형식입니다.</li>
     <li>혼자 만드는 포트폴리오 프로젝트입니다. 상업 서비스 수준의 규모, 속도, 지원은 없습니다.</li>
     <li>의료기기가 아닙니다. 개별 환자의 진단이나 치료 결정에 쓰지 않습니다.</li>
   </ul>
@@ -124,7 +124,7 @@
   <ul class="pages">
     <li><a href="design.html">설계</a><p>목표와 성공 기준, 아키텍처, 데이터 계약, 평가 설계, 평가 하네스와 에이전트 상세, 기술 결정</p></li>
     <li><a href="how-it-works.html">동작 방식</a><p>질문 하나가 검색, 선별, 답변, 인용 검증을 거쳐 나가는 과정, 에이전트 그래프의 단계별 상태, 평가 하네스의 채점 방식</p></li>
-    <li><a href="progress.html">진행 상황</a><p>7일 일정의 작업별 상태, 평가 수치, 빌드 로그</p></li>
+    <li><a href="progress.html">진행 상황</a><p>작업별 상태, 평가 수치, 작업 기록</p></li>
     <li><a href="guide.html">가이드</a><p>설치, 테스트, 평가 실행, Claude Code와 Claude Desktop 연결, GitHub 푸시</p></li>
   </ul>
 </main>

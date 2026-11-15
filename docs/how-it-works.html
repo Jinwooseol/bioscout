@@ -69,79 +69,74 @@
       <path class="edge" d="M470 420H272" marker-end="url(#h)"/>
       <text class="s" x="370" y="412" text-anchor="middle">11 없는 PMID 목록</text>
 
-      <rect class="box planned" x="196" y="432" width="148" height="26" rx="6" style="stroke:var(--cy5)"/>
-      <text class="s" x="270" y="450" text-anchor="middle">12 문장–초록 지지 판정</text>
-
-      <path class="edge loop" d="M196 445H172V164H264" marker-end="url(#hl)"/>
-      <text class="s" x="164" y="290" text-anchor="end" style="fill:var(--cy5)">근거 없음</text>
-      <text class="s" x="164" y="306" text-anchor="end" style="fill:var(--cy5)">3부터 재검색</text>
-      <text class="s" x="164" y="322" text-anchor="end" style="fill:var(--cy5)">(최대 2회)</text>
+      <rect class="box accent" x="176" y="432" width="188" height="26" rx="6"/>
+      <text class="s" x="270" y="450" text-anchor="middle">12 문장 판정 · 고쳐 쓰기 · 삭제</text>
 
       <path class="edge" d="M268 500H82" marker-end="url(#h)"/>
       <text class="s" x="175" y="492" text-anchor="middle">13 검증된 답변</text>
       <text class="s" x="80" y="520" text-anchor="middle">판정 배지 · 삭제 문장</text>
 
-      <text class="s" x="470" y="565" text-anchor="middle">초록색: 구현됨 · 점선: Day 4 예정</text>
+      <text class="s" x="470" y="565" text-anchor="middle">초록색: 구현됨</text>
     </svg>
-    <figcaption>3–8번과 10–11번은 MCP 서버(Day 1)가, 2번과 9번은 에이전트(Day 3)가 처리합니다. 9번에서 근거가 부족하면 새 검색어로 3번부터 한 번 더 돕니다. 12번과 붉은 재검색 루프는 Day 4에 붙는 인용 검증입니다.</figcaption>
+    <figcaption>3–8번과 10–11번은 MCP 서버가, 2번과 9번은 에이전트가 처리합니다. 9번에서 근거가 부족하면 새 검색어로 3번부터 한 번 더 돕니다. 12번은 변형 D의 인용 검증입니다. 부족한 문장은 다시 검색하지 않고, 답변에 쓴 초록 안에서 한 번 고쳐 씁니다.</figcaption>
   </figure>
 
   <h2>인용 검증 규칙</h2>
-  <p>답변의 문장마다 아래 순서로 판정합니다. 판정이 끝난 문장만 사용자에게 갑니다.</p>
+  <p>변형 D는 답변의 문장마다 아래 순서로 확인합니다. 확인이 끝난 문장만 사용자에게 갑니다.</p>
   <figure>
-    <svg viewBox="0 0 760 300" role="img" aria-labelledby="ver-title">
-      <title id="ver-title">문장 하나의 검증 규칙: PMID가 없으면 삭제, 지지나 부분 지지면 유지, 근거가 없으면 재검색 후 다시 판정</title>
+    <svg viewBox="0 0 760 320" role="img" aria-labelledby="ver-title">
+      <title id="ver-title">문장 하나의 검증 규칙: 인용한 초록이 문장을 지지하면 유지한다. 부분 지지나 근거 없음이면 한 번 고쳐 쓴 뒤 다시 판정해, 지지와 부분 지지는 유지하고 근거 없음은 삭제한다</title>
       <defs>
         <marker id="v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
         <marker id="vl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
       </defs>
-      <rect class="box strong" x="16" y="40" width="130" height="52" rx="10"/>
-      <text class="t" x="81" y="71" text-anchor="middle">문장 + PMID</text>
+      <rect class="box strong" x="16" y="40" width="140" height="52" rx="10"/>
+      <text class="t" x="86" y="62" text-anchor="middle">문장 +</text>
+      <text class="t" x="86" y="80" text-anchor="middle">인용 초록</text>
 
-      <polygon class="box" points="196,66 266,26 336,66 266,106"/>
-      <text class="t" x="266" y="64" text-anchor="middle">PMID</text>
-      <text class="t" x="266" y="80" text-anchor="middle">존재?</text>
+      <polygon class="box" points="206,66 276,26 346,66 276,106"/>
+      <text class="t" x="276" y="64" text-anchor="middle">초록이</text>
+      <text class="t" x="276" y="80" text-anchor="middle">지지?</text>
 
-      <polygon class="box" points="396,66 476,22 556,66 476,110"/>
-      <text class="t" x="476" y="64" text-anchor="middle">초록이</text>
-      <text class="t" x="476" y="80" text-anchor="middle">지지?</text>
+      <rect class="box" x="606" y="40" width="138" height="52" rx="10"/>
+      <circle class="fam" cx="628" cy="66" r="7"/><text class="t" x="644" y="71">유지</text>
+      <rect class="box" x="606" y="150" width="138" height="40" rx="10"/>
+      <circle class="hex" cx="628" cy="170" r="7"/><text class="t" x="644" y="175">유지 + 표시</text>
+      <rect class="box" x="606" y="236" width="138" height="40" rx="10"/>
+      <circle class="cy5" cx="628" cy="256" r="7"/><text class="t" x="644" y="261">삭제</text>
 
-      <rect class="box" x="606" y="18" width="138" height="40" rx="10"/>
-      <circle class="fam" cx="628" cy="38" r="7"/><text class="t" x="644" y="43">유지</text>
-      <rect class="box" x="606" y="74" width="138" height="40" rx="10"/>
-      <circle class="hex" cx="628" cy="94" r="7"/><text class="t" x="644" y="99">유지 + 표시</text>
+      <rect class="box" x="206" y="206" width="140" height="44" rx="10" style="stroke:var(--cy5)"/>
+      <text class="t" x="276" y="233" text-anchor="middle">한 번 고쳐 쓰기</text>
+      <polygon class="box" points="406,228 476,188 546,228 476,268"/>
+      <text class="t" x="476" y="226" text-anchor="middle">다시</text>
+      <text class="t" x="476" y="242" text-anchor="middle">판정</text>
 
-      <rect class="box" x="196" y="206" width="140" height="44" rx="10"/>
-      <circle class="cy5" cx="218" cy="228" r="7"/><text class="t" x="234" y="233">삭제</text>
-      <rect class="box" x="406" y="206" width="140" height="44" rx="10" style="stroke:var(--cy5)"/>
-      <text class="t" x="476" y="233" text-anchor="middle">재검색</text>
-
-      <path class="edge" d="M146 66H194" marker-end="url(#v)"/>
-      <path class="edge" d="M336 66H394" marker-end="url(#v)"/>
-      <text class="s" x="365" y="58" text-anchor="middle">예</text>
-      <path class="edge" d="M266 106V204" marker-end="url(#v)"/>
-      <text class="s" x="274" y="160">아니오</text>
-      <path class="edge" d="M556 66H580V38H604" marker-end="url(#v)"/>
-      <text class="s" x="582" y="30" text-anchor="end">지지</text>
-      <path class="edge" d="M556 66H580V94H604" marker-end="url(#v)"/>
-      <text class="s" x="582" y="112" text-anchor="end">부분</text>
-      <path class="edge" d="M456 99V204" marker-end="url(#v)"/>
-      <text class="s" x="448" y="160" text-anchor="end">근거 없음</text>
-      <path class="edge loop" d="M406 228H340" marker-end="url(#vl)"/>
-      <text class="s" x="373" y="272" text-anchor="middle" style="fill:var(--cy5)">2회 후에도 없으면</text>
-      <path class="edge loop" d="M546 228H600V156H496V101" marker-end="url(#vl)"/>
-      <text class="s" x="608" y="160" style="fill:var(--cy5)">새 초록으로 다시 판정</text>
+      <path class="edge" d="M156 66H204" marker-end="url(#v)"/>
+      <path class="edge" d="M346 66H580V56H604" marker-end="url(#v)"/>
+      <text class="s" x="400" y="58" text-anchor="middle">지지</text>
+      <path class="edge" d="M276 106V204" marker-end="url(#v)"/>
+      <text class="s" x="284" y="150">부분 지지 ·</text>
+      <text class="s" x="284" y="166">근거 없음</text>
+      <path class="edge" d="M346 228H404" marker-end="url(#v)"/>
+      <path class="edge" d="M476 188V78H604" marker-end="url(#v)"/>
+      <text class="s" x="484" y="130">지지</text>
+      <path class="edge" d="M546 228H576V170H604" marker-end="url(#v)"/>
+      <text class="s" x="572" y="196" text-anchor="end">부분</text>
+      <path class="edge" d="M546 228H576V256H604" marker-end="url(#v)"/>
+      <text class="s" x="572" y="262" text-anchor="end">없음</text>
+      <path class="edge loop" d="M276 250V296H675V278" marker-end="url(#vl)"/>
+      <text class="s" x="440" y="312" text-anchor="middle" style="fill:var(--cy5)">초록에 남길 내용이 없으면</text>
     </svg>
-    <figcaption>PMID 존재 확인은 결정적 검사(PubMed 조회)이고, 지지 판정은 LLM judge가 합니다. judge는 사람 라벨 60쌍으로 일치도를 먼저 검증합니다.</figcaption>
+    <figcaption>판정은 LLM judge가 합니다. 유지하는 문장에는 문장을 지지한 인용만 남깁니다. PubMed에 없는 PMID나 에이전트가 가져오지 않은 논문은 초록이 없으므로 근거 없음으로 봅니다. judge가 사람의 판정과 맞는지는 60쌍으로 따로 확인합니다.</figcaption>
   </figure>
 
   <h3>판정 기준</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>판정</th><th>기준</th><th>처리</th></tr></thead>
     <tbody>
-      <tr><td><span class="well sup"></span> 지지</td><td>초록이 문장의 핵심 주장을 직접 말한다. 수치, 방향, 대상 집단이 일치한다</td><td>그대로 유지</td></tr>
-      <tr><td><span class="well par"></span> 부분 지지</td><td>주장의 일부만 다루거나, 대상 집단·조건이 더 좁거나 넓다</td><td>유지하고 배지로 표시</td></tr>
-      <tr><td><span class="well uns"></span> 근거 없음</td><td>초록이 주장을 다루지 않거나 반대로 말한다, 또는 PMID가 존재하지 않는다</td><td>재검색, 그래도 없으면 삭제</td></tr>
+      <tr><td><span class="well sup"></span> 지지</td><td>초록이 문장의 핵심 주장을 직접 말한다. 수치, 방향, 대상 집단이 일치한다</td><td>유지. 지지한 인용만 남김</td></tr>
+      <tr><td><span class="well par"></span> 부분 지지</td><td>주장의 일부만 다루거나, 대상 집단·조건이 더 좁거나 넓다</td><td>한 번 고쳐 쓰고 다시 판정. 그래도 부분 지지면 유지하고 배지로 표시</td></tr>
+      <tr><td><span class="well uns"></span> 근거 없음</td><td>초록이 주장을 다루지 않거나 반대로 말한다, 또는 PMID가 존재하지 않는다</td><td>한 번 고쳐 쓰고 다시 판정. 그래도 근거가 없으면 삭제</td></tr>
     </tbody>
   </table></div>
 
@@ -250,7 +245,7 @@ Replay mode: no recorded response for this call.</code></pre>
       <path class="edge" d="M760 260H788" marker-end="url(#e)"/>
       <text class="s" x="450" y="332" text-anchor="middle">같은 모델(claude-opus-5-5) · 같은 effort(medium) · 같은 JSON 스키마. 다른 것은 근거의 출처뿐</text>
     </svg>
-    <figcaption>C의 답변 단계는 B와 같은 시스템 프롬프트에 초록을 최대 10건만 줍니다. D(에이전트 + 인용 검증)는 Day 4에 C의 답변 뒤에 검증 단계를 붙입니다. 채점 코드는 그대로입니다.</figcaption>
+    <figcaption>C의 답변 단계는 B와 같은 시스템 프롬프트에 초록을 최대 10건만 줍니다. D(에이전트 + 인용 검증)는 C의 답변 뒤에 검증 단계를 붙입니다. 채점 코드는 그대로입니다.</figcaption>
   </figure>
 
   <h3 id="agent">에이전트(C)가 질문 하나를 처리하면 <span class="tag built">구현됨</span></h3>
@@ -269,7 +264,7 @@ Replay mode: no recorded response for this call.</code></pre>
   <p>안전장치가 몇 가지 있습니다. 1라운드에는 계획한 검색어와 함께 질문 그대로 검색(B의 검색)도 돌립니다. 그래서 C가 고를 후보에 B가 답변에 쓰는 초록 10건이 늘 들어가고, C가 B보다 덜 찾는 일이 없습니다. 계획이 검색어를 하나도 내지 않으면 그 검색만으로 진행합니다. 선별이 보여 주지 않은 PMID를 고르면 버려서, 답변 단계에는 실제로 가져온 초록만 들어갑니다. 어느 단계든 모델이 거절하면 그 자리에서 끝내고 거절로 기록합니다.</p>
 
   <h3>답변 하나를 채점하면</h3>
-  <p>Day 2 채점은 판정 없이 계산되는 것만 봅니다. PMID 존재 여부는 PubMed에 물어 확인하고, 문장이 초록에 의해 지지되는지는 Day 4 judge가 같은 레코드 위에서 판정합니다.</p>
+  <p>기본 채점은 판정 없이 계산되는 것만 봅니다. PMID 존재 여부는 PubMed에 물어 확인하고, 문장이 초록에 의해 지지되는지는 judge가 같은 레코드 위에서 판정합니다.</p>
   <section class="specimen" aria-label="변형 A 답변의 채점 예시">
     <div class="q">PubMedQA 문항 · 라벨 <code>yes</code> · 변형 A의 답변 <code>decision: yes</code></div>
     <ol>
@@ -328,6 +323,19 @@ Replay mode: no recorded response for this call.</code></pre>
   </section>
   <p class="note">판정 방식을 보여주는 가상 예시입니다. PMID, 문장, 구절은 실제 논문을 가리키지 않습니다.</p>
   <p>PubMed에 없는 PMID와 초록이 없는 논문은 judge를 부르지 않고 근거 없음으로 둡니다. 문장 판정은 가장 좋은 인용 판정보다 높을 수 없게 코드로 묶습니다. 기준과 지표 정의는 <a href="design.html#judge">설계 문서</a>에 있습니다.</p>
+
+  <h3 id="verify">검증 단계(D)가 답변 하나를 처리하면 <span class="tag built">구현됨</span></h3>
+  <p>변형 D는 C와 같은 그래프로 답변을 만든 뒤, 그 답변의 문장을 하나씩 확인합니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>단계</th><th>받는 것</th><th>남는 것</th></tr></thead>
+    <tbody>
+      <tr><td>1 판정</td><td>답변의 문장 3개와 문장마다 인용한 초록</td><td>문장 1은 지지. 인용 2개 중 지지한 1개만 남김. 문장 2는 부분 지지("소아"는 초록에 없음). 문장 3은 근거 없음</td></tr>
+      <tr><td>2 고쳐 쓰기</td><td>문장 2와 3, 뒷받침되지 않은 부분, 답변에 쓴 초록 전체</td><td>문장 2는 초록의 대상에 맞게 고친 문장. 문장 3은 초록에 남길 내용이 없어 빈 문장</td></tr>
+      <tr><td>3 다시 판정</td><td>고쳐 쓴 문장 2</td><td>지지</td></tr>
+      <tr><td>4 마무리</td><td>판정이 붙은 문장들</td><td>답변에는 문장 1과 2. <code>dropped</code>에 문장 3과 이유 <code>not_backed</code>. <code>usage</code>에 판정과 수정 호출까지 합산</td></tr>
+    </tbody>
+  </table></div>
+  <p>고쳐 쓰기는 한 번뿐입니다. 고친 뒤에도 부분 지지면 표시를 단 채 남기고, 근거 없음이면 지웁니다. 다시 검색하지 않는 이유와 D의 수치를 읽는 법은 <a href="design.html#verify">설계 문서</a>에 있습니다.</p>
 
   <h3>실행이 남기는 것</h3>
   <div class="table-wrap"><table>
