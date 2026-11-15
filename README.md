@@ -7,10 +7,10 @@ exist, or real papers that do not say what is claimed. BioScout is built eval-fi
 failure. Every sentence in an answer carries PMIDs, every PMID is checked against PubMed, and every
 (claim, abstract) pair is judged for support before the answer is shown.
 
-> Status: **Day 4 of 7**. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
-> domain questions), the research agent (a LangGraph graph, variant C) and the citation judge are
-> built, and variants A to C have been run and judged on all 115 questions. Checking the judge
-> against hand labels and the verify loop (variant D) come next.
+> Status: work in progress. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
+> domain questions), the research agent (a LangGraph graph, variant C), the citation judge and the
+> verify step (variant D) are built, and variants A to C have been run and judged on all 115
+> questions. Checking the judge against hand labels and running variant D come next.
 > Progress: [`docs/progress.html`](docs/progress.html).
 
 ## Results
@@ -24,7 +24,7 @@ questions, the same model and effort for every variant
 | A. LLM only | 0.0% | 15.7% | n/a | 51.0% | 6.3% | $0.016 |
 | B. Naive RAG | 0.0% | 87.1% | 85% | 90.8% | 81.5% | $0.024 |
 | C. Agent | 0.0% | 99.7% | 91% | 86.1% | 93.4% | $0.148 |
-| D. Agent + verifier | not built yet | | | | | |
+| D. Agent + verifier | built, not run yet | | | | | |
 
 Citation precision is the share of citations whose abstract clearly backs the sentence; citation
 coverage is the share of answer sentences fully backed by the abstracts they cite. Both come from an

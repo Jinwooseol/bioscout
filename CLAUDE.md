@@ -1,7 +1,7 @@
 # BioScout: notes for Claude Code
 
-One-week portfolio project: biomedical research agent + evaluation system. The plan of record is
-`docs/design.html`; daily status is `docs/progress.html`.
+Portfolio project: biomedical research agent + evaluation system. The plan of record is
+`docs/design.html`; status is `docs/progress.html`.
 
 ## Commands
 
@@ -25,17 +25,18 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
 - `src/bioscout/mcp_server.py`: MCP SDK 2.x `MCPServer` (FastMCP was renamed in mcp 2.x)
 - `src/bioscout/answer.py`: `CitedAnswer`, the answer contract every variant, the demo and scoring share
 - `src/bioscout/prompts.py`: answer schema, rules and the grounded-answer prompt that B and C share
-- `src/bioscout/agent/`: variant C, a LangGraph graph (plan, search, screen, answer) over `bioscout.llm`
+- `src/bioscout/agent/`: variants C and D, a LangGraph graph over `bioscout.llm` (plan, search, screen,
+  answer; D adds verify, revise, finish)
 - `src/bioscout/llm.py`: Claude calls with JSON-schema output, `fallbacks: "default"`, cost, response cache
 - `src/bioscout/verifier/`: the citation judge (sentence + cited abstracts -> supported / partial /
-  unsupported); variant D's verify loop comes next
-- `src/bioscout/evals/`: datasets, variants (A, B, C), deterministic metrics, runner, run-level judging
+  unsupported) and what variant D does with its verdicts (keep supporting citations, revise once)
+- `src/bioscout/evals/`: datasets, variants (A to D), deterministic metrics, runner, run-level judging
   (`judgments.jsonl`, citation precision and coverage), judge calibration against hand labels,
   `bioscout-eval` CLI
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
-- Coming: the verify loop in `verifier/` (variant D), `app/` (Day 6)
+- Coming: `app/` (the demo)
 
 ## Rules
 
@@ -45,14 +46,21 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
   A's and B's prompt hashes are pinned in `tests/test_agent.py`; update them only on purpose.
 - C's first round also runs B's search (the question as typed) and screens its hits first, so C's
   candidates always contain B's context. Keep that when changing the search step.
+- D's first four steps send the same requests as C, so they replay C's cached responses and a
+  D-vs-C difference comes only from the verify step. C's prompt hash is pinned in
+  `tests/test_verify.py`. Run D only with a calibrated judge: its answers depend on the judge prompt.
 - Dataset PMIDs come from live PubMed results, never from memory; run `check-datasets` after edits.
 - Tests never touch the network. Fixtures are synthetic and labelled as such; never put fake
   "real-looking" citations anywhere outside `tests/fixtures`.
 - Do not commit article full text or abstracts. Datasets store PMIDs, questions and our own labels.
 - Never commit `.env` or the cache.
 - After each work session, update `docs/progress.html` (the `PROGRESS` object at the top of its
-  script) and add a build-log entry: what was decided, what failed, which numbers moved.
-- Docs in `docs/` are Korean for the author; README, code and comments are English for the public.
+  script) and add a log entry: what was decided, what failed, which numbers moved.
+- No schedule or timeline wording in code, tracked files, commit messages or branch names: no
+  "Day N", planned dates, or how long something took. `docs/progress.html` shows status by phase
+  only. How fast the project was built is not what it is about.
+- Everything committed is English by default: code, comments, commit messages, README, reports
+  and the templates of generated files. The pages in `docs/` are Korean for the author.
 - HTML docs share `docs/assets/style.css`; keep its colour tokens (the verdict colours mean
   supported / partial / unsupported everywhere).
 - Commit messages: imperative mood, one topic per commit.
