@@ -46,6 +46,13 @@ down per variant and per step.
   paper 0.7% of the time; its misses are mostly partial support, which the verifier (variant D) is
   meant to remove.
 
+**Eval gate.** CI cannot run the agent: it has no API key, and the response cache that would replay a
+run holds abstracts, which are not committed. It gates on the committed evidence instead.
+`bioscout-eval gate` fails when the report named in [`evals/baseline.json`](evals/baseline.json) was
+not made with the prompts, model, judge and questions in the commit, when it holds a fabricated PMID
+or a failed question, or when citation precision or coverage fell more than 3 points (accuracy more
+than 5) since the previous baseline. A change to the agent therefore cannot land without a new run.
+
 ## Demo
 
 **Live page: <https://brakey-bioscout.static.hf.space>** (answers recorded from the real agent for three example questions; it

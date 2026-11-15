@@ -119,8 +119,8 @@
       <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성. <a href="#harness">상세 설계</a></td><td><code>src/bioscout/evals/</code>, <code>evals/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행. <a href="#agent">상세 설계</a></td><td><code>src/bioscout/agent/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>인용 검증기</td><td>문장과 인용 초록을 맞대어 지지 / 부분 지지 / 근거 없음으로 판정하고, 부족한 문장은 고쳐 쓰거나 삭제. <a href="#judge">judge</a>, <a href="#verify">검증 루프</a></td><td><code>src/bioscout/verifier/</code></td><td><span class="tag built">구현됨</span></td></tr>
-      <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">예정</span></td></tr>
-      <tr><td>데모</td><td>Streamlit 화면, Docker, Hugging Face Spaces 배포. <a href="#demo">화면 설계</a></td><td><code>app/</code>, <code>src/bioscout/demo.py</code></td><td><span class="tag built">화면 구현됨</span> <span class="tag">배포 예정</span></td></tr>
+      <tr><td>관측 · CI 게이트</td><td>비용·지연 집계, 커밋된 평가 리포트를 확인하는 CI 게이트, Langfuse 트레이스. <a href="#gate">게이트 설계</a></td><td><code>src/bioscout/evals/gate.py</code>, <code>.github/workflows/</code></td><td><span class="tag built">게이트 구현됨</span> <span class="tag">트레이스 예정</span></td></tr>
+      <tr><td>데모</td><td>Streamlit 화면, Docker, Hugging Face Spaces 배포. <a href="#demo">화면 설계</a></td><td><code>app/</code>, <code>src/bioscout/demo.py</code></td><td><span class="tag built">구현됨</span> <span class="tag built">배포됨</span></td></tr>
     </tbody>
   </table></div>
 
@@ -661,6 +661,47 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>src/bioscout/answer.py</code></td><td><code>Step</code>: 단계 이름과 그 단계의 비용, 호출 수, 걸린 시간. <code>CitedAnswer.steps</code>에 실행 순서대로 남음</td></tr>
       <tr><td><code>src/bioscout/evals/costs.py</code></td><td>단계별 집계와 리포트의 비용 표 두 개</td></tr>
       <tr><td><code>bioscout-eval report evals/runs/&lt;run_id&gt;</code></td><td>이미 끝난 실행의 리포트를 다시 만들어 비용 표를 더함. 비용은 들지 않음</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="gate">CI 평가 게이트 <span class="tag built">구현됨</span></h2>
+  <p>에이전트를 바꿨으면 평가 수치도 다시 나와야 합니다. 이 규칙을 CI가 확인합니다. CI에는 API 키가 없고, 실행을 재생할 응답 캐시에는 초록이 들어 있어 커밋할 수 없습니다. 그래서 CI는 에이전트를 돌리지 않습니다. 대신 저장소에 커밋된 평가 리포트가 지금 코드에서 나온 것인지, 이전보다 나빠지지 않았는지를 확인합니다.</p>
+
+  <h3>검사 세 가지</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>검사</th><th>확인하는 것</th><th>실패했을 때 할 일</th></tr></thead>
+    <tbody>
+      <tr><td>신선도 (fresh)</td><td><code>evals/baseline.json</code>이 가리키는 리포트가 전체 문항을 다뤘는지. 리포트에 기록된 변형별 프롬프트 해시, 모델, effort, judge 프롬프트, 문항이 지금 코드와 같은지</td><td>평가를 다시 돌리고 baseline을 새 리포트로 바꿈</td></tr>
+      <tr><td>바닥 (floor)</td><td>리포트에 가짜 PMID와 실패한 문항이 하나도 없는지</td><td>원인을 고치고 다시 평가</td></tr>
+      <tr><td>하락 (regression)</td><td>이전 baseline의 리포트와 비교해 지표가 한도 넘게 떨어지지 않았는지. citation precision, citation coverage, 인용률은 3점, accuracy와 원 논문 포함률은 5점</td><td>원인을 고침. 의도한 하락이면 <code>baseline.json</code>의 <code>accepted</code>에 이유와 함께 적음</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>CI는 커밋된 리포트를 검사하고 에이전트를 돌리지 않음</td><td>API 키가 없고, 재생에 필요한 캐시는 초록 때문에 커밋할 수 없음. 검사는 네트워크 없이 몇 초에 끝남</td><td>CI에서 20문항 재생(처음 계획. 캐시를 커밋해야 함). CI에 API 키를 넣고 푸시마다 실행</td></tr>
+      <tr><td>기준은 리포트를 가리키는 파일 하나(<code>evals/baseline.json</code>)</td><td>시험 실행의 리포트도 커밋되므로, 가장 최근 리포트를 고르면 일부 문항만 돌린 실행이 기준이 될 수 있음. 기준을 바꾸면 diff에 한 줄로 남음</td><td>가장 최근 리포트를 자동 선택</td></tr>
+      <tr><td>신선도는 실행이 기록한 프롬프트 해시로 판단</td><td>변형의 해시는 프롬프트, 스키마, 에이전트 설정이 바뀌면 달라짐. 리포트와 코드의 해시가 다르면 그 수치는 지금 코드의 것이 아님</td><td>커밋 해시 비교(문서만 고쳐도 낡았다고 판단함)</td></tr>
+      <tr><td>하락 한도는 지표마다 다름</td><td>judge 지표는 인용 수백 건에서 나옴. accuracy는 문항마다 답 하나에서 나와 더 크게 흔들림</td><td>모든 지표에 3점</td></tr>
+      <tr><td>50문항보다 작은 묶음은 하락을 보지 않음</td><td>도메인 15문항은 한 문항이 6.7점이라 한도에 의미가 없음. 신선도와 바닥 검사는 그대로 적용</td><td>모든 묶음에 적용</td></tr>
+      <tr><td>의도한 하락은 <code>accepted</code>에 이유와 함께 기록</td><td>정밀도와 범위를 맞바꾸는 변경이 있을 수 있음. 예외가 Git 기록에 남음</td><td>게이트를 끄고 병합</td></tr>
+      <tr><td>게이트는 단위 테스트와 다른 CI 작업(<code>eval-gate</code>)</td><td>프롬프트를 고치는 동안에도 테스트는 통과해야 함. 평가를 다시 했는지는 따로 표시</td><td>pytest 안에서 검사</td></tr>
+      <tr><td>새 실행은 문항의 해시를 기록</td><td>문항이나 라벨을 고치면 수치가 낡음. 해시가 없는 예전 리포트는 문항 수만 비교</td><td>문항 수만 비교</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>한계와 확인한 것</h3>
+  <p>게이트는 커밋된 리포트가 실제 실행에서 나왔다고 믿습니다. 리포트는 <code>bioscout-eval</code>이 쓰고 손으로 고치지 않습니다. 변형 D는 아직 실행하지 않아 게이트 대상이 아니며, 출력에 그렇게 표시됩니다.</p>
+  <p>지금 baseline은 전체 115문항 실행(<code>20261115-195946-ABC</code>)입니다. 이 baseline으로 게이트를 돌려 통과했습니다. 변형 A, B, C의 해시와 모델, judge 프롬프트가 코드와 같고, 답변 345개에 가짜 PMID와 실패가 없습니다. 이전 baseline이 없어 하락 검사는 아직 비교할 대상이 없습니다. CI의 eval-gate 작업이 첫 실행에서 통과했습니다(test, image 작업도 통과).</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/evals/gate.py</code></td><td>검사 세 가지와 출력. <code>uv run bioscout-eval gate --since HEAD</code></td></tr>
+      <tr><td><code>evals/baseline.json</code></td><td>지금 코드의 근거가 되는 리포트와, 받아들인 하락 목록</td></tr>
+      <tr><td><code>tests/test_gate.py</code></td><td>작은 가상 리포트로 신선도, 바닥, 하락 검사를 확인</td></tr>
+      <tr><td><code>.github/workflows/ci.yml</code></td><td><code>eval-gate</code> 작업. 푸시 전 커밋(또는 PR의 기준 커밋)의 baseline과 비교</td></tr>
     </tbody>
   </table></div>
 

@@ -165,7 +165,7 @@ Replay mode: no recorded response for this call.</code></pre>
     <thead><tr><th><code>BIOSCOUT_CACHE_MODE</code></th><th>동작</th><th>언제 쓰나</th></tr></thead>
     <tbody>
       <tr><td><code>readwrite</code> (기본)</td><td>캐시에 있으면 사용, 없으면 호출하고 저장. 30일 지나면 다시 호출</td><td>개발, 데모</td></tr>
-      <tr><td><code>readonly</code></td><td>캐시만 사용, 없으면 오류. 네트워크를 전혀 쓰지 않음</td><td>CI 평가 게이트, 평가 재현</td></tr>
+      <tr><td><code>readonly</code></td><td>캐시만 사용, 없으면 오류. 네트워크를 전혀 쓰지 않음</td><td>평가 재현, 비용 없는 데모</td></tr>
       <tr><td><code>off</code></td><td>항상 호출, 저장 안 함</td><td>최신 데이터 확인, 디버깅</td></tr>
     </tbody>
   </table></div>

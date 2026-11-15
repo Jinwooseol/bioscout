@@ -109,6 +109,12 @@ uv run bioscout-eval calibrate-score evals/runs/&lt;run_id&gt;</code></pre></div
 $env:BIOSCOUT_CACHE_MODE = "readonly"; uv run bioscout-eval run --variants A,B,C</code></pre></div>
       <p>첫 줄은 기존 레코드로 리포트를 다시 만듭니다. 리포트에는 결과표 아래에 비용과 지연 표가 붙습니다. 질의당 비용과 토큰, 호출 수, 지연 p50과 p95가 변형별로 나오고, 단계별 기록이 있는 실행이면 단계별 표도 나옵니다. 둘째 줄은 캐시된 응답만으로 같은 실행을 네트워크 없이 재현합니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_CACHE_MODE</code>로 되돌립니다.</p>
     </li>
+    <li>
+      <h3>평가 게이트 (무료)</h3>
+      <div class="cmd"><pre><code>uv run bioscout-eval gate --since HEAD</code></pre></div>
+      <p>커밋된 평가 리포트가 지금 코드에서 나온 것인지, 가짜 PMID가 없는지, 이전보다 한도 넘게 떨어지지 않았는지 확인합니다. 네트워크와 API 키를 쓰지 않습니다. CI의 <code>eval-gate</code> 작업이 같은 명령을 실행합니다.</p>
+      <p>프롬프트나 에이전트 설정을 바꾸면 게이트가 실패합니다. 전체 평가를 다시 돌린 뒤 <code>evals/baseline.json</code>의 <code>report</code>를 새 리포트 경로로 바꾸면 통과합니다. 의도한 하락은 <code>accepted</code>에 <code>"C/pubmedqa/accuracy": "이유"</code>처럼 적습니다.</p>
+    </li>
   </ol>
 
   <h2>데모 화면 실행</h2>

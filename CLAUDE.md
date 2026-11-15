@@ -27,6 +27,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `uv run bioscout-eval calibrate-sample evals/runs/<run_id>` then `calibrate-score`: write 60 pairs to
   `evals/review/calibration.md` for the author to label, then score the judge against the labels
   (Cohen's kappa). Free. Never fill in or change the labels: they are the author's judgment.
+- `uv run bioscout-eval gate --since HEAD`: the eval gate, offline and free. It checks that the report
+  named in `evals/baseline.json` was made with the prompts, model, judge and questions in the code,
+  holds no fabricated PMID, and did not drop beyond the limits since the baseline at that revision.
+  CI runs it as the `eval-gate` job
 
 ## Layout
 
@@ -44,6 +48,7 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/evals/`: datasets, variants (A to D), deterministic metrics, runner, run-level judging
   (`judgments.jsonl`, citation precision and coverage), judge calibration against hand labels,
   cost and latency tables (`costs.py`), `bioscout-eval` CLI
+- `src/bioscout/evals/gate.py`, `evals/baseline.json`: the eval gate and the report it holds the code to
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
@@ -58,6 +63,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 ## Rules
 
 - Eval-first: a change to agent behaviour is not done until it has a number from `evals/`.
+- After a full run of changed agent code, point `evals/baseline.json` at the new report so the gate
+  passes. Never edit a report by hand. A drop accepted on purpose goes under `accepted` with its reason.
 - Every variant uses the same model, effort and answer schema; change them for all variants or none.
 - B and C answer through the same prompt in `prompts.py`, so B-vs-C differences come from retrieval.
   A's and B's prompt hashes are pinned in `tests/test_agent.py`; update them only on purpose.
