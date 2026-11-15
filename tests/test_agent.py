@@ -30,7 +30,10 @@ def screen(relevant: list[str], enough: bool = True, next_queries: list[str] | N
 
 
 async def test_one_round_plans_searches_screens_and_answers():
-    pubmed = FakePubMed(by_query={"q1": ["10000001", "10000002"], "q2": ["10000002", "10000003"]})
+    question = "Is X better than Y?"
+    pubmed = FakePubMed(
+        by_query={question: ["10000003"], "q1": ["10000001", "10000002"], "q2": ["10000002", "10000003"]}
+    )
     llm = FakeLLM(
         [
             plan("q1", "q2", "q1"),
@@ -38,25 +41,36 @@ async def test_one_round_plans_searches_screens_and_answers():
             reply("yes", ("X beat Y.", ["10000003"])),
         ]
     )
-    answer = await ResearchAgent(llm, pubmed).answer("Is X better than Y?")
+    answer = await ResearchAgent(llm, pubmed).answer(question)
 
     assert [c["schema"] for c in llm.calls] == [PLAN_SCHEMA, SCREEN_SCHEMA, ANSWER_SCHEMA]
-    assert pubmed.queries == ["q1", "q2"]  # the repeated query runs once
-    assert pubmed.fetched == [["10000001", "10000002", "10000003"]]  # rank-interleaved, deduplicated
+    assert pubmed.queries == [question, "q1", "q2"]  # variant B's search too; the repeated query runs once
+    # The question's hits first, then the plan's rank-interleaved, deduplicated.
+    assert pubmed.fetched == [["10000003", "10000001", "10000002"]]
     assert "- q1 (2 hits)" in llm.calls[1]["user"]
 
     answer_step = llm.calls[2]
     assert answer_step["system"] == SYSTEM_GROUNDED  # the same answer prompt as variant B
     assert "PMID 10000003" in answer_step["user"] and "PMID 10000002" not in answer_step["user"]
     assert answer.context_pmids == ["10000003", "10000001"]
-    assert [s.query for s in answer.searches] == ["q1", "q2"]
+    assert [s.query for s in answer.searches] == [question, "q1", "q2"]
     assert answer.decision == "yes" and answer.cited_pmids == ["10000003"]
-    assert (answer.usage.llm_calls, answer.usage.tool_calls) == (3, 3)
+    assert (answer.usage.llm_calls, answer.usage.tool_calls) == (3, 4)
     assert answer.usage.usd == pytest.approx(0.03)
 
 
+async def test_the_questions_own_hits_survive_the_candidate_cap():
+    # So C screens every abstract that variant B answers from, however many hits the plan's queries add.
+    pubmed = FakePubMed(
+        by_query={"Q?": ["10000004", "10000005"], "q1": ["10000001", "10000002"], "q2": ["10000003"]}
+    )
+    llm = FakeLLM([plan("q1", "q2"), screen(["10000004"]), reply("yes", ("X.", ["10000004"]))])
+    await ResearchAgent(llm, pubmed, AgentConfig(max_new_candidates=3)).answer("Q?")
+    assert pubmed.fetched == [["10000004", "10000005", "10000001"]]
+
+
 async def test_screener_can_ask_for_one_more_round_of_new_queries():
-    pubmed = FakePubMed(by_query={"q1": ["10000001"], "broader": ["10000001", "10000002"]})
+    pubmed = FakePubMed(by_query={"Q?": [], "q1": ["10000001"], "broader": ["10000001", "10000002"]})
     llm = FakeLLM(
         [
             plan("q1"),
@@ -67,14 +81,14 @@ async def test_screener_can_ask_for_one_more_round_of_new_queries():
     )
     answer = await ResearchAgent(llm, pubmed).answer("Q?")
 
-    assert pubmed.queries == ["q1", "broader"]  # a query already run is not repeated
+    assert pubmed.queries == ["Q?", "q1", "broader"]  # a query already run is not repeated
     assert pubmed.fetched == [["10000001"], ["10000002"]]  # round 2 fetches only new PMIDs
     second = llm.calls[2]["user"]
     assert "round 2 of 2" in second and "last round" in second
     # Round 1's rejected candidate is not shown again, so the screener cannot bring it back.
     assert "PMID 10000002" in second and "PMID 10000001" not in second
     assert answer.context_pmids == ["10000002"]
-    assert len(answer.searches) == 2
+    assert len(answer.searches) == 3
 
 
 async def test_rounds_are_capped_and_an_empty_selection_is_answered_honestly():
@@ -89,7 +103,7 @@ async def test_rounds_are_capped_and_an_empty_selection_is_answered_honestly():
     pubmed = FakePubMed()
     answer = await ResearchAgent(llm, pubmed).answer("Q?")
 
-    assert pubmed.queries == ["q1", "q2"]
+    assert pubmed.queries == ["Q?", "q1", "q2"]
     assert len(llm.calls) == 4
     assert "found no relevant abstracts" in llm.calls[3]["user"]
     assert answer.context_pmids == [] and answer.cited_pmids == []
@@ -110,7 +124,7 @@ async def test_zero_hits_are_screened_so_the_agent_can_broaden():
     first = llm.calls[1]["user"]
     assert "- narrow (0 hits)" in first and "returned no new articles" in first
     assert pubmed.fetched == [["10000001"]]  # no abstracts call for an empty round
-    assert answer.usage.tool_calls == 3  # 2 searches + 1 abstracts fetch
+    assert answer.usage.tool_calls == 4  # 3 searches + 1 abstracts fetch
     assert answer.context_pmids == ["10000001"]
 
 
@@ -126,16 +140,25 @@ async def test_context_is_capped_at_the_variant_b_budget():
     assert answer.context_pmids == ["10000002"]
 
 
-async def test_empty_plan_falls_back_to_searching_the_question():
+@pytest.mark.parametrize(
+    ("search_question", "searches", "expected"),
+    [
+        (True, [], ["Is X better than Y?"]),
+        (False, [], ["Is X better than Y?"]),  # an empty plan still searches the question
+        (False, ["q1"], ["q1"]),
+    ],
+)
+async def test_the_question_is_searched_as_typed_unless_turned_off(search_question, searches, expected):
     pubmed = FakePubMed()
-    llm = FakeLLM([{"searches": []}, screen(["10000002"]), reply("yes", ("X.", ["10000002"]))])
-    await ResearchAgent(llm, pubmed).answer("Is X better than Y?")
-    assert pubmed.queries == ["Is X better than Y?"]
+    llm = FakeLLM([plan(*searches), screen(["10000002"]), reply("yes", ("X.", ["10000002"]))])
+    agent = ResearchAgent(llm, pubmed, AgentConfig(search_question=search_question))
+    await agent.answer("Is X better than Y?")
+    assert pubmed.queries == expected
 
 
 @pytest.mark.parametrize(
     ("replies", "llm_calls", "searches"),
-    [([None], 1, 0), ([plan("q1"), None], 2, 1)],
+    [([None], 1, 0), ([plan("q1"), None], 2, 2)],
     ids=["plan refused", "screen refused"],
 )
 async def test_a_refusal_before_the_answer_ends_the_run(replies, llm_calls, searches):

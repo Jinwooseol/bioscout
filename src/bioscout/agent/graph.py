@@ -25,6 +25,7 @@ from bioscout.sources.pubmed import Literature
 @dataclass(frozen=True)
 class AgentConfig:
     max_queries: int = 4  # from the plan
+    search_question: bool = True  # also run variant B's search: the question as typed
     results_per_query: int = 10
     max_new_candidates: int = 25  # abstracts shown to the screener per round
     max_rounds: int = 2  # search rounds; the second runs only when the screener asks for it
@@ -98,9 +99,11 @@ class ResearchAgent:
         )
         if result.refused or result.data is None:
             return {"usages": [result.usage], "refused": True}
-        queries = _unique(s["query"].strip() for s in result.data["searches"])[: self.config.max_queries]
-        # An empty plan degrades to variant B's search rather than to no search at all.
-        return {"usages": [result.usage], "pending_queries": queries or [state["question"]]}
+        planned = _unique(s["query"].strip() for s in result.data["searches"])[: self.config.max_queries]
+        # Broad MeSH queries can bury a paper that the question's own wording finds at once, so the first
+        # round also runs variant B's search. An empty plan degrades to that search rather than to none.
+        first = [state["question"]] if self.config.search_question or not planned else []
+        return {"usages": [result.usage], "pending_queries": _unique([*first, *planned])}
 
     def _after_plan(self, state: AgentState) -> str:
         return END if state.get("refused") else "search"
@@ -115,7 +118,12 @@ class ResearchAgent:
             for q, r in zip(queries, results, strict=True)
         ]
         known = state["abstracts"]
-        new = _interleave([log.pmids for log in logs], exclude=set(known))[: self.config.max_new_candidates]
+        question = state["question"]
+        # The question's own hits are variant B's whole context: they go first so the cap never drops them,
+        # and C screens every abstract B would answer from.
+        lead = [p for log in logs if log.query == question for p in log.pmids if p not in known]
+        rest = _interleave([log.pmids for log in logs if log.query != question], exclude=set(known))
+        new = _unique([*lead, *rest])[: self.config.max_new_candidates]
         batch = await self.pubmed.abstracts(new) if new else AbstractBatch(articles=[])
         fetched = {a.pmid: a for a in batch.articles}
         return {

@@ -34,6 +34,8 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
 - Every variant uses the same model, effort and answer schema; change them for all variants or none.
 - B and C answer through the same prompt in `prompts.py`, so B-vs-C differences come from retrieval.
   A's and B's prompt hashes are pinned in `tests/test_agent.py`; update them only on purpose.
+- C's first round also runs B's search (the question as typed) and screens its hits first, so C's
+  candidates always contain B's context. Keep that when changing the search step.
 - Dataset PMIDs come from live PubMed results, never from memory; run `check-datasets` after edits.
 - Tests never touch the network. Fixtures are synthetic and labelled as such; never put fake
   "real-looking" citations anywhere outside `tests/fixtures`.
