@@ -16,8 +16,27 @@ jobs:
       - run: uv sync --locked --extra demo  # the demo extra, so the page test runs too
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run pytest -q
+      - run: uv run --extra demo pytest -q
       - name: MCP server starts over stdio
         run: uv run python scripts/smoke_live.py --offline
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t bioscout-demo .
+      - name: The demo page starts in the container, with no API key
+        run: |
+          docker run -d --name demo -p 7860:7860 bioscout-demo
+          for attempt in $(seq 1 30); do
+            if curl -fs http://localhost:7860/_stcore/health; then
+              docker exec demo python -c "from pathlib import Path; from bioscout import demo; assert len(demo.load_recorded(Path('app/examples.json'))) == len(demo.EXAMPLE_QUESTIONS)"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs demo
+          exit 1
+
   # Planned: an `eval-gate` job, a 20-question smoke eval replayed from the recorded cache
   # (BIOSCOUT_CACHE_MODE=readonly), failing on any fabricated PMID or a >3pt citation-precision drop.

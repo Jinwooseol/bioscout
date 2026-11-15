@@ -1,0 +1,17 @@
+# Keep secrets and local state out of the build context, and the context small.
+.env
+.env.*
+.git
+.github
+.venv
+.cache
+**/__pycache__
+.pytest_cache
+.ruff_cache
+*.sqlite
+
+# Not needed to serve the demo page.
+docs
+evals
+scripts
+tests
