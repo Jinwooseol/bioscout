@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 
 import streamlit as st
 
@@ -17,14 +18,8 @@ from bioscout import demo
 from bioscout.answer import CitedSentence, Step, Verdict
 from bioscout.http import CacheMissError
 
-EXAMPLES = [
-    "Does MSI-high/mismatch repair-deficient status predict response to PD-1 blockade, and what did "
-    "randomized evidence show for first-line treatment of metastatic MSI-high colorectal cancer?",
-    "How do mismatch repair protein immunohistochemistry, PCR-based microsatellite analysis, and "
-    "next-generation sequencing compare as methods for determining MSI/dMMR status?",
-    "What is microsatellite instability, how does loss of DNA mismatch repair produce it, and how does the "
-    "origin of sporadic MSI colorectal cancer differ from Lynch syndrome-associated MSI?",
-]
+# Answers recorded for the example questions (scripts/build_examples.py), shown without calling Claude.
+RECORDED = demo.load_recorded(Path(__file__).parent / "examples.json")
 MAX_QUESTIONS = int(os.environ.get("BIOSCOUT_DEMO_MAX_QUESTIONS", "5"))  # per browser session
 MAX_CHARS = 400
 BADGES = {Verdict.SUPPORTED: "green", Verdict.PARTIAL: "orange", Verdict.UNSUPPORTED: "red", None: "gray"}
@@ -52,6 +47,11 @@ def show_result(result: demo.DemoResult) -> None:
         return
 
     st.subheader("Answer")
+    if result.recorded:
+        st.caption(
+            f"A recorded answer to an example question (it cost ${demo.totals(answer)[0]:.2f} to produce). "
+            "Ask your own question to see the agent work and the abstract passage behind each verdict."
+        )
     if answer.decision in ("yes", "no", "maybe"):
         st.markdown(f"**In short: {answer.decision}.**")
     if not answer.sentences:
@@ -80,7 +80,7 @@ def show_result(result: demo.DemoResult) -> None:
     with st.expander("How this answer was made"):
         usd, seconds = demo.totals(answer)
         cost, time_taken, searches, read = st.columns(4)
-        replayed = demo.was_replayed(answer)
+        replayed = result.recorded or demo.was_replayed(answer)
         cost.metric("Cost", f"${usd:.2f}")
         time_taken.metric("Time", "n/a" if replayed else f"{seconds:.0f} s")
         searches.metric("PubMed searches", len(answer.searches))
@@ -117,12 +117,19 @@ def ask(question: str, verify: bool) -> None:
 
 
 def use_example(text: str) -> None:
+    """An example click fills in the question and, when its answer is recorded, shows it at once."""
     st.session_state.question = text
+    if text in RECORDED:
+        st.session_state.result = RECORDED[text]
 
 
 def request_answer() -> None:
     """The Ask click. It runs before the page is redrawn, so the counter in the sidebar is already right."""
-    st.session_state.pending = st.session_state.question.strip()
+    question = st.session_state.question.strip()
+    if question in RECORDED:  # nothing to run, and it does not count against the session's questions
+        st.session_state.result = RECORDED[question]
+        return
+    st.session_state.pending = question
     st.session_state.asked += 1
 
 
@@ -150,7 +157,7 @@ with st.sidebar:
     st.caption(DISCLAIMER)
 
 st.caption("Try an example:")
-for example in EXAMPLES:
+for example in demo.EXAMPLE_QUESTIONS:
     st.button(example, on_click=use_example, args=(example,), use_container_width=True)
 
 question = st.text_area("Your question", key="question", max_chars=MAX_CHARS, height=110)
@@ -159,7 +166,8 @@ if not ready:
     st.info(
         "No Claude API key is configured, so questions cannot be answered. Set ANTHROPIC_API_KEY in .env."
     )
-st.button("Ask", type="primary", disabled=not (ready and left and question.strip()), on_click=request_answer)
+can_ask = bool(question.strip()) and (question.strip() in RECORDED or (ready and left > 0))
+st.button("Ask", type="primary", disabled=not can_ask, on_click=request_answer)
 if st.session_state.pending:
     asked, st.session_state.pending = st.session_state.pending, ""
     ask(asked, verify)

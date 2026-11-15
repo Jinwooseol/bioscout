@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ TEXTS = {
     "10000002": "Drug X caused more nausea than placebo.",
 }
 QUOTE = "Drug X lowered mortality compared with drug Y"
+APP = Path(__file__).parent.parent / "app" / "streamlit_app.py"
 
 
 def judged(sentence: str, *citations: tuple[str, str, str]) -> dict[str, Any]:
@@ -130,8 +132,7 @@ def test_the_page_shows_the_answer_with_verdicts_sources_and_what_was_removed(mo
 
     monkeypatch.setattr(demo, "ask", fake_ask)
     monkeypatch.setattr(demo, "can_answer", lambda: True)
-    page = Path(__file__).parent.parent / "app" / "streamlit_app.py"
-    app = testing.AppTest.from_file(str(page), default_timeout=30).run()
+    app = testing.AppTest.from_file(str(APP), default_timeout=30).run()
     assert not app.exception and app.title[0].value == "BioScout"
 
     app.text_area[0].set_value("Is X better than Y?").run()  # typing enables the Ask button
@@ -146,3 +147,53 @@ def test_the_page_shows_the_answer_with_verdicts_sources_and_what_was_removed(mo
     captions = "\n".join(c.value for c in app.caption)
     assert f"“{QUOTE}”" in captions and "Still not backed after one rewrite." in captions
     assert "Questions left in this session: 4" in [c.value for c in app.sidebar.caption]
+
+
+def test_a_recorded_result_keeps_the_answer_but_no_article_text(tmp_path: Path):
+    original = canned_result()
+    saved = demo.record(original)
+    assert all(
+        s["evidence"] is None for s in saved["answer"]["sentences"]
+    )  # the passage quoted from an abstract
+    assert saved["articles"] == {
+        "10000001": {"pmid": "10000001", "title": "Synthetic 10000001", "journal": "", "year": None}
+    }
+    assert "Drug X lowered mortality." not in json.dumps(saved)  # the abstract itself
+
+    path = tmp_path / "examples.json"
+    path.write_text(json.dumps([saved]), encoding="utf-8")
+    (loaded,) = demo.load_recorded(path).values()
+    assert loaded.recorded and loaded.answer.question == original.answer.question
+    assert [s.text for s in loaded.answer.sentences] == [s.text for s in original.answer.sentences]
+    assert loaded.articles["10000001"].title == "Synthetic 10000001"
+    assert demo.load_recorded(tmp_path / "missing.json") == {}
+
+
+def test_the_bundled_examples_answer_every_example_question_and_hold_no_article_text():
+    recorded = demo.load_recorded(APP.parent / "examples.json")
+    assert set(recorded) == set(demo.EXAMPLE_QUESTIONS)
+    for result in recorded.values():
+        assert result.answer.sentences and all(s.evidence is None for s in result.answer.sentences)
+        assert all(not article.abstract for article in result.articles.values())
+
+
+def test_an_example_shows_its_recorded_answer_without_calling_claude(monkeypatch):
+    testing = pytest.importorskip("streamlit.testing.v1", reason="the demo extra is not installed")
+
+    async def no_call(*args: Any, **kwargs: Any) -> demo.DemoResult:
+        raise AssertionError("a recorded example must not run the agent")
+
+    monkeypatch.setattr(demo, "ask", no_call)
+    monkeypatch.setattr(demo, "can_answer", lambda: False)  # no API key at all
+    app = testing.AppTest.from_file(str(APP), default_timeout=30).run()
+    question = demo.EXAMPLE_QUESTIONS[0]
+    next(b for b in app.button if b.label == question).click().run()
+    assert not app.exception
+
+    captions = "\n".join(c.value for c in app.caption)
+    assert "A recorded answer to an example question" in captions
+    assert ":green-badge[Supported]" in "\n".join(m.value for m in app.markdown)
+    assert "Questions left in this session: 5" in [c.value for c in app.sidebar.caption]  # it is free
+    # Asking the same question again still needs no key and no call.
+    next(b for b in app.button if b.label == "Ask").click().run()
+    assert not app.exception and "Questions left in this session: 5" in [c.value for c in app.sidebar.caption]

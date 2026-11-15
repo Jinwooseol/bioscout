@@ -7,9 +7,11 @@ and this module is tested without Streamlit.
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from bioscout.agent import ResearchAgent
@@ -20,6 +22,17 @@ from bioscout.mcp_server import Sources
 from bioscout.models import ArticleAbstract
 from bioscout.sources.pubmed import Literature
 from bioscout.verifier import VerifyConfig
+
+# The questions offered on the page. scripts/build_examples.py records their answers so the page can
+# show them without calling Claude.
+EXAMPLE_QUESTIONS = [
+    "Does MSI-high/mismatch repair-deficient status predict response to PD-1 blockade, and what did "
+    "randomized evidence show for first-line treatment of metastatic MSI-high colorectal cancer?",
+    "How do mismatch repair protein immunohistochemistry, PCR-based microsatellite analysis, and "
+    "next-generation sequencing compare as methods for determining MSI/dMMR status?",
+    "What is microsatellite instability, how does loss of DNA mismatch repair produce it, and how does the "
+    "origin of sporadic MSI colorectal cancer differ from Lynch syndrome-associated MSI?",
+]
 
 VERDICT_LABELS: dict[Verdict | None, str] = {
     Verdict.SUPPORTED: "Supported",
@@ -47,6 +60,7 @@ class DemoResult:
     # The cited papers the agent fetched, by PMID. Their titles come with the abstracts, so the page
     # needs no further PubMed call and a replayed answer shows the same cards.
     articles: dict[str, ArticleAbstract] = field(default_factory=dict)
+    recorded: bool = False  # loaded from the recorded examples, not produced just now
 
 
 @dataclass
@@ -129,6 +143,31 @@ def step_rows(answer: CitedAnswer) -> list[dict[str, Any]]:
         row["Cost (USD)"] = round(row["Cost (USD)"] + (step.usage.usd or 0.0), 4)
         row["Seconds"] = round(row["Seconds"] + step.usage.latency_ms / 1000, 1)
     return list(rows.values())
+
+
+def record(result: DemoResult) -> dict[str, Any]:
+    """A result as JSON that may be committed: the answer and the bibliographic line of each cited paper.
+    The abstracts, and the passages the judge quoted from them, are left out: article text is never
+    committed."""
+    sentences = [s.model_copy(update={"evidence": None}) for s in result.answer.sentences]
+    answer = result.answer.model_copy(update={"sentences": sentences})
+    articles = {
+        pmid: {"pmid": a.pmid, "title": a.title, "journal": a.journal, "year": a.year}
+        for pmid, a in result.articles.items()
+    }
+    return {"answer": answer.model_dump(mode="json"), "articles": articles}
+
+
+def load_recorded(path: Path) -> dict[str, DemoResult]:
+    """Recorded answers by question. A missing file means there are none."""
+    if not path.exists():
+        return {}
+    recorded: dict[str, DemoResult] = {}
+    for item in json.loads(path.read_text(encoding="utf-8")):
+        answer = CitedAnswer.model_validate(item["answer"])
+        articles = {pmid: ArticleAbstract(**fields) for pmid, fields in item["articles"].items()}
+        recorded[answer.question] = DemoResult(answer=answer, articles=articles, recorded=True)
+    return recorded
 
 
 def was_replayed(answer: CitedAnswer) -> bool:

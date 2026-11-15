@@ -1,0 +1,776 @@
+[
+  {
+    "answer": {
+      "question": "Does MSI-high/mismatch repair-deficient status predict response to PD-1 blockade, and what did randomized evidence show for first-line treatment of metastatic MSI-high colorectal cancer?",
+      "decision": "yes",
+      "sentences": [
+        {
+          "text": "In a phase 2 study of pembrolizumab, mismatch repair-deficient colorectal cancers had a 40% immune-related response rate versus 0% for mismatch repair-proficient tumors, indicating that MMR status predicted benefit from PD-1 blockade.",
+          "citations": [
+            "26028255"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "An expanded study across 12 tumor types found objective responses in 53% and complete responses in 21% of patients with dMMR cancers, supporting sensitivity regardless of tissue of origin; KEYNOTE-158 showed a 34.3% response rate in previously treated noncolorectal MSI-H/dMMR cancers.",
+          "citations": [
+            "28596308",
+            "31682550"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "In the randomized phase 3 KEYNOTE-177 trial of first-line metastatic MSI-H/dMMR colorectal cancer, pembrolizumab significantly improved progression-free survival versus chemotherapy (median 16.5 vs 8.2 months, HR 0.60), with fewer grade ≥3 treatment-related adverse events (22% vs 66%).",
+          "citations": [
+            "33264544"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "At the final analysis, the overall survival difference (HR 0.74) did not reach prespecified statistical significance, with 60% of chemotherapy patients crossing over to anti-PD-1/PD-L1 therapy; at more than 5 years of follow-up, median OS was 77.5 versus 36.7 months (HR 0.73, 95% CI 0.53-0.99).",
+          "citations": [
+            "35427471",
+            "39631622"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "In the randomized phase 3 CheckMate 8HW trial, first-line nivolumab plus ipilimumab improved progression-free survival over chemotherapy (24-month PFS 72% vs 14%), and the combination also improved PFS over nivolumab alone across treatment lines (HR 0.62).",
+          "citations": [
+            "39602630",
+            "39874977"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        }
+      ],
+      "dropped": [],
+      "searches": [
+        {
+          "query": "Does MSI-high/mismatch repair-deficient status predict response to PD-1 blockade, and what did randomized evidence show for first-line treatment of metastatic MSI-high colorectal cancer?",
+          "pmids": [],
+          "total_found": 0
+        },
+        {
+          "query": "(\"Microsatellite Instability\"[MeSH] OR \"microsatellite instability\"[tiab] OR \"MSI-H\"[tiab] OR \"mismatch repair deficient\"[tiab] OR dMMR[tiab]) AND (\"Colorectal Neoplasms\"[MeSH] OR \"colorectal cancer\"[tiab]) AND (pembrolizumab[tiab] OR nivolumab[tiab] OR \"Immune Checkpoint Inhibitors\"[MeSH] OR \"PD-1\"[tiab]) AND (randomized[tiab] OR \"first-line\"[tiab] OR \"Randomized Controlled Trial\"[pt])",
+          "pmids": [
+            "39602630",
+            "36252154",
+            "35371084",
+            "39874977",
+            "33264544",
+            "35351276",
+            "41880612",
+            "35427471",
+            "39631622",
+            "33563194"
+          ],
+          "total_found": 195
+        },
+        {
+          "query": "(\"DNA Mismatch Repair\"[MeSH] OR \"mismatch repair deficiency\"[tiab] OR \"mismatch repair-deficient\"[tiab] OR \"microsatellite instability-high\"[tiab]) AND (\"Programmed Cell Death 1 Receptor\"[MeSH] OR \"PD-1 blockade\"[tiab] OR pembrolizumab[tiab] OR nivolumab[tiab]) AND (\"Biomarkers, Tumor\"[MeSH] OR predict*[tiab] OR response[tiab])",
+          "pmids": [
+            "40293177",
+            "31682550",
+            "37172580",
+            "33264544",
+            "28596308",
+            "35660797",
+            "26028255",
+            "38838311",
+            "35427471",
+            "39631622"
+          ],
+          "total_found": 704
+        },
+        {
+          "query": "(\"microsatellite instability\"[tiab] OR \"MSI-H\"[tiab] OR dMMR[tiab]) AND (\"Colorectal Neoplasms\"[MeSH] OR \"colorectal cancer\"[tiab]) AND (\"Drug Resistance, Neoplasm\"[MeSH] OR resistance[tiab] OR \"primary progression\"[tiab] OR \"early progression\"[tiab] OR immunotherapy[tiab])",
+          "pmids": [
+            "37172580",
+            "30886395",
+            "39739441",
+            "38919624",
+            "38528657",
+            "34671202",
+            "35842707",
+            "34398969",
+            "38105737",
+            "38105736"
+          ],
+          "total_found": 1799
+        }
+      ],
+      "context_pmids": [
+        "26028255",
+        "28596308",
+        "33264544",
+        "35427471",
+        "39631622",
+        "39602630",
+        "39874977",
+        "31682550",
+        "35660797",
+        "38838311"
+      ],
+      "usage": {
+        "usd": 0.247816,
+        "latency_ms": 0,
+        "tool_calls": 5,
+        "llm_calls": 8,
+        "cached_llm_calls": 8,
+        "input_tokens": 48859,
+        "output_tokens": 2619,
+        "model": "claude-opus-5-5",
+        "fell_back": false
+      },
+      "steps": [
+        {
+          "name": "plan",
+          "usage": {
+            "usd": 0.018388,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 597,
+            "output_tokens": 800,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "search",
+          "usage": {
+            "usd": 0.0,
+            "latency_ms": 11,
+            "tool_calls": 5,
+            "llm_calls": 0,
+            "cached_llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "model": null,
+            "fell_back": false
+          }
+        },
+        {
+          "name": "screen",
+          "usage": {
+            "usd": 0.086404,
+            "latency_ms": 1,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 21231,
+            "output_tokens": 74,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "answer",
+          "usage": {
+            "usd": 0.0577,
+            "latency_ms": 1,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 11110,
+            "output_tokens": 663,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "verify",
+          "usage": {
+            "usd": 0.08532400000000001,
+            "latency_ms": 2,
+            "tool_calls": 0,
+            "llm_calls": 5,
+            "cached_llm_calls": 5,
+            "input_tokens": 15921,
+            "output_tokens": 1082,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        }
+      ],
+      "refused": false
+    },
+    "articles": {
+      "26028255": {
+        "pmid": "26028255",
+        "title": "PD-1 Blockade in Tumors with Mismatch-Repair Deficiency.",
+        "journal": "The New England journal of medicine",
+        "year": 2015
+      },
+      "28596308": {
+        "pmid": "28596308",
+        "title": "Mismatch repair deficiency predicts response of solid tumors to PD-1 blockade.",
+        "journal": "Science (New York, N.Y.)",
+        "year": 2017
+      },
+      "31682550": {
+        "pmid": "31682550",
+        "title": "Efficacy of Pembrolizumab in Patients With Noncolorectal High Microsatellite Instability/Mismatch Repair-Deficient Cancer: Results From the Phase II KEYNOTE-158 Study.",
+        "journal": "Journal of clinical oncology : official journal of the American Society of Clinical Oncology",
+        "year": 2020
+      },
+      "33264544": {
+        "pmid": "33264544",
+        "title": "Pembrolizumab in Microsatellite-Instability-High Advanced Colorectal Cancer.",
+        "journal": "The New England journal of medicine",
+        "year": 2020
+      },
+      "35427471": {
+        "pmid": "35427471",
+        "title": "Pembrolizumab versus chemotherapy for microsatellite instability-high or mismatch repair-deficient metastatic colorectal cancer (KEYNOTE-177): final analysis of a randomised, open-label, phase 3 study.",
+        "journal": "The Lancet. Oncology",
+        "year": 2022
+      },
+      "39631622": {
+        "pmid": "39631622",
+        "title": "Pembrolizumab versus chemotherapy in microsatellite instability-high or mismatch repair-deficient metastatic colorectal cancer: 5-year follow-up from the randomized phase III KEYNOTE-177 study.",
+        "journal": "Annals of oncology : official journal of the European Society for Medical Oncology",
+        "year": 2025
+      },
+      "39602630": {
+        "pmid": "39602630",
+        "title": "Nivolumab plus Ipilimumab in Microsatellite-Instability-High Metastatic Colorectal Cancer.",
+        "journal": "The New England journal of medicine",
+        "year": 2024
+      },
+      "39874977": {
+        "pmid": "39874977",
+        "title": "Nivolumab plus ipilimumab versus nivolumab in microsatellite instability-high metastatic colorectal cancer (CheckMate 8HW): a randomised, open-label, phase 3 trial.",
+        "journal": "Lancet (London, England)",
+        "year": 2025
+      }
+    }
+  },
+  {
+    "answer": {
+      "question": "How do mismatch repair protein immunohistochemistry, PCR-based microsatellite analysis, and next-generation sequencing compare as methods for determining MSI/dMMR status?",
+      "decision": "not_applicable",
+      "sentences": [
+        {
+          "text": "Guidelines accept MMR immunohistochemistry (IHC), PCR-based MSI testing, and NGS-based MSI as valid ways to determine MSI/dMMR status, but the best assay depends on cancer type; ESMO recommends IHC as the first step and a 5-marker PCR panel (including BAT-25 and BAT-26) as the second, while CAP notes that evidence is strongest for GI and endometrial cancers and that IHC is acceptable when evidence is lacking.",
+          "citations": [
+            "35920830",
+            "31056702"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "NGS-based MSI testing, especially when combined with tumour mutational burden, is viewed as a potentially decisive tool for selecting immunotherapy patients with cancers outside the Lynch syndrome spectrum, and in prostate cancer NGS methods were more sensitive than 5-marker MSI-PCR (93–97% vs 72%) without needing matched normal tissue.",
+          "citations": [
+            "31056702",
+            "29665853"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "PCR-based MSI testing can give false-negative results when microsatellite shifts are minimal, particularly in endometrial and non-colorectal GI cancers and in tumours with isolated MSH6 or PMS2 loss; in endometrioid carcinoma, the FDA-approved IHC panel was judged more accurate than MSI-PCR.",
+          "citations": [
+            "37859432",
+            "36254632"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "Concordance between IHC and PCR varies across studies: one large pan-cancer series found a 19.3% discrepancy rate with poor agreement (kappa < 0.7), whereas endometrial and gastric cancer series reported discordance of about 4% and 2 of 50 cases, respectively.",
+          "citations": [
+            "38350968",
+            "37751191",
+            "33020177"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "IHC has its own interpretive pitfalls: subclonal or heterogeneous staining explained many discordant endometrial cases, and reporting IHC only as intact or deficient missed some Lynch syndrome cases.",
+          "citations": [
+            "37751191"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "Because each method has limitations, several studies regard IHC and molecular tests as complementary, and newer PCR panels such as long mononucleotide repeat assays may improve PCR sensitivity relative to IHC.",
+          "citations": [
+            "33020177",
+            "41429820"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        }
+      ],
+      "dropped": [],
+      "searches": [
+        {
+          "query": "How do mismatch repair protein immunohistochemistry, PCR-based microsatellite analysis, and next-generation sequencing compare as methods for determining MSI/dMMR status?",
+          "pmids": [],
+          "total_found": 0
+        },
+        {
+          "query": "(\"Microsatellite Instability\"[MeSH] OR \"microsatellite instability\"[tiab] OR \"mismatch repair deficiency\"[tiab] OR dMMR[tiab]) AND (\"Immunohistochemistry\"[MeSH] OR immunohistochemistry[tiab] OR IHC[tiab]) AND (\"Polymerase Chain Reaction\"[MeSH] OR PCR[tiab] OR \"MSI-PCR\"[tiab] OR \"fragment analysis\"[tiab]) AND (concordance[tiab] OR discordance[tiab] OR comparison[tiab] OR sensitivity[tiab])",
+          "pmids": [
+            "35550184",
+            "35955855",
+            "38350968",
+            "36254632",
+            "33020177",
+            "37859432",
+            "29665853",
+            "37662626",
+            "41429820",
+            "37067589"
+          ],
+          "total_found": 179
+        },
+        {
+          "query": "(\"Microsatellite Instability\"[MeSH] OR \"microsatellite instability\"[tiab] OR \"MSI status\"[tiab]) AND (\"High-Throughput Nucleotide Sequencing\"[MeSH] OR \"next-generation sequencing\"[tiab] OR NGS[tiab] OR MSIsensor[tiab] OR \"MSI-NGS\"[tiab]) AND (immunohistochemistry[tiab] OR PCR[tiab] OR concordance[tiab] OR validation[tiab])",
+          "pmids": [
+            "35920830",
+            "37751191",
+            "40966692",
+            "34837268",
+            "37906636",
+            "31056702",
+            "38742845",
+            "36012038",
+            "31182318",
+            "31593214"
+          ],
+          "total_found": 538
+        },
+        {
+          "query": "(\"DNA Mismatch Repair\"[MeSH] OR \"mismatch repair\"[tiab] OR \"microsatellite instability\"[tiab]) AND (discordant[tiab] OR discordance[tiab] OR \"false negative\"[tiab] OR heterogeneity[tiab] OR \"testing methods\"[tiab] OR \"diagnostic accuracy\"[tiab])",
+          "pmids": [
+            "37751191",
+            "34837268",
+            "36584674",
+            "32322066",
+            "21115420",
+            "36593122",
+            "38956208",
+            "39012509",
+            "38402734",
+            "35407463"
+          ],
+          "total_found": 1614
+        }
+      ],
+      "context_pmids": [
+        "35920830",
+        "31056702",
+        "38350968",
+        "29665853",
+        "37859432",
+        "37751191",
+        "36254632",
+        "41429820",
+        "33020177",
+        "37662626"
+      ],
+      "usage": {
+        "usd": 0.23243999999999998,
+        "latency_ms": 0,
+        "tool_calls": 5,
+        "llm_calls": 9,
+        "cached_llm_calls": 9,
+        "input_tokens": 42920,
+        "output_tokens": 3038,
+        "model": "claude-opus-5-5",
+        "fell_back": false
+      },
+      "steps": [
+        {
+          "name": "plan",
+          "usage": {
+            "usd": 0.0161,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 590,
+            "output_tokens": 687,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "search",
+          "usage": {
+            "usd": 0.0,
+            "latency_ms": 9,
+            "tool_calls": 5,
+            "llm_calls": 0,
+            "cached_llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "model": null,
+            "fell_back": false
+          }
+        },
+        {
+          "name": "screen",
+          "usage": {
+            "usd": 0.073152,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 17918,
+            "output_tokens": 74,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "answer",
+          "usage": {
+            "usd": 0.047284,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 7881,
+            "output_tokens": 788,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "verify",
+          "usage": {
+            "usd": 0.095904,
+            "latency_ms": 2,
+            "tool_calls": 0,
+            "llm_calls": 6,
+            "cached_llm_calls": 6,
+            "input_tokens": 16531,
+            "output_tokens": 1489,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        }
+      ],
+      "refused": false
+    },
+    "articles": {
+      "35920830": {
+        "pmid": "35920830",
+        "title": "Mismatch Repair and Microsatellite Instability Testing for Immune Checkpoint Inhibitor Therapy: Guideline From the College of American Pathologists in Collaboration With the Association for Molecular Pathology and Fight Colorectal Cancer.",
+        "journal": "Archives of pathology & laboratory medicine",
+        "year": 2022
+      },
+      "31056702": {
+        "pmid": "31056702",
+        "title": "ESMO recommendations on microsatellite instability testing for immunotherapy in cancer, and its relationship with PD-1/PD-L1 expression and tumour mutational burden: a systematic review-based approach.",
+        "journal": "Annals of oncology : official journal of the European Society for Medical Oncology",
+        "year": 2019
+      },
+      "29665853": {
+        "pmid": "29665853",
+        "title": "Microsatellite instability in prostate cancer by PCR or next-generation sequencing.",
+        "journal": "Journal for immunotherapy of cancer",
+        "year": 2018
+      },
+      "37859432": {
+        "pmid": "37859432",
+        "title": "Applicability of the FDA-approved Immunohistochemical Panel for Identification of MMRd Phenotype in Uterine Endometrioid Carcinoma.",
+        "journal": "Applied immunohistochemistry & molecular morphology : AIMM",
+        "year": 2024
+      },
+      "36254632": {
+        "pmid": "36254632",
+        "title": "Microsatellite instability profiles of gastrointestinal cancers: comparison between non-colorectal and colorectal origin.",
+        "journal": "Histopathology",
+        "year": 2023
+      },
+      "38350968": {
+        "pmid": "38350968",
+        "title": "Comparison of standard mismatch repair deficiency and microsatellite instability tests in a large cancer series.",
+        "journal": "Journal of translational medicine",
+        "year": 2024
+      },
+      "37751191": {
+        "pmid": "37751191",
+        "title": "Characterization of mismatch-repair/microsatellite instability-discordant endometrial cancers.",
+        "journal": "Cancer",
+        "year": 2024
+      },
+      "33020177": {
+        "pmid": "33020177",
+        "title": "Idylla microsatellite instability assay versus mismatch repair immunohistochemistry: a retrospective comparison in gastric adenocarcinoma.",
+        "journal": "Journal of clinical pathology",
+        "year": 2021
+      },
+      "41429820": {
+        "pmid": "41429820",
+        "title": "Improving the performance of polymerase chain reaction for microsatellite instability testing in endometrial cancer.",
+        "journal": "Scientific reports",
+        "year": 2025
+      }
+    }
+  },
+  {
+    "answer": {
+      "question": "What is microsatellite instability, how does loss of DNA mismatch repair produce it, and how does the origin of sporadic MSI colorectal cancer differ from Lynch syndrome-associated MSI?",
+      "decision": "not_applicable",
+      "sentences": [
+        {
+          "text": "Microsatellite instability (MSI) is a hypermutable phenotype caused by loss of DNA mismatch repair (MMR) activity, and it is found in about 15% of colorectal cancers.",
+          "citations": [
+            "20420947"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "MMR proteins normally recognize and initiate correction of DNA replication errors; when MMR is deficient, mutations accumulate, especially single-base substitutions and insertions/deletions in short repeat sequences (microsatellites), so MSI serves as a marker of underlying MMR deficiency.",
+          "citations": [
+            "40640471"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "In Lynch syndrome, MSI arises from inherited (germline) mutations in MMR genes such as MLH1, MSH2, MSH6 and PMS2, and this accounts for roughly 3% of colorectal cancers.",
+          "citations": [
+            "40612862",
+            "20420947"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "Most MSI colorectal cancers (about 12% of all colorectal cancers) are instead sporadic: the MLH1 promoter becomes hypermethylated and silenced, an acquired epigenetic change that occurs in tumors with the CpG island methylator phenotype (CIMP).",
+          "citations": [
+            "20420947"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "Sporadic MSI/CIMP colorectal cancers are linked to the serrated neoplasia pathway arising from serrated precursor lesions, where APC mutations are rare, and they often carry MLH1 hypermethylation together with BRAF mutation.",
+          "citations": [
+            "35457279"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        },
+        {
+          "text": "MSI colorectal tumors, whatever their origin, tend to arise in the proximal colon, show lymphocytic infiltration and poorly differentiated or mucinous histology, and have a slightly better prognosis than tumors without MSI.",
+          "citations": [
+            "20420947"
+          ],
+          "verdict": "supported",
+          "evidence": null
+        }
+      ],
+      "dropped": [],
+      "searches": [
+        {
+          "query": "What is microsatellite instability, how does loss of DNA mismatch repair produce it, and how does the origin of sporadic MSI colorectal cancer differ from Lynch syndrome-associated MSI?",
+          "pmids": [],
+          "total_found": 0
+        },
+        {
+          "query": "(\"Microsatellite Instability\"[MeSH] OR \"microsatellite instability\"[tiab]) AND (\"DNA Mismatch Repair\"[MeSH] OR \"mismatch repair\"[tiab]) AND (\"mechanism\"[tiab] OR \"replication errors\"[tiab] OR \"slippage\"[tiab] OR \"MutS\"[tiab] OR \"MutL\"[tiab])",
+          "pmids": [
+            "37172580",
+            "37751191",
+            "41909713",
+            "38922524",
+            "38458201",
+            "36908268",
+            "42126206",
+            "35371084",
+            "38956208",
+            "17902735"
+          ],
+          "total_found": 623
+        },
+        {
+          "query": "(\"Colorectal Neoplasms\"[MeSH] OR \"colorectal cancer\"[tiab]) AND (\"microsatellite instability\"[tiab] OR \"MSI-H\"[tiab]) AND (\"MLH1 promoter methylation\"[tiab] OR \"MLH1 hypermethylation\"[tiab] OR \"CpG island methylator phenotype\"[tiab] OR \"BRAF V600E\"[tiab])",
+          "pmids": [
+            "20420947",
+            "34398969",
+            "33724754",
+            "20420946",
+            "35457279",
+            "36670267",
+            "37772997",
+            "32962865",
+            "38659326",
+            "37815847"
+          ],
+          "total_found": 854
+        },
+        {
+          "query": "(\"Colorectal Neoplasms, Hereditary Nonpolyposis\"[MeSH] OR \"Lynch syndrome\"[tiab]) AND (\"microsatellite instability\"[tiab] OR \"mismatch repair deficient\"[tiab]) AND (\"sporadic\"[tiab] OR \"germline\"[tiab] OR \"Lynch-like\"[tiab] OR \"somatic biallelic\"[tiab])",
+          "pmids": [
+            "20420947",
+            "37751191",
+            "34398969",
+            "40640471",
+            "31391288",
+            "25427047",
+            "40612862",
+            "30376427",
+            "31992580",
+            "38725237"
+          ],
+          "total_found": 1275
+        },
+        {
+          "query": "(\"Microsatellite Instability\"[MeSH] OR \"microsatellite instability\"[tiab]) AND (\"Colorectal Neoplasms\"[MeSH] OR \"colorectal\"[tiab])",
+          "pmids": [
+            "31622622",
+            "20420947",
+            "36618386",
+            "37668816",
+            "35457279",
+            "35577706",
+            "37652006",
+            "33205813",
+            "26298904",
+            "32934878"
+          ],
+          "total_found": 8620
+        }
+      ],
+      "context_pmids": [
+        "20420947",
+        "40640471",
+        "38922524",
+        "35457279",
+        "40612862",
+        "25427047",
+        "31622622",
+        "32962865",
+        "38458201",
+        "37772997"
+      ],
+      "usage": {
+        "usd": 0.18072400000000002,
+        "latency_ms": 0,
+        "tool_calls": 6,
+        "llm_calls": 9,
+        "cached_llm_calls": 9,
+        "input_tokens": 31901,
+        "output_tokens": 2656,
+        "model": "claude-opus-5-5",
+        "fell_back": false
+      },
+      "steps": [
+        {
+          "name": "plan",
+          "usage": {
+            "usd": 0.017228,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 597,
+            "output_tokens": 742,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "search",
+          "usage": {
+            "usd": 0.0,
+            "latency_ms": 10,
+            "tool_calls": 6,
+            "llm_calls": 0,
+            "cached_llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "model": null,
+            "fell_back": false
+          }
+        },
+        {
+          "name": "screen",
+          "usage": {
+            "usd": 0.061064,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 14896,
+            "output_tokens": 74,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "answer",
+          "usage": {
+            "usd": 0.034148,
+            "latency_ms": 0,
+            "tool_calls": 0,
+            "llm_calls": 1,
+            "cached_llm_calls": 1,
+            "input_tokens": 5392,
+            "output_tokens": 629,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        },
+        {
+          "name": "verify",
+          "usage": {
+            "usd": 0.068284,
+            "latency_ms": 1,
+            "tool_calls": 0,
+            "llm_calls": 6,
+            "cached_llm_calls": 6,
+            "input_tokens": 11016,
+            "output_tokens": 1211,
+            "model": "claude-opus-5-5",
+            "fell_back": false
+          }
+        }
+      ],
+      "refused": false
+    },
+    "articles": {
+      "20420947": {
+        "pmid": "20420947",
+        "title": "Microsatellite instability in colorectal cancer.",
+        "journal": "Gastroenterology",
+        "year": 2010
+      },
+      "40640471": {
+        "pmid": "40640471",
+        "title": "Therapeutic targeting of mismatch repair-deficient cancers.",
+        "journal": "Nature reviews. Clinical oncology",
+        "year": 2025
+      },
+      "40612862": {
+        "pmid": "40612862",
+        "title": "Lynch syndrome and colorectal cancer: A review of current perspectives in molecular genetics and clinical strategies.",
+        "journal": "Oncology research",
+        "year": 2025
+      },
+      "35457279": {
+        "pmid": "35457279",
+        "title": "Serrated Colorectal Lesions: An Up-to-Date Review from Histological Pattern to Molecular Pathogenesis.",
+        "journal": "International journal of molecular sciences",
+        "year": 2022
+      }
+    }
+  }
+]
