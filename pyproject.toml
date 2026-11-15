@@ -21,6 +21,11 @@ dependencies = [
 bioscout-mcp = "bioscout.mcp_server:main"
 bioscout-eval = "bioscout.evals.cli:main"
 
+[project.optional-dependencies]
+demo = [
+    "streamlit>=1.45",
+]
+
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
 build-backend = "uv_build"
