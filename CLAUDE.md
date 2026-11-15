@@ -14,6 +14,9 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
   `check-datasets` and `retrieval` are free and need only PubMed
 - `uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10`: judge a run's citations and
   add citation precision and coverage to its report (one Claude call per cited sentence, costs money)
+- `uv run bioscout-eval calibrate-sample evals/runs/<run_id>` then `calibrate-score`: write 60 pairs to
+  `evals/review/calibration.md` for the author to label, then score the judge against the labels
+  (Cohen's kappa). Free. Never fill in or change the labels: they are the author's judgment.
 
 ## Layout
 
@@ -27,7 +30,8 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
 - `src/bioscout/verifier/`: the citation judge (sentence + cited abstracts -> supported / partial /
   unsupported); variant D's verify loop comes next
 - `src/bioscout/evals/`: datasets, variants (A, B, C), deterministic metrics, runner, run-level judging
-  (`judgments.jsonl`, citation precision and coverage), `bioscout-eval` CLI
+  (`judgments.jsonl`, citation precision and coverage), judge calibration against hand labels,
+  `bioscout-eval` CLI
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
