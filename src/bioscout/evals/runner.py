@@ -104,8 +104,8 @@ def write_report(run_dir: Path, reports_dir: Path) -> Path:
     records = load_records(run_dir)
     rows = summarize(records)
     judged = load_judgments(run_dir)
-    if judged:  # the run has been judged with the current judge prompt: add its metrics to each row
-        by_group = summarize_judgments(records, judged)
+    by_group = summarize_judgments(records, judged)
+    if any(by_group.values()):  # at least one group is judged in full with the current judge prompt
         rows = [row | by_group.get((row["variant"], row["dataset"]), {}) for row in rows]
         meta = meta | {"judge": {"prompt_sha": JUDGE_SHA, "sentences": len(judged)}}
     reports_dir.mkdir(parents=True, exist_ok=True)

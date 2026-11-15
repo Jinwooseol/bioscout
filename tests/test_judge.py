@@ -15,7 +15,13 @@ from bioscout.evals.metrics import ItemScores, Record
 from bioscout.evals.runner import write_report
 from bioscout.llm import LLMResult
 from bioscout.verifier import JUDGE_SHA, JudgeRefusedError, judge_sentence
-from bioscout.verifier.judge import JUDGE_SCHEMA, SYSTEM_JUDGE, CitationJudgment, bound_sentence_verdict
+from bioscout.verifier.judge import (
+    JUDGE_SCHEMA,
+    SYSTEM_JUDGE,
+    CitationJudgment,
+    bound_sentence_verdict,
+    quote_in_abstract,
+)
 from tests.fakes import FakeLLM, FakePubMed, synthetic_abstract
 
 TEXTS = {
@@ -118,6 +124,14 @@ def test_sentence_verdict_is_bounded_by_its_citations(claimed, citations, expect
     assert bound_sentence_verdict(Verdict(claimed), judged) is Verdict(expected)
 
 
+def test_a_quote_stitched_with_ellipses_counts_when_every_piece_is_in_the_abstract():
+    article = ABSTRACTS["10000001"]
+    assert quote_in_abstract("Drug X lowered mortality ... in 400 adults", article)
+    assert quote_in_abstract("drug x LOWERED mortality… (hazard ratio 0.70)", article)
+    assert not quote_in_abstract("Drug X lowered mortality ... in 900 children", article)
+    assert not quote_in_abstract("...", article)
+
+
 async def test_a_refused_judge_call_raises():
     with pytest.raises(JudgeRefusedError):
         await judge_sentence(FakeLLM([None]), "Q?", "X works.", ["10000001"], ABSTRACTS)
@@ -177,6 +191,9 @@ async def test_judging_a_run_writes_verdicts_resumes_and_adds_metrics_to_the_rep
     assert len(lines) == 3 and all(line["judge_sha"] == JUDGE_SHA for line in lines)
     assert [line["error"] for line in lines if line["error"]] == ["RuntimeError: upstream exploded"]
 
+    # Judged in part: no metrics yet, so a slice cannot pass for the whole group.
+    assert summarize_judgments(records, judged)[("C", "pubmedqa")] == {}
+
     # A second call judges only the sentence that failed.
     llm.by_text["Sentence: X works in children."] = verdict("unsupported", ("10000002", "unsupported", ""))
     judged = await judge_run(records, llm, pubmed, run_dir, concurrency=1, progress=lambda _: None)
@@ -188,7 +205,7 @@ async def test_judging_a_run_writes_verdicts_resumes_and_adds_metrics_to_the_rep
     # Citations: supported, supported, unsupported (99999999 does not exist), unsupported.
     assert c["citations_judged"] == 4 and c["citation_precision"] == pytest.approx(0.5)
     assert c["citation_coverage"] == pytest.approx(1 / 4)  # one of four sentences is fully backed
-    assert c["evidence_quote_found_rate"] == 1.0 and c["unjudged_sentences"] == 0
+    assert c["evidence_quote_found_rate"] == 1.0
     a = metrics[("A", "pubmedqa")]
     assert a["citation_precision"] is None and a["citation_coverage"] == 0.0
 

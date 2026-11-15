@@ -99,8 +99,11 @@ def _words(text: str) -> str:
 
 
 def quote_in_abstract(evidence: str, article: ArticleAbstract) -> bool:
-    """Is the quoted passage really in the abstract? Case, punctuation and spacing are ignored."""
-    return _words(evidence) in _words(f"{article.title} {article.abstract_text}")
+    """Is the quoted passage really in the abstract? Case, punctuation and spacing are ignored. The judge
+    often stitches passages together with "..."; such a quote counts when every piece is in the abstract."""
+    text = _words(f"{article.title} {article.abstract_text}")
+    pieces = [piece for part in re.split(r"\.{3}|…", evidence) if (piece := _words(part))]
+    return bool(pieces) and all(piece in text for piece in pieces)
 
 
 def bound_sentence_verdict(claimed: Verdict, citations: list[CitationJudgment]) -> Verdict:

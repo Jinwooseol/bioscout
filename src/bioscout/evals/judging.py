@@ -133,12 +133,30 @@ def _progress_line(entry: JudgedSentence) -> str:
     return f"{head} {entry.judgment.verdict.value} [{verdicts}]"
 
 
+def _pct(value: float | None) -> str:
+    return "—" if value is None else f"{value:.1%}"
+
+
+def describe_judgments(records: list[Record], judged: dict[Key, JudgedSentence]) -> list[str]:
+    """One line per fully judged (variant, dataset) of these records, for the console."""
+    lines = []
+    for (variant, dataset), m in sorted(summarize_judgments(records, judged).items()):
+        if m and dataset != "all":
+            lines.append(
+                f"{variant} {dataset}: {m['citations_judged']} citations, "
+                f"precision {_pct(m['citation_precision'])}, partial {_pct(m['partial_citation_rate'])}, "
+                f"coverage {_pct(m['citation_coverage'])}, "
+                f"quotes found {_pct(m['evidence_quote_found_rate'])}, ${m['judge_usd']:.2f}"
+            )
+    return lines
+
+
 def _share(values: list[bool]) -> float | None:
     return statistics.fmean(values) if values else None
 
 
 def _judge_metrics(records: list[Record], judged: dict[Key, JudgedSentence]) -> dict[str, Any]:
-    sentences = supported = unjudged = 0
+    sentences = supported = 0
     verdicts: list[Verdict] = []
     quotes: list[bool] = []
     usd = 0.0
@@ -150,22 +168,20 @@ def _judge_metrics(records: list[Record], judged: dict[Key, JudgedSentence]) -> 
                 continue
             entry = judged.get((r.item_id, r.variant, i))
             if entry is None or entry.judgment is None:
-                unjudged += 1
-                continue
+                # Judged in part (a pilot, or a failed sentence): numbers from a slice must not sit in a
+                # report next to metrics of the whole group.
+                return {}
             sentences += 1
             supported += entry.judgment.verdict is Verdict.SUPPORTED
             verdicts += [c.verdict for c in entry.judgment.citations]
             quotes += [c.quote_found for c in entry.judgment.citations if c.quote_found is not None]
             usd += entry.usage.usd or 0.0
-    if unjudged and not verdicts:
-        return {}  # this group was not judged; leave its judge columns empty rather than zero
     return {
         "citations_judged": len(verdicts),
         "citation_precision": _share([v is Verdict.SUPPORTED for v in verdicts]),
         "partial_citation_rate": _share([v is Verdict.PARTIAL for v in verdicts]),
         "citation_coverage": supported / sentences if sentences else None,
         "evidence_quote_found_rate": _share(quotes),
-        "unjudged_sentences": unjudged,
         "judge_usd": usd,
     }
 
@@ -173,7 +189,8 @@ def _judge_metrics(records: list[Record], judged: dict[Key, JudgedSentence]) -> 
 def summarize_judgments(
     records: list[Record], judged: dict[Key, JudgedSentence]
 ) -> dict[tuple[str, str], dict[str, Any]]:
-    """Judge metrics per (variant, dataset) and (variant, "all"), keyed like the rows of metrics.summarize."""
+    """Judge metrics per (variant, dataset) and (variant, "all"), keyed like the rows of metrics.summarize.
+    A group has metrics only when every cited sentence of its records has a verdict."""
     groups: dict[tuple[str, str], list[Record]] = defaultdict(list)
     for r in records:
         if r.answer is not None:

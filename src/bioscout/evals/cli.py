@@ -18,7 +18,7 @@ from pathlib import Path
 
 from bioscout.config import CacheMode, Settings
 from bioscout.evals.datasets import DATASET_FILES, load_dataset
-from bioscout.evals.judging import judge_run
+from bioscout.evals.judging import describe_judgments, judge_run
 from bioscout.evals.runner import load_records, run_eval, write_report
 from bioscout.evals.variants import VARIANTS, Context
 from bioscout.llm import ClaudeLLM
@@ -115,6 +115,8 @@ async def cmd_judge(args: argparse.Namespace) -> int:
         judged = await judge_run(records, llm, sources.pubmed, args.run_dir, args.concurrency)
     finally:
         await sources.http.aclose()
+    # What was judged just now. The report shows judge columns only for groups judged in full.
+    print("\n".join(describe_judgments(records, judged)))
     report = write_report(args.run_dir, args.evals_dir / "reports")
     print(report.with_suffix(".md").read_text(encoding="utf-8"))
     print(f"judgments: {args.run_dir / 'judgments.jsonl'}\nreport:    {report}")
@@ -165,6 +167,11 @@ async def cmd_retrieval(args: argparse.Namespace) -> int:
 
 
 def main() -> None:
+    # A redirected stdout on Windows uses the locale code page (cp949 on a Korean PC), which cannot encode
+    # the "—" of an empty table cell. Replace such characters rather than crash after the work is done.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     parser = argparse.ArgumentParser(prog="bioscout-eval")
     parser.add_argument("--evals-dir", type=Path, default=Path("evals"))
     sub = parser.add_subparsers(dest="command", required=True)
