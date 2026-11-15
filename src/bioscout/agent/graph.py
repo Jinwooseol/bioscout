@@ -133,7 +133,16 @@ class ResearchAgent:
             graph.add_edge("finish", END)
         return graph.compile(name="bioscout-agent")
 
-    async def answer(self, question: str) -> CitedAnswer:
+    async def answer(self, question: str, on_step: Callable[[Step], None] | None = None) -> CitedAnswer:
+        """Answer the question. `on_step` is called as each step finishes, with what it cost and how
+        long it took; the demo shows progress with it."""
+        answer, _ = await self.run(question, on_step)
+        return answer
+
+    async def run(
+        self, question: str, on_step: Callable[[Step], None] | None = None
+    ) -> tuple[CitedAnswer, dict[str, ArticleAbstract]]:
+        """`answer`, plus every abstract the agent fetched on the way, by PMID."""
         start: AgentState = {
             "question": question,
             "round": 0,
@@ -146,17 +155,25 @@ class ResearchAgent:
             "revisions": 0,
             "dropped": [],
         }
-        state: AgentState = await self.graph.ainvoke(start)
+        state = start
+        reported = 0
+        async for state in self.graph.astream(start, stream_mode="values"):  # the state after each step
+            steps = state.get("steps", [])
+            for step in steps[reported:]:
+                if on_step is not None:
+                    on_step(step)
+            reported = len(steps)
         if "answer" in state:
-            return state["answer"].model_copy(update={"steps": state["steps"]})
+            return state["answer"].model_copy(update={"steps": state["steps"]}), state["abstracts"]
         # A step before the answer was refused, even after the server-side fallback.
-        return CitedAnswer(
+        refused = CitedAnswer(
             question=question,
             searches=state["searches"],
             usage=Usage.total(state["usages"]),
             steps=state["steps"],
             refused=True,
         )
+        return refused, state["abstracts"]
 
     async def _plan(self, state: AgentState) -> AgentState:
         result = await self.llm.json(
