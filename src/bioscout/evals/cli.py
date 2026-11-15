@@ -20,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 from bioscout.config import CacheMode, Settings
+from bioscout.evals import gate
 from bioscout.evals.calibration import (
     PairSet,
     describe_calibration,
@@ -28,7 +29,7 @@ from bioscout.evals.calibration import (
     sample_pairs,
     score_labels,
 )
-from bioscout.evals.datasets import DATASET_FILES, load_dataset
+from bioscout.evals.datasets import DATASET_FILES, datasets_sha, load_dataset
 from bioscout.evals.judging import describe_judgments, judge_run, load_judgments
 from bioscout.evals.runner import load_records, run_eval, write_report
 from bioscout.evals.variants import VARIANTS, Context
@@ -92,6 +93,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         "cache_mode": str(settings.cache_mode),
         "datasets": args.datasets,
         "limit": args.limit,
+        "datasets_sha": datasets_sha(items),
         "commit": _git_commit(),
     }
     print(f"run {run_id}: {len(items)} items x {len(variants)} variants, model {llm.model} ({llm.effort})")
@@ -259,6 +261,25 @@ async def cmd_retrieval(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gate(args: argparse.Namespace) -> int:
+    """Check the committed baseline report against the code and against the baseline of an earlier commit."""
+    path = args.baseline or args.evals_dir / "baseline.json"
+    baseline = gate.Baseline.load(path.read_text(encoding="utf-8"), Path.cwd())
+    previous = None
+    if args.since:
+        shown = subprocess.run(
+            ["git", "show", f"{args.since}:{path.as_posix()}"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        if shown.returncode == 0:  # that commit may predate the baseline, or not be in this checkout
+            previous = gate.Baseline.load(shown.stdout, Path.cwd())
+    checks = gate.run_gate(baseline, gate.Code.current(args.evals_dir / "datasets"), previous)
+    print(gate.render(baseline, checks))
+    return 0 if gate.passed(checks) else 1
+
+
 def main() -> None:
     # A redirected stdout on Windows uses the locale code page (cp949 on a Korean PC), which cannot encode
     # the "—" of an empty table cell. Replace such characters rather than crash after the work is done.
@@ -297,6 +318,12 @@ def main() -> None:
 
     sub.add_parser("check-datasets", help="verify that every dataset PMID exists in PubMed")
 
+    gate_cmd = sub.add_parser(
+        "gate", help="check that the baseline report matches the code and did not regress"
+    )
+    gate_cmd.add_argument("--baseline", type=Path, help="default: evals/baseline.json")
+    gate_cmd.add_argument("--since", help="git revision whose baseline to compare with, e.g. HEAD^")
+
     retrieval = sub.add_parser("retrieval", help="PubMedQA source-paper recall@10 of verbatim search, no LLM")
     retrieval.add_argument("--limit", type=int, default=0)
 
@@ -315,6 +342,8 @@ def main() -> None:
         sys.exit(0)
     if args.command == "retrieval":
         sys.exit(asyncio.run(cmd_retrieval(args)))
+    if args.command == "gate":
+        sys.exit(cmd_gate(args))
     sys.exit(asyncio.run(cmd_check(args)))
 
 

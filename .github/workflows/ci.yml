@@ -38,5 +38,19 @@ jobs:
           docker logs demo
           exit 1
 
-  # Planned: an `eval-gate` job, a 20-question smoke eval replayed from the recorded cache
-  # (BIOSCOUT_CACHE_MODE=readonly), failing on any fabricated PMID or a >3pt citation-precision drop.
+  # CI cannot run the agent (no API key) or replay it (the response cache holds abstracts, which are
+  # not committed). It checks the committed evidence instead: the report named in evals/baseline.json
+  # must have been made with the prompts, settings and questions in this commit, hold no fabricated
+  # PMID, and not have dropped beyond the limits since the baseline before this change.
+  eval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the gate reads the baseline of an earlier commit
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: The eval report behind this commit matches the code and has not regressed
+        run: uv run bioscout-eval gate --since "${{ github.event.pull_request.base.sha || github.event.before }}"

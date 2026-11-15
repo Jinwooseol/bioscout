@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal
 
@@ -31,6 +33,12 @@ class EvalItem(BaseModel):
     must_cite: list[str] = Field(default_factory=list)
     key_points: list[KeyPoint] = Field(default_factory=list)
     status: str | None = None
+
+
+def datasets_sha(items: Iterable[EvalItem]) -> str:
+    """Changes whenever a question, label or required citation changes; line endings do not matter."""
+    raw = json.dumps([item.model_dump(mode="json") for item in items], sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
 
 
 def load_dataset(name: str, datasets_dir: Path) -> list[EvalItem]:
