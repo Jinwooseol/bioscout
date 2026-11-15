@@ -9,8 +9,8 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 
 > Status: work in progress. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
 > domain questions), the research agent (a LangGraph graph, variant C), the citation judge and the
-> verify step (variant D) are built, and variants A to C have been run and judged on all 115
-> questions. Checking the judge against hand labels and running variant D come next.
+> verify step (variant D) and a local demo page are built, and variants A to C have been run and
+> judged on all 115 questions. Checking the judge against hand labels and running variant D come next.
 > Progress: [`docs/progress.html`](docs/progress.html).
 
 ## Results
@@ -45,6 +45,19 @@ down per variant and per step.
 - The agent backs 93% of its sentences and leaves no answer without evidence. It cites an unrelated
   paper 0.7% of the time; its misses are mostly partial support, which the verifier (variant D) is
   meant to remove.
+
+## Demo
+
+A one-page Streamlit app: ask a question, watch the steps run, and read the answer with a verdict
+and the abstract passage behind every sentence, the cited papers, what was removed, and what it
+cost.
+
+```bash
+uv run --extra demo streamlit run app/streamlit_app.py
+```
+
+It needs `ANTHROPIC_API_KEY` in `.env` and costs about $0.2 per question. With
+`BIOSCOUT_CACHE_MODE=readonly` it only replays recorded answers and costs nothing.
 
 ## Architecture
 

@@ -46,9 +46,9 @@
         <marker id="aloop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head loop" d="M0 0L10 5L0 10z"/></marker>
       </defs>
 
-      <rect class="box planned" x="20" y="20" width="250" height="60" rx="10"/>
+      <rect class="box accent" x="20" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="145" y="46" text-anchor="middle">Streamlit 데모</text>
-      <text class="s" x="145" y="66" text-anchor="middle">답변 · 인용 카드 · 검증 배지 (예정)</text>
+      <text class="s" x="145" y="66" text-anchor="middle">답변 · 인용 카드 · 검증 배지</text>
 
       <rect class="box accent" x="325" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="450" y="46" text-anchor="middle">평가 하네스</text>
@@ -120,7 +120,7 @@
       <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행. <a href="#agent">상세 설계</a></td><td><code>src/bioscout/agent/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>인용 검증기</td><td>문장과 인용 초록을 맞대어 지지 / 부분 지지 / 근거 없음으로 판정하고, 부족한 문장은 고쳐 쓰거나 삭제. <a href="#judge">judge</a>, <a href="#verify">검증 루프</a></td><td><code>src/bioscout/verifier/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>관측 · CI 게이트</td><td>Langfuse 트레이스, 비용·지연 집계, PR마다 재생 평가</td><td><code>.github/workflows/</code></td><td><span class="tag">예정</span></td></tr>
-      <tr><td>데모</td><td>Streamlit UI, Docker, Hugging Face Spaces 배포</td><td><code>app/</code></td><td><span class="tag">예정</span></td></tr>
+      <tr><td>데모</td><td>Streamlit 화면, Docker, Hugging Face Spaces 배포. <a href="#demo">화면 설계</a></td><td><code>app/</code>, <code>src/bioscout/demo.py</code></td><td><span class="tag built">화면 구현됨</span> <span class="tag">배포 예정</span></td></tr>
     </tbody>
   </table></div>
 
@@ -661,6 +661,48 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>src/bioscout/answer.py</code></td><td><code>Step</code>: 단계 이름과 그 단계의 비용, 호출 수, 걸린 시간. <code>CitedAnswer.steps</code>에 실행 순서대로 남음</td></tr>
       <tr><td><code>src/bioscout/evals/costs.py</code></td><td>단계별 집계와 리포트의 비용 표 두 개</td></tr>
       <tr><td><code>bioscout-eval report evals/runs/&lt;run_id&gt;</code></td><td>이미 끝난 실행의 리포트를 다시 만들어 비용 표를 더함. 비용은 들지 않음</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="demo">데모 화면 <span class="tag built">구현됨</span> <span class="tag">배포 예정</span></h2>
+  <p>질문을 넣으면 에이전트가 답하고, 문장마다 판정과 근거를 보여 주는 한 페이지짜리 화면입니다. Streamlit으로 만들었고 지금은 로컬에서 실행합니다. 화면의 문구는 영어입니다.</p>
+
+  <h3>화면 구성</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>영역</th><th>보여 주는 것</th></tr></thead>
+    <tbody>
+      <tr><td>질문</td><td>예시 질문 3개, 입력칸(400자까지), Ask 버튼. 사이드바에 인용 검증을 켜고 끄는 스위치와 이 세션에 남은 질문 수</td></tr>
+      <tr><td>진행 표시</td><td>단계가 끝날 때마다 한 줄씩(계획, 검색, 선별, 답변, 판정, 고쳐 쓰기), 걸린 시간과 함께</td></tr>
+      <tr><td>답변</td><td>yes, no, maybe로 답할 수 있으면 한 줄 요약. 번호를 붙인 문장마다 PubMed 링크, 판정 배지(지지, 부분 지지, 확인 안 됨), 판정의 근거가 된 초록 구절</td></tr>
+      <tr><td>삭제된 문장</td><td>접어 둔 영역에 삭제한 문장과 이유</td></tr>
+      <tr><td>출처</td><td>인용한 논문마다 카드 하나. 제목(PubMed 링크), 학술지와 연도, PMID, 어느 문장이 인용했는지</td></tr>
+      <tr><td>만든 과정</td><td>비용, 시간, 검색 횟수, 답변에 쓴 초록 수, 단계별 표, 실행한 검색어와 결과 수</td></tr>
+      <tr><td>안내</td><td>문헌 탐색을 돕는 도구이고 의료기기가 아니라는 문구</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>화면 코드와 데이터 로직을 나눔</td><td><code>src/bioscout/demo.py</code>는 Streamlit을 모르고, <code>app/streamlit_app.py</code>는 배치만 함. 로직은 Streamlit 없이 테스트하고, 화면은 Streamlit의 테스트 러너로 한 번 돌려 확인</td><td>한 파일에 섞어 쓰기</td></tr>
+      <tr><td>평가와 같은 에이전트 그래프를 그대로 호출</td><td>화면에 보이는 답변과 평가 수치가 같은 코드에서 나옴</td><td>데모 전용 파이프라인</td></tr>
+      <tr><td>단계가 끝날 때마다 화면에 알림</td><td>답변 하나에 20초 넘게 걸리므로, 지금 무엇을 하는지 보여 줌. 에이전트의 <code>answer(on_step=...)</code>가 그래프의 상태 흐름에서 끝난 단계를 꺼내 알림</td><td>끝날 때까지 스피너만 표시</td></tr>
+      <tr><td>출처 카드는 에이전트가 이미 가져온 초록의 서지 정보로 만듦</td><td>PubMed를 다시 부르지 않아도 되고, 캐시에서 재생한 답변에도 같은 카드가 나옴. 처음에는 답변 뒤에 PubMed를 한 번 더 조회했는데, 읽기 전용 재생에서 그 요청이 캐시에 없어 예시 질문이 실패했음. 에이전트가 가져온 적 없는 PMID는 카드에 그렇게 표시</td><td>답변이 나온 뒤 PubMed에서 다시 조회</td></tr>
+      <tr><td>Streamlit은 선택 설치(<code>demo</code>)</td><td>MCP 서버와 평가만 쓰는 사람의 설치를 가볍게 유지. CI는 <code>demo</code>까지 설치해 화면 테스트를 돌림</td><td>기본 의존성에 추가</td></tr>
+      <tr><td>세션당 질문 5개, 질문 400자 제한</td><td>공개 데모는 운영하는 사람의 API 비용으로 돌아감. 한도는 환경 변수로 바꿀 수 있음</td><td>제한 없음</td></tr>
+      <tr><td>재생된 답변에는 시간을 표시하지 않음</td><td>캐시에서 재생한 답변은 0초로 나와 오해를 줌. 비용은 처음 만들 때의 비용을 보여 주고, 재생이라고 적음</td><td>0초 그대로 표시</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>확인한 것</h3>
+  <p>읽기 전용 캐시로 화면을 띄워 예시 질문을 실제로 돌려 봤습니다. 새로 든 비용은 없습니다. 예시 질문 3개 모두 답변이 나왔고, 문장 6개, 6개, 5개가 모두 지지로 표시됐습니다. 문장마다 초록 구절이 붙고 출처 카드가 나옵니다. MSI-H와 PD-1 억제제 질문의 답변을 처음 만들 때의 비용은 $0.25였습니다. 변형 D의 검증 단계가 실제 답변에서 끝까지 도는 것도 이때 처음 확인했습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/demo.py</code></td><td>질문 하나를 실행해 답변과 인용한 논문의 서지 정보를 묶어 돌려줌. 출처 카드와 단계별 표의 데이터를 만듦</td></tr>
+      <tr><td><code>app/streamlit_app.py</code></td><td>화면 배치. <code>uv run --extra demo streamlit run app/streamlit_app.py</code></td></tr>
+      <tr><td><code>tests/test_demo.py</code></td><td>데이터 로직 테스트와 화면 테스트. 화면 테스트는 <code>demo</code>를 설치했을 때만 실행</td></tr>
     </tbody>
   </table></div>
 

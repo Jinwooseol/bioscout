@@ -6,10 +6,13 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 ## Commands
 
 - `uv sync`: install
-- `uv run pytest -q`: unit tests, fully offline (respx mocks + `tests/fixtures`)
+- `uv run pytest -q`: unit tests, fully offline (respx mocks + `tests/fixtures`); add `--extra demo`
+  after `uv run` to include the demo page test
 - `uv run ruff check . && uv run ruff format .`: lint and format (CI fails on either)
 - `uv run python scripts/smoke_live.py`: real-API check of all MCP tools with the cache off (needs network)
 - `uv run bioscout-mcp`: run the MCP server over stdio
+- `uv run --extra demo streamlit run app/streamlit_app.py`: the demo page (needs `ANTHROPIC_API_KEY`,
+  about $0.2 per question; with `BIOSCOUT_CACHE_MODE=readonly` it only replays recorded answers)
 - `uv run bioscout-eval run --variants A,B,C --limit 10`: eval run (needs `ANTHROPIC_API_KEY`, costs money);
   `check-datasets` and `retrieval` are free and need only PubMed
 - `uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10`: judge a run's citations and
@@ -37,7 +40,9 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
-- Coming: `app/` (the demo)
+- `src/bioscout/demo.py`: what the demo page shows for a question, as plain data (no UI code);
+  `app/streamlit_app.py` only lays it out
+- Coming: a Dockerfile and the public deployment of the demo
 
 ## Rules
 
