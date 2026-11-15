@@ -12,6 +12,8 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
 - `uv run bioscout-mcp`: run the MCP server over stdio
 - `uv run bioscout-eval run --variants A,B,C --limit 10`: eval run (needs `ANTHROPIC_API_KEY`, costs money);
   `check-datasets` and `retrieval` are free and need only PubMed
+- `uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10`: judge a run's citations and
+  add citation precision and coverage to its report (one Claude call per cited sentence, costs money)
 
 ## Layout
 
@@ -22,11 +24,14 @@ One-week portfolio project: biomedical research agent + evaluation system. The p
 - `src/bioscout/prompts.py`: answer schema, rules and the grounded-answer prompt that B and C share
 - `src/bioscout/agent/`: variant C, a LangGraph graph (plan, search, screen, answer) over `bioscout.llm`
 - `src/bioscout/llm.py`: Claude calls with JSON-schema output, `fallbacks: "default"`, cost, response cache
-- `src/bioscout/evals/`: datasets, variants (A, B, C), deterministic metrics, runner, `bioscout-eval` CLI
+- `src/bioscout/verifier/`: the citation judge (sentence + cited abstracts -> supported / partial /
+  unsupported); variant D's verify loop comes next
+- `src/bioscout/evals/`: datasets, variants (A, B, C), deterministic metrics, runner, run-level judging
+  (`judgments.jsonl`, citation precision and coverage), `bioscout-eval` CLI
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
-- Coming: `verifier/` (Day 4), `app/` (Day 6)
+- Coming: the verify loop in `verifier/` (variant D), `app/` (Day 6)
 
 ## Rules
 
