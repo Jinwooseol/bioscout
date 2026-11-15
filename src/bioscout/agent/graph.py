@@ -12,14 +12,15 @@ from __future__ import annotations
 
 import asyncio
 import operator
-from collections.abc import Iterable
+import time
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import asdict, dataclass
 from typing import Annotated, Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
 from bioscout.agent.prompts import PLAN_SCHEMA, SCREEN_SCHEMA, SYSTEM_PLAN, SYSTEM_SCREEN
-from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, SearchLog, Usage, Verdict
+from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, SearchLog, Step, Usage, Verdict
 from bioscout.llm import LLM
 from bioscout.models import AbstractBatch, ArticleAbstract
 from bioscout.prompts import ANSWER_SCHEMA, SYSTEM_GROUNDED, answer_from_result, format_abstracts
@@ -56,6 +57,7 @@ class AgentState(TypedDict, total=False):
     selected: list[str]  # the screener's picks, most useful first
     enough: bool
     usages: Annotated[list[Usage], operator.add]
+    steps: Annotated[list[Step], operator.add]  # one entry per node that ran, with its cost and time
     refused: bool
     answer: CitedAnswer
     # Variant D: the answer's sentences while the verify step works on them.
@@ -68,6 +70,20 @@ class AgentState(TypedDict, total=False):
 
 def _unique(values: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(v for v in values if v))
+
+
+Node = Callable[["AgentState"], Awaitable["AgentState"]]
+
+
+def _timed(name: str, node: Node) -> Node:
+    """Wrap a graph node so the answer records what the step cost and how long it took."""
+
+    async def run(state: AgentState) -> AgentState:
+        start = time.perf_counter()
+        update = await node(state)
+        return {**update, "steps": [Step.since(name, start, update.get("usages", []))]}
+
+    return run
 
 
 def _interleave(ranked: list[list[str]], exclude: set[str]) -> list[str]:
@@ -97,10 +113,10 @@ class ResearchAgent:
 
     def _build(self) -> Any:
         graph = StateGraph(AgentState)
-        graph.add_node("plan", self._plan)
-        graph.add_node("search", self._search)
-        graph.add_node("screen", self._screen)
-        graph.add_node("answer", self._answer)
+        graph.add_node("plan", _timed("plan", self._plan))
+        graph.add_node("search", _timed("search", self._search))
+        graph.add_node("screen", _timed("screen", self._screen))
+        graph.add_node("answer", _timed("answer", self._answer))
         graph.add_edge(START, "plan")
         graph.add_conditional_edges("plan", self._after_plan, ["search", END])
         graph.add_edge("search", "screen")
@@ -108,8 +124,8 @@ class ResearchAgent:
         if self.verify is None:
             graph.add_edge("answer", END)
         else:
-            graph.add_node("verify", self._verify)
-            graph.add_node("revise", self._revise)
+            graph.add_node("verify", _timed("verify", self._verify))
+            graph.add_node("revise", _timed("revise", self._revise))
             graph.add_node("finish", self._finish)
             graph.add_edge("answer", "verify")
             graph.add_conditional_edges("verify", self._after_verify, ["revise", "finish"])
@@ -125,16 +141,21 @@ class ResearchAgent:
             "abstracts": {},
             "selected": [],
             "usages": [],
+            "steps": [],
             "notes": {},
             "revisions": 0,
             "dropped": [],
         }
         state: AgentState = await self.graph.ainvoke(start)
         if "answer" in state:
-            return state["answer"]
+            return state["answer"].model_copy(update={"steps": state["steps"]})
         # A step before the answer was refused, even after the server-side fallback.
         return CitedAnswer(
-            question=question, searches=state["searches"], usage=Usage.total(state["usages"]), refused=True
+            question=question,
+            searches=state["searches"],
+            usage=Usage.total(state["usages"]),
+            steps=state["steps"],
+            refused=True,
         )
 
     async def _plan(self, state: AgentState) -> AgentState:

@@ -67,11 +67,14 @@ async def score_item(item: EvalItem, answer: CitedAnswer, pubmed: Literature) ->
     return scores
 
 
+MIN_FOR_P95 = 20  # with fewer timed answers the slowest one alone would be the p95
+
+
 def _mean(values: list[float | bool]) -> float | None:
     return statistics.fmean(values) if values else None
 
 
-def _percentile(values: list[int], q: float) -> float | None:
+def percentile(values: list[int], q: float) -> float | None:
     if not values:
         return None
     ordered = sorted(values)
@@ -87,6 +90,9 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
     sentences = sum(s.sentences for s in scores)
     usd = [a.usage.usd for a in answers]
     llm_calls = sum(a.usage.llm_calls for a in answers)
+    # A replayed answer returns at once, so only answers that really ran count towards latency and spend.
+    live = [a for a in answers if a.usage.llm_calls and not a.usage.cached_llm_calls]
+    latencies = [a.usage.latency_ms for a in live]
     return {
         "n": len(records),
         "errors": len(records) - len(ok),
@@ -104,8 +110,13 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
         "must_cite_recall": _mean([s.must_cite_recall for s in scores if s.must_cite_recall is not None]),
         "usd_per_query": None if None in usd else _mean(usd),
         "usd_total": None if None in usd else sum(usd),
-        "latency_p50_ms": _percentile([a.usage.latency_ms for a in answers], 0.5),
-        "latency_p95_ms": _percentile([a.usage.latency_ms for a in answers], 0.95),
+        "usd_live": None if None in usd else sum(a.usage.usd or 0.0 for a in live),
+        "input_tokens_per_query": _mean([a.usage.input_tokens for a in answers]),
+        "output_tokens_per_query": _mean([a.usage.output_tokens for a in answers]),
+        "llm_calls_per_query": _mean([a.usage.llm_calls for a in answers]),
+        "latency_p50_ms": percentile(latencies, 0.5),
+        "latency_p95_ms": percentile(latencies, 0.95) if len(latencies) >= MIN_FOR_P95 else None,
+        "latency_n": len(latencies),
         "tool_calls_per_query": _mean([a.usage.tool_calls for a in answers]),
         "cached_share": sum(a.usage.cached_llm_calls for a in answers) / llm_calls if llm_calls else None,
     }
@@ -126,13 +137,17 @@ def summarize(records: list[Record]) -> list[dict[str, Any]]:
     return rows
 
 
-def _fmt(value: Any, kind: str) -> str:
+def format_cell(value: Any, kind: str) -> str:
     if value is None:
         return "—"
     if kind == "pct":
         return f"{value * 100:.1f}%"
     if kind == "usd":
         return f"${value:.3f}"
+    if kind == "usd2":
+        return f"${value:.2f}"
+    if kind == "int":
+        return f"{value:,.0f}"
     if kind == "ms":
         return f"{value / 1000:.1f}s"
     if kind == "num":
@@ -153,7 +168,6 @@ COLUMNS = [
     ("gold_cited_rate", "Source cited", "pct"),
     ("must_cite_recall", "Must-cite recall", "pct"),
     ("usd_per_query", "$/query", "usd"),
-    ("latency_p50_ms", "p50", "ms"),
     ("errors", "Errors", "str"),
     ("refusals", "Refusals", "str"),
 ]
@@ -189,7 +203,9 @@ def render_markdown(rows: list[dict[str, Any]], meta: dict[str, Any]) -> str:
             note += " The judge has not been checked against hand labels yet."
     head = "| " + " | ".join(label for _, label, _ in columns) + " |"
     rule = "|" + "|".join(" --- " for _ in columns) + "|"
-    body = ["| " + " | ".join(_fmt(row.get(key), kind) for key, _, kind in columns) + " |" for row in rows]
+    body = [
+        "| " + " | ".join(format_cell(row.get(key), kind) for key, _, kind in columns) + " |" for row in rows
+    ]
     lines = [
         f"# Eval run {meta['run_id']}",
         "",

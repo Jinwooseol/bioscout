@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from bioscout.evals.costs import render_costs, summarize_steps
 from bioscout.evals.datasets import EvalItem
 from bioscout.evals.judging import load_judgments, summarize_judgments
 from bioscout.evals.metrics import Record, render_markdown, score_item, summarize
@@ -118,6 +119,9 @@ def write_report(run_dir: Path, reports_dir: Path) -> Path:
     reports_dir.mkdir(parents=True, exist_ok=True)
     out = reports_dir / f"{meta['run_id']}.json"
     # Reports are committed; LF keeps them identical on Windows and in the repository.
-    out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=2), encoding="utf-8", newline="\n")
-    out.with_suffix(".md").write_text(render_markdown(rows, meta), encoding="utf-8", newline="\n")
+    steps = summarize_steps(records)
+    report = {"meta": meta, "rows": rows, "steps": steps}
+    out.write_text(json.dumps(report, indent=2), encoding="utf-8", newline="\n")
+    text = render_markdown(rows, meta) + "\n" + render_costs(rows, steps)
+    out.with_suffix(".md").write_text(text, encoding="utf-8", newline="\n")
     return out

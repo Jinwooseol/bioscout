@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterable
 from enum import StrEnum
 from typing import Literal
@@ -66,6 +67,21 @@ class Usage(BaseModel):
         self.fell_back = self.fell_back or other.fell_back
 
 
+class Step(BaseModel):
+    """One step of producing an answer (plan, search, screen, answer, verify, revise): what it cost and,
+    in `usage.latency_ms`, how long it took."""
+
+    name: str
+    usage: Usage
+
+    @classmethod
+    def since(cls, name: str, start: float, usages: Iterable[Usage]) -> Step:
+        """A step that began at `start` (a time.perf_counter() reading) and has just finished."""
+        usage = Usage.total(usages)
+        usage.latency_ms = round((time.perf_counter() - start) * 1000)
+        return cls(name=name, usage=usage)
+
+
 class CitedAnswer(BaseModel):
     question: str
     decision: Decision | None = None
@@ -76,6 +92,7 @@ class CitedAnswer(BaseModel):
         default_factory=list, description="PMIDs whose abstracts the answering step was given"
     )
     usage: Usage = Field(default_factory=Usage)
+    steps: list[Step] = Field(default_factory=list, description="The steps that ran, in order")
     refused: bool = False
 
     @property

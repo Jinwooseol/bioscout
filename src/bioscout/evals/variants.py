@@ -5,12 +5,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from bioscout.agent import ResearchAgent
-from bioscout.answer import CitedAnswer, SearchLog, Usage
+from bioscout.answer import CitedAnswer, SearchLog, Step, Usage
 from bioscout.evals.datasets import EvalItem
 from bioscout.llm import LLM
 from bioscout.models import AbstractBatch
@@ -54,33 +55,42 @@ class Variant:
 
 async def llm_only(item: EvalItem, ctx: Context) -> CitedAnswer:
     """A: no tools. Measures how often the model invents or misattributes citations on its own."""
+    start = time.perf_counter()
     result = await ctx.llm.json(
         system=SYSTEM_LLM_ONLY, user=f"Question: {item.question}", schema=ANSWER_SCHEMA
     )
-    return answer_from_result(item.question, result, usage=result.usage)
+    answer = answer_from_result(item.question, result, usage=result.usage)
+    answer.steps = [Step.since("answer", start, [result.usage])]
+    return answer
 
 
 async def naive_rag(item: EvalItem, ctx: Context) -> CitedAnswer:
     """B: the question verbatim as a PubMed query, top 10 abstracts as context, one LLM call."""
+    start = time.perf_counter()
     found = await ctx.pubmed.search(item.question, max_results=10)
     search = SearchLog(
         query=item.question, pmids=[a.pmid for a in found.articles], total_found=found.total_found
     )
     batch = await ctx.pubmed.abstracts(search.pmids) if search.pmids else AbstractBatch(articles=[])
+    tools = Usage(tool_calls=1 + bool(search.pmids))
+    searched = Step.since("search", start, [tools])
+
+    start = time.perf_counter()
     context = format_abstracts(batch.articles) or "(The PubMed search returned no articles.)"
     user = (
         f"Question: {item.question}\n\n"
         f"Abstracts from a PubMed search for the question, most relevant first:\n\n{context}"
     )
     result = await ctx.llm.json(system=SYSTEM_GROUNDED, user=user, schema=ANSWER_SCHEMA)
-    tools = Usage(tool_calls=1 + bool(search.pmids))
-    return answer_from_result(
+    answer = answer_from_result(
         item.question,
         result,
         usage=Usage.total([result.usage, tools]),
         searches=[search],
         context_pmids=[a.pmid for a in batch.articles],
     )
+    answer.steps = [searched, Step.since("answer", start, [result.usage])]
+    return answer
 
 
 async def agent(item: EvalItem, ctx: Context) -> CitedAnswer:
