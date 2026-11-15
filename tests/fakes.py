@@ -8,7 +8,14 @@ from typing import Any
 
 from bioscout.answer import Usage
 from bioscout.llm import LLMResult
-from bioscout.models import AbstractBatch, ArticleAbstract, ArticleSummary, PmidCheck, SearchResult
+from bioscout.models import (
+    AbstractBatch,
+    AbstractSection,
+    ArticleAbstract,
+    ArticleSummary,
+    PmidCheck,
+    SearchResult,
+)
 
 REAL = {"10000001", "10000002", "10000003"}  # the only PMIDs the fake PubMed says exist
 
@@ -28,9 +35,16 @@ class FakeLLM:
 
 
 class FakePubMed:
-    def __init__(self, hits: list[str] | None = None, by_query: dict[str, list[str]] | None = None) -> None:
+    def __init__(
+        self,
+        hits: list[str] | None = None,
+        by_query: dict[str, list[str]] | None = None,
+        texts: dict[str, str] | None = None,
+    ) -> None:
         self.hits = hits if hits is not None else ["10000002", "10000001"]  # for any other query
         self.by_query = by_query or {}
+        # Abstract text by PMID. When given, only these PMIDs have a record; "" is a paper with no abstract.
+        self.texts = texts
         self.queries: list[str] = []
         self.fetched: list[list[str]] = []  # one entry per abstracts() call
 
@@ -42,12 +56,22 @@ class FakePubMed:
 
     async def abstracts(self, pmids: list[str]) -> AbstractBatch:
         self.fetched.append(list(pmids))
-        return AbstractBatch(articles=[ArticleAbstract(pmid=p, title=f"Synthetic {p}") for p in pmids])
+        if self.texts is None:
+            return AbstractBatch(articles=[ArticleAbstract(pmid=p, title=f"Synthetic {p}") for p in pmids])
+        return AbstractBatch(
+            articles=[synthetic_abstract(p, self.texts[p]) for p in pmids if p in self.texts],
+            not_found=[p for p in pmids if p not in self.texts],
+        )
 
     async def check_pmids(self, pmids: list[str]) -> PmidCheck:
         return PmidCheck(
             existing=[p for p in pmids if p in REAL], missing=[p for p in pmids if p not in REAL]
         )
+
+
+def synthetic_abstract(pmid: str, text: str) -> ArticleAbstract:
+    sections = [AbstractSection(text=text)] if text else []
+    return ArticleAbstract(pmid=pmid, title=f"Synthetic {pmid}", abstract=sections)
 
 
 def reply(decision: str, *sentences: tuple[str, list[str]]) -> dict[str, Any]:

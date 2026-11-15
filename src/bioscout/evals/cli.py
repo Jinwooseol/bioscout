@@ -1,6 +1,7 @@
 """bioscout-eval: run the evaluation, rebuild a report, or check the datasets.
 
 uv run bioscout-eval run --variants A,B --datasets pubmedqa,domain --limit 10
+uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10
 uv run bioscout-eval report evals/runs/<run_id>
 uv run bioscout-eval check-datasets
 """
@@ -17,7 +18,8 @@ from pathlib import Path
 
 from bioscout.config import CacheMode, Settings
 from bioscout.evals.datasets import DATASET_FILES, load_dataset
-from bioscout.evals.runner import run_eval, write_report
+from bioscout.evals.judging import judge_run
+from bioscout.evals.runner import load_records, run_eval, write_report
 from bioscout.evals.variants import VARIANTS, Context
 from bioscout.llm import ClaudeLLM
 from bioscout.mcp_server import Sources
@@ -37,6 +39,20 @@ def _csv(value: str) -> list[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
+def _can_call_claude(settings: Settings) -> bool:
+    """Replaying from the cache needs no key; anything else does."""
+    if settings.cache_mode is CacheMode.READONLY:
+        return True
+    if any(os.environ.get(k) for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")):
+        return True
+    print(
+        "ANTHROPIC_API_KEY is not set. Add it to .env, or replay recorded responses with "
+        "BIOSCOUT_CACHE_MODE=readonly.",
+        file=sys.stderr,
+    )
+    return False
+
+
 async def cmd_run(args: argparse.Namespace) -> int:
     unknown = [v for v in args.variants if v not in VARIANTS]
     if unknown:
@@ -49,13 +65,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         items += loaded[: args.limit] if args.limit else loaded
 
     settings = Settings.from_env()
-    has_credentials = any(os.environ.get(k) for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"))
-    if settings.cache_mode is not CacheMode.READONLY and not has_credentials:
-        print(
-            "ANTHROPIC_API_KEY is not set. Add it to .env, or replay recorded responses with "
-            "BIOSCOUT_CACHE_MODE=readonly.",
-            file=sys.stderr,
-        )
+    if not _can_call_claude(settings):
         return 2
     sources = Sources(settings)
     llm = ClaudeLLM(settings)
@@ -82,6 +92,33 @@ async def cmd_run(args: argparse.Namespace) -> int:
     print(report.with_suffix(".md").read_text(encoding="utf-8"))
     print(f"records: {run_dir / 'records.jsonl'}\nreport:  {report}")
     return 1 if all(r.error for r in records) else 0
+
+
+async def cmd_judge(args: argparse.Namespace) -> int:
+    """Judge the citations of a finished run (all of it, or some variants and the first N items of each
+    dataset), then rebuild its report with citation precision and coverage."""
+    records = [r for r in load_records(args.run_dir) if not args.variants or r.variant in args.variants]
+    if args.limit:
+        keep: set[str] = set()
+        for name in {r.dataset for r in records}:
+            keep |= {i.id for i in load_dataset(name, args.evals_dir / "datasets")[: args.limit]}
+        records = [r for r in records if r.item_id in keep]
+    cited = sum(bool(s.citations) for r in records if r.answer for s in r.answer.sentences)
+
+    settings = Settings.from_env()
+    if not _can_call_claude(settings):
+        return 2
+    sources = Sources(settings)
+    llm = ClaudeLLM(settings)
+    print(f"judge {args.run_dir.name}: {len(records)} answers, {cited} cited sentences, model {llm.model}")
+    try:
+        judged = await judge_run(records, llm, sources.pubmed, args.run_dir, args.concurrency)
+    finally:
+        await sources.http.aclose()
+    report = write_report(args.run_dir, args.evals_dir / "reports")
+    print(report.with_suffix(".md").read_text(encoding="utf-8"))
+    print(f"judgments: {args.run_dir / 'judgments.jsonl'}\nreport:    {report}")
+    return 0 if judged or not cited else 1
 
 
 async def cmd_check(args: argparse.Namespace) -> int:
@@ -138,6 +175,12 @@ def main() -> None:
     run.add_argument("--limit", type=int, default=0, help="first N items of each dataset (0 = all)")
     run.add_argument("--concurrency", type=int, default=4)
 
+    judge = sub.add_parser("judge", help="judge the citations of an existing run, then rebuild its report")
+    judge.add_argument("run_dir", type=Path)
+    judge.add_argument("--variants", type=_csv, default=[], help="only these variants (default: all)")
+    judge.add_argument("--limit", type=int, default=0, help="first N items of each dataset (0 = all)")
+    judge.add_argument("--concurrency", type=int, default=4)
+
     report = sub.add_parser("report", help="rebuild the report of an existing run")
     report.add_argument("run_dir", type=Path)
 
@@ -149,6 +192,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "run":
         sys.exit(asyncio.run(cmd_run(args)))
+    if args.command == "judge":
+        sys.exit(asyncio.run(cmd_judge(args)))
     if args.command == "report":
         out = write_report(args.run_dir, args.evals_dir / "reports")
         print(out.with_suffix(".md").read_text(encoding="utf-8"))

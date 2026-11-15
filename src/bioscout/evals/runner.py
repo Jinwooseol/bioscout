@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from bioscout.evals.datasets import EvalItem
+from bioscout.evals.judging import load_judgments, summarize_judgments
 from bioscout.evals.metrics import Record, render_markdown, score_item, summarize
 from bioscout.evals.variants import Context, Variant
+from bioscout.verifier import JUDGE_SHA
 
 
 async def answer_and_score(item: EvalItem, variant: Variant, ctx: Context) -> Record:
@@ -99,7 +101,13 @@ def load_records(run_dir: Path) -> list[Record]:
 def write_report(run_dir: Path, reports_dir: Path) -> Path:
     """Summarise a run's records into reports/<run_id>.json and .md (numbers only, no answer text)."""
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
-    rows = summarize(load_records(run_dir))
+    records = load_records(run_dir)
+    rows = summarize(records)
+    judged = load_judgments(run_dir)
+    if judged:  # the run has been judged with the current judge prompt: add its metrics to each row
+        by_group = summarize_judgments(records, judged)
+        rows = [row | by_group.get((row["variant"], row["dataset"]), {}) for row in rows]
+        meta = meta | {"judge": {"prompt_sha": JUDGE_SHA, "sentences": len(judged)}}
     reports_dir.mkdir(parents=True, exist_ok=True)
     out = reports_dir / f"{meta['run_id']}.json"
     out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=2), encoding="utf-8")

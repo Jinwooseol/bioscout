@@ -1,5 +1,5 @@
-"""Deterministic metrics: everything that needs no LLM judge. Judge metrics (citation precision,
-coverage, key-point coverage) are added on Day 4 on top of the same records."""
+"""Deterministic metrics: everything that needs no LLM judge. Citation precision and coverage come from
+the judge (bioscout.evals.judging) on top of the same records; key-point coverage is still to come."""
 
 from __future__ import annotations
 
@@ -156,15 +156,32 @@ COLUMNS = [
 ]
 
 
+# Added after "Sentences cited" once a run has been judged (bioscout.evals.judging).
+JUDGE_COLUMNS = [
+    ("citation_precision", "Citation precision", "pct"),
+    ("partial_citation_rate", "Partial citations", "pct"),
+    ("citation_coverage", "Coverage", "pct"),
+]
+
+
 def render_markdown(rows: list[dict[str, Any]], meta: dict[str, Any]) -> str:
-    head = "| " + " | ".join(label for _, label, _ in COLUMNS) + " |"
-    rule = "|" + "|".join(" --- " for _ in COLUMNS) + "|"
-    body = ["| " + " | ".join(_fmt(row.get(key), kind) for key, _, kind in COLUMNS) + " |" for row in rows]
+    columns = COLUMNS
+    note = "Deterministic metrics only; this run has not been judged (`bioscout-eval judge`)."
+    if judge := meta.get("judge"):
+        at = [key for key, _, _ in COLUMNS].index("citation_rate") + 1
+        columns = COLUMNS[:at] + JUDGE_COLUMNS + COLUMNS[at:]
+        note = (
+            f"Citation precision and coverage come from the LLM judge (prompt `{judge['prompt_sha']}`, "
+            f"{judge['sentences']} sentences judged)."
+        )
+    head = "| " + " | ".join(label for _, label, _ in columns) + " |"
+    rule = "|" + "|".join(" --- " for _ in columns) + "|"
+    body = ["| " + " | ".join(_fmt(row.get(key), kind) for key, _, kind in columns) + " |" for row in rows]
     lines = [
         f"# Eval run {meta['run_id']}",
         "",
         f"Model `{meta['model']}`, effort `{meta['effort']}`, commit `{meta.get('commit') or 'unknown'}`.",
-        "Deterministic metrics only; judge metrics (citation precision, coverage) arrive on Day 4.",
+        note,
         "",
         head,
         rule,
