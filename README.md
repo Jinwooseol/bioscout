@@ -56,8 +56,15 @@ cost.
 uv run --extra demo streamlit run app/streamlit_app.py
 ```
 
-It needs `ANTHROPIC_API_KEY` in `.env` and costs about $0.2 per question. With
-`BIOSCOUT_CACHE_MODE=readonly` it only replays recorded answers and costs nothing.
+A live question needs `ANTHROPIC_API_KEY` in `.env` and costs about $0.2. The three example questions
+show recorded answers at once, with no key and at no cost.
+
+As a container (port 7860, ready for a Hugging Face Docker Space):
+
+```bash
+docker build -t bioscout-demo .
+docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo
+```
 
 ## Architecture
 

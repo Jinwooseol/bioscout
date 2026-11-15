@@ -671,7 +671,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
   <div class="table-wrap"><table>
     <thead><tr><th>영역</th><th>보여 주는 것</th></tr></thead>
     <tbody>
-      <tr><td>질문</td><td>예시 질문 3개, 입력칸(400자까지), Ask 버튼. 사이드바에 인용 검증을 켜고 끄는 스위치와 이 세션에 남은 질문 수</td></tr>
+      <tr><td>질문</td><td>예시 질문 3개, 입력칸(400자까지), Ask 버튼. 예시 질문을 누르면 기록해 둔 답변이 바로 나옴. 사이드바에 인용 검증을 켜고 끄는 스위치와 이 세션에 남은 질문 수</td></tr>
       <tr><td>진행 표시</td><td>단계가 끝날 때마다 한 줄씩(계획, 검색, 선별, 답변, 판정, 고쳐 쓰기), 걸린 시간과 함께</td></tr>
       <tr><td>답변</td><td>yes, no, maybe로 답할 수 있으면 한 줄 요약. 번호를 붙인 문장마다 PubMed 링크, 판정 배지(지지, 부분 지지, 확인 안 됨), 판정의 근거가 된 초록 구절</td></tr>
       <tr><td>삭제된 문장</td><td>접어 둔 영역에 삭제한 문장과 이유</td></tr>
@@ -695,6 +695,19 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     </tbody>
   </table></div>
 
+  <h3>기록된 예시 답변과 컨테이너</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>예시 질문의 답변을 미리 기록해 <code>app/examples.json</code>으로 함께 실음</td><td>API 키가 없어도, 비용 없이 예시가 바로 나옴. 공개 데모를 처음 연 사람이 20초를 기다리지 않아도 됨. 기록된 답변은 세션의 질문 수에 넣지 않음</td><td>예시도 매번 실행하기. 응답 캐시를 통째로 싣기(캐시에는 초록이 들어 있어 Git에 넣을 수 없음)</td></tr>
+      <tr><td>기록 파일에는 답변과 논문의 서지 정보만 넣음</td><td>논문 본문과 초록은 커밋하지 않는다는 규칙을 따름. 초록 자체와 judge가 초록에서 옮긴 근거 구절을 뺌. 그래서 기록된 답변에는 근거 구절 줄이 없고, 직접 질문하면 나옴. 기록 파일에 초록이 없는지는 테스트가 확인</td><td>근거 구절까지 기록하기</td></tr>
+      <tr><td>컨테이너는 uid 1000 사용자로, 7860 포트에서 실행</td><td>Hugging Face의 Docker Space가 요구하는 조건</td><td>root로 실행</td></tr>
+      <tr><td>API 키는 컨테이너를 실행할 때 환경 변수로 줌</td><td>이미지에 비밀값이 남지 않음. <code>.dockerignore</code>가 <code>.env</code>를 빌드에서 제외</td><td>이미지에 넣기</td></tr>
+      <tr><td>이미지에는 화면에 필요한 것만 넣음</td><td>개발 도구, 평가 데이터, 문서, 테스트를 빼서 작게 유지. 의존성 설치를 소스 복사보다 앞에 두어, 잠금 파일이 그대로면 그 단계를 다시 하지 않음</td><td>저장소 전체 복사</td></tr>
+      <tr><td>CI가 이미지를 빌드하고 컨테이너에서 화면이 뜨는지 확인</td><td>API 키 없이 띄워 상태 확인 주소가 응답하는지, 기록된 예시가 모두 읽히는지 봄. 개발 PC에 Docker가 없어 이 확인은 CI에서만 함</td><td>로컬에서만 확인</td></tr>
+    </tbody>
+  </table></div>
+
   <h3>확인한 것</h3>
   <p>읽기 전용 캐시로 화면을 띄워 예시 질문을 실제로 돌려 봤습니다. 새로 든 비용은 없습니다. 예시 질문 3개 모두 답변이 나왔고, 문장 6개, 6개, 5개가 모두 지지로 표시됐습니다. 문장마다 초록 구절이 붙고 출처 카드가 나옵니다. MSI-H와 PD-1 억제제 질문의 답변을 처음 만들 때의 비용은 $0.25였습니다. 변형 D의 검증 단계가 실제 답변에서 끝까지 도는 것도 이때 처음 확인했습니다.</p>
   <div class="table-wrap"><table>
@@ -703,6 +716,8 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>src/bioscout/demo.py</code></td><td>질문 하나를 실행해 답변과 인용한 논문의 서지 정보를 묶어 돌려줌. 출처 카드와 단계별 표의 데이터를 만듦</td></tr>
       <tr><td><code>app/streamlit_app.py</code></td><td>화면 배치. <code>uv run --extra demo streamlit run app/streamlit_app.py</code></td></tr>
       <tr><td><code>tests/test_demo.py</code></td><td>데이터 로직 테스트와 화면 테스트. 화면 테스트는 <code>demo</code>를 설치했을 때만 실행</td></tr>
+      <tr><td><code>app/examples.json</code></td><td>예시 질문 3개의 기록된 답변. <code>uv run python scripts/build_examples.py</code>로 다시 만듦</td></tr>
+      <tr><td><code>Dockerfile</code>, <code>.dockerignore</code></td><td>데모 화면 이미지. <code>docker build -t bioscout-demo .</code></td></tr>
     </tbody>
   </table></div>
 

@@ -13,6 +13,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `uv run bioscout-mcp`: run the MCP server over stdio
 - `uv run --extra demo streamlit run app/streamlit_app.py`: the demo page (needs `ANTHROPIC_API_KEY`,
   about $0.2 per question; with `BIOSCOUT_CACHE_MODE=readonly` it only replays recorded answers)
+- `uv run python scripts/build_examples.py`: record the demo's example answers into `app/examples.json`
+  (free for questions already in the cache)
+- `docker build -t bioscout-demo .`: the demo image. There is no Docker on the author's PC; the CI
+  `image` job builds it and checks the page starts
 - `uv run bioscout-eval run --variants A,B,C --limit 10`: eval run (needs `ANTHROPIC_API_KEY`, costs money);
   `check-datasets` and `retrieval` are free and need only PubMed
 - `uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10`: judge a run's citations and
@@ -42,7 +46,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
 - `src/bioscout/demo.py`: what the demo page shows for a question, as plain data (no UI code);
   `app/streamlit_app.py` only lays it out
-- Coming: a Dockerfile and the public deployment of the demo
+- `Dockerfile`, `.dockerignore`: the demo as a container (uid 1000, port 7860, no secrets in the image)
+- Coming: the public deployment of the demo
 
 ## Rules
 
@@ -60,6 +65,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   "real-looking" citations anywhere outside `tests/fixtures`.
 - Do not commit article full text or abstracts. Datasets store PMIDs, questions and our own labels.
 - Never commit `.env` or the cache.
+- `app/examples.json` holds answers and bibliographic lines only: no abstract text and no passage
+  quoted from one. `demo.record()` strips them and a test checks the committed file.
 - After each work session, update `docs/progress.html` (the `PROGRESS` object at the top of its
   script) and add a log entry: what was decided, what failed, which numbers moved.
 - No schedule or timeline wording in code, tracked files, commit messages or branch names: no
