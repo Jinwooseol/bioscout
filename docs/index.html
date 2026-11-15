@@ -53,6 +53,72 @@
   </section>
   <p class="note">출력 형식을 보여주는 예시입니다. PMID와 문장은 가상이며 실제 논문을 가리키지 않습니다.</p>
 
+  <h2 id="why">왜 필요한가</h2>
+  <p>LLM에게 바이오메디컬 질문을 하면 그럴듯한 인용이 붙어 나옵니다. 그 인용이 맞는지는 읽는 사람이 논문을 열어 직접 확인해야 합니다. 공개된 측정 결과가 이 문제의 크기를 보여 줍니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>측정</th><th>대상</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://doi.org/10.1038/s41598-023-41032-5">Walters &amp; Wilder, 2023</a><br><span class="small">Scientific Reports</span></td><td>ChatGPT가 쓴 문헌 리뷰 84편의 인용 636개</td><td>GPT-3.5 인용의 55%, GPT-4 인용의 18%가 존재하지 않는 문헌. 실제 문헌을 가리킨 인용도 각각 43%, 24%에 실질적 오류</td></tr>
+      <tr><td><a href="https://doi.org/10.1038/s41467-025-58551-6">Wu 외, 2025</a><br><span class="small">Nature Communications, PMID 40240349</span></td><td>LLM 7종, 의학 질문 800개, 문장과 출처 쌍 58,000개</td><td>응답의 50–90%가 스스로 인용한 출처로 완전히 뒷받침되지 않음. 웹 검색을 붙인 GPT-4o도 문장의 약 30%가 근거 없음</td></tr>
+      <tr><td><a href="progress.html">BioScout 첫 평가</a><br><span class="small">2026-11-15, 20문항, Claude Opus 5.5</span></td><td>LLM 단독, 단순 RAG, 에이전트의 답변 60개</td><td>존재하지 않는 PMID는 0개. 하지만 LLM이 기억으로 단 인용 32개 중 1개는 의도한 논문과 PMID가 4만큼 어긋나, 같은 학술지 호의 전혀 다른 논문을 가리킴</td></tr>
+    </tbody>
+  </table></div>
+  <p>모델이 좋아질수록 "없는 논문"은 줄고, "실제로 있지만 그 문장을 뒷받침하지 않는 논문"이 남습니다. 이런 인용은 논문이 존재하는지만 확인해서는 걸러지지 않습니다. 문장과 초록을 맞대어 봐야 합니다. BioScout는 그 확인을 사람에게 넘기지 않고, 답변을 보여 주기 전에 하도록 설계했습니다.</p>
+
+  <h2 id="alternatives">비슷한 도구가 이미 있는가</h2>
+  <p>있습니다. 논문 근거를 달아 답하는 서비스는 이미 여럿이고, 대부분 BioScout보다 크고 완성도가 높습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>도구</th><th>종류</th><th>하는 일 (각 사 공개 설명 기준)</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://elicit.com/">Elicit</a></td><td>상업</td><td>논문 검색, 데이터 추출, 리포트 작성. 주장마다 원문의 해당 문장을 인용으로 붙인다고 밝힘</td></tr>
+      <tr><td><a href="https://consensus.app/">Consensus</a></td><td>상업</td><td>동료심사 논문만 검색해 요약. 연구들이 예, 아니오로 어떻게 갈리는지 보여 주는 Consensus Meter</td></tr>
+      <tr><td><a href="https://scite.ai/">scite</a></td><td>상업</td><td>다른 논문이 이 논문을 지지, 반박, 단순 언급 중 어떤 맥락으로 인용했는지 분류(Smart Citations). 이를 근거로 답하는 Assistant</td></tr>
+      <tr><td><a href="https://www.openevidence.com/">OpenEvidence</a></td><td>상업</td><td>임상 질문에 의학 문헌을 근거로 답함. 인증된 의료인만 쓸 수 있음</td></tr>
+      <tr><td><a href="https://github.com/Future-House/paper-qa">PaperQA2</a></td><td>오픈소스</td><td>논문 전문을 읽고 본문 인용을 달아 답하는 에이전트. 자체 벤치마크에서 전문가 수준의 결과를 보고</td></tr>
+      <tr><td>범용 AI 에이전트<br><span class="small">ChatGPT, Claude, Gemini, Perplexity 등의 검색 기능</span></td><td>상업</td><td>웹을 검색해 출처 링크와 함께 답함</td></tr>
+    </tbody>
+  </table></div>
+  <p>BioScout는 이 서비스들을 대체하려는 제품이 아닙니다. 차이는 기능의 수가 아니라 공개 범위에 있습니다. 상업 서비스는 검색과 판정 과정, 평가 데이터를 공개하지 않습니다. 그래서 인용이 얼마나 정확한지를 밖에서 다시 재 볼 수 없고, 회사가 발표한 수치를 믿어야 합니다. BioScout는 검색 방식, 프롬프트, 평가셋, 채점 코드, 결과 리포트가 모두 저장소에 있어 누구나 같은 숫자를 다시 만들 수 있습니다. 가장 가까운 오픈소스인 PaperQA2는 논문 전문을 다루는 더 큰 시스템이고, BioScout는 PubMed 초록과 PMID 단위 검증으로 범위를 좁힌 작은 구현입니다.</p>
+
+  <h2 id="value">일반 AI 에이전트 대신 쓰면 얻는 것</h2>
+  <p>범용 에이전트도 검색하고 출처를 답니다. BioScout가 다른 점은 네 가지입니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>이점</th><th>내용</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>인용을 시스템이 검사</td><td>답변의 모든 PMID를 PubMed에 조회해 존재를 확인합니다. 이어서 문장과 초록을 맞대어 지지, 부분 지지, 근거 없음으로 판정하고, 다시 검색해도 근거가 없는 문장은 삭제합니다</td><td><span class="tag built">존재 확인 구현됨</span> <span class="tag">판정·삭제 Day 4</span></td></tr>
+      <tr><td>PubMed를 직접 검색</td><td>웹 페이지가 아니라 NCBI의 PubMed를 PMID 단위로 조회합니다. 질문을 MeSH 용어와 동의어 검색식으로 바꾸고, 초록을 읽어 근거가 되는 논문만 골라 답변에 씁니다</td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>성능이 숫자로 공개됨</td><td>같은 모델로 LLM 단독, 단순 RAG, 에이전트, 에이전트 + 검증을 비교합니다. 가짜 PMID 비율, 인용 정확도, 질의당 비용과 시간이 리포트로 남고, 응답 캐시로 같은 실행을 다시 재생할 수 있습니다</td><td><span class="tag built">A–C 구현됨</span> <span class="tag">검증 변형 Day 4</span></td></tr>
+      <tr><td>도구를 떼어 쓸 수 있음</td><td>PubMed 검색, 초록, PMID 확인, 오픈액세스 본문, 임상시험 검색을 MCP 서버로 제공합니다. Claude Code나 Claude Desktop 같은 MCP 지원 에이전트에 그대로 연결됩니다. 공개 API만 써서 구독료가 없고, 드는 비용은 LLM 호출뿐입니다</td><td><span class="tag built">구현됨</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>첫 평가(20문항)에서 세 방식은 이렇게 갈렸습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>방식</th><th>인용이 달린 문장</th><th>가짜 PMID</th><th>도메인 필수 논문 인용</th><th>질의당 비용</th></tr></thead>
+    <tbody>
+      <tr><td>LLM 단독 (기억으로 인용)</td><td class="num">44%</td><td class="num">0%</td><td class="num">42%</td><td class="num">$0.017</td></tr>
+      <tr><td>단순 RAG (질문 그대로 검색)</td><td class="num">65%</td><td class="num">0%</td><td class="num">0%</td><td class="num">$0.016</td></tr>
+      <tr><td>BioScout 에이전트</td><td class="num">99%</td><td class="num">0%</td><td class="num">43%</td><td class="num">$0.157</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li>LLM 단독은 구체적인 질문(PubMedQA)에서 문장의 5%에만 인용을 달았습니다. 확실하지 않으면 비우라는 지시를 지킨 결과라 정직하지만, 읽는 사람이 근거를 확인할 수 없습니다.</li>
+    <li>질문을 그대로 검색하는 단순 RAG는 도메인 질문 10개 중 9개에서 검색 결과가 0건이었습니다. 긴 질문은 PubMed가 모든 단어를 AND로 묶기 때문입니다.</li>
+    <li>에이전트는 거의 모든 문장에 PubMed에서 방금 가져온 초록을 근거로 달았습니다. 대신 비용이 약 10배이고 질의당 24초가 걸립니다.</li>
+    <li>인용이 문장을 실제로 뒷받침하는지는 아직 재지 않았습니다. Day 4의 판정 단계가 이 숫자를 내야 이점을 확정할 수 있습니다.</li>
+  </ul>
+  <p class="note">수치는 <code>evals/reports/20261115-193337-ABC</code>에서 옮겼습니다. 문항 수가 적어 방향만 보여 줍니다. 전체 115문항 결과가 나오면 바꿉니다.</p>
+  <p>문헌 근거를 문장 단위로 확인해야 하는 연구자, 그리고 인용을 다는 LLM 에이전트를 만들고 평가하려는 개발자에게 쓸모가 있습니다.</p>
+
+  <h2 id="limits">한계</h2>
+  <ul>
+    <li>초록만 읽습니다. 본문에만 있는 근거는 찾지도 판정하지도 못합니다.</li>
+    <li>평가가 아직 작습니다. 지금 수치는 20문항이고, 전체 115문항 실행과 인용 정확도 측정이 남아 있습니다.</li>
+    <li>판정 단계와 화면은 아직 구현 전입니다. 맨 위 예시는 목표로 하는 출력 형식입니다.</li>
+    <li>혼자 만드는 포트폴리오 프로젝트입니다. 상업 서비스 수준의 규모, 속도, 지원은 없습니다.</li>
+    <li>의료기기가 아닙니다. 개별 환자의 진단이나 치료 결정에 쓰지 않습니다.</li>
+  </ul>
+  <p class="note">다른 도구의 설명은 2026년 11월에 각 사 공개 자료를 확인한 내용입니다. 기능은 바뀔 수 있으니 각 사이트에서 확인하세요.</p>
+
   <h2>문서</h2>
   <ul class="pages">
     <li><a href="design.html">설계</a><p>목표와 성공 기준, 아키텍처, 데이터 계약, 평가 설계, 평가 하네스와 에이전트 상세, 기술 결정</p></li>
