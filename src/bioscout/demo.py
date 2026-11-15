@@ -103,6 +103,9 @@ async def ask(
         await sources.http.aclose()
 
 
+REPO_URL = "https://github.com/Jinwooseol/bioscout"
+
+
 def can_answer() -> bool:
     """Is there a Claude API key, or a cache to replay answers from without one?"""
     settings = Settings.from_env()

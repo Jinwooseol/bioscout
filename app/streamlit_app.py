@@ -23,6 +23,10 @@ RECORDED = demo.load_recorded(Path(__file__).parent / "examples.json")
 MAX_QUESTIONS = int(os.environ.get("BIOSCOUT_DEMO_MAX_QUESTIONS", "5"))  # per browser session
 MAX_CHARS = 400
 BADGES = {Verdict.SUPPORTED: "green", Verdict.PARTIAL: "orange", Verdict.UNSUPPORTED: "red", None: "gray"}
+LIVE_OFF = (
+    "Live questions are switched off here: no Claude API key is configured. The example questions above "
+    f"show recorded answers. To ask your own, run BioScout with your own key: {demo.REPO_URL}"
+)
 DISCLAIMER = (
     "BioScout helps you find and read biomedical literature. It is not a medical device and must not be "
     "used to make diagnostic or treatment decisions about individual patients."
@@ -40,7 +44,7 @@ def show_sentence(number: int, sentence: CitedSentence) -> None:
         st.caption(f"Evidence in the abstract: “{sentence.evidence}”")
 
 
-def show_result(result: demo.DemoResult) -> None:
+def show_result(result: demo.DemoResult, live: bool) -> None:
     answer = result.answer
     if answer.refused:
         st.warning("The model declined to answer this question.")
@@ -50,7 +54,8 @@ def show_result(result: demo.DemoResult) -> None:
     if result.recorded:
         st.caption(
             f"A recorded answer to an example question (it cost ${demo.totals(answer)[0]:.2f} to produce). "
-            "Ask your own question to see the agent work and the abstract passage behind each verdict."
+            + ("Ask your own question" if live else "Run BioScout yourself")
+            + " to see the agent work and the abstract passage behind each verdict."
         )
     if answer.decision in ("yes", "no", "maybe"):
         st.markdown(f"**In short: {answer.decision}.**")
@@ -145,15 +150,17 @@ st.markdown(
     "sentence, and checks each citation against the paper's abstract before showing it."
 )
 
+ready = demo.can_answer()
 with st.sidebar:
     verify = st.toggle(
         "Check every citation",
         value=True,
+        disabled=not ready,
         help="Judge each sentence against the abstracts it cites, rewrite what is not fully backed once, "
         "and remove what nothing backs. Turn off to see the answer as first written.",
     )
     left = max(0, MAX_QUESTIONS - st.session_state.asked)
-    st.caption(f"Questions left in this session: {left}")
+    st.caption(f"Questions left in this session: {left}" if ready else "Live questions are off on this page.")
     st.caption(DISCLAIMER)
 
 st.caption("Try an example:")
@@ -161,11 +168,8 @@ for example in demo.EXAMPLE_QUESTIONS:
     st.button(example, on_click=use_example, args=(example,), use_container_width=True)
 
 question = st.text_area("Your question", key="question", max_chars=MAX_CHARS, height=110)
-ready = demo.can_answer()
 if not ready:
-    st.info(
-        "No Claude API key is configured, so questions cannot be answered. Set ANTHROPIC_API_KEY in .env."
-    )
+    st.info(LIVE_OFF)
 can_ask = bool(question.strip()) and (question.strip() in RECORDED or (ready and left > 0))
 st.button("Ask", type="primary", disabled=not can_ask, on_click=request_answer)
 if st.session_state.pending:
@@ -173,7 +177,8 @@ if st.session_state.pending:
     ask(asked, verify)
 
 if st.session_state.result is not None:
-    show_result(st.session_state.result)
+    show_result(st.session_state.result, live=ready)
 
 st.divider()
 st.caption(DISCLAIMER)
+st.caption(f"[Source code and evaluation results]({demo.REPO_URL})")

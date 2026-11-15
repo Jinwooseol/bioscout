@@ -193,7 +193,10 @@ def test_an_example_shows_its_recorded_answer_without_calling_claude(monkeypatch
     captions = "\n".join(c.value for c in app.caption)
     assert "A recorded answer to an example question" in captions
     assert ":green-badge[Supported]" in "\n".join(m.value for m in app.markdown)
-    assert "Questions left in this session: 5" in [c.value for c in app.sidebar.caption]  # it is free
+    assert "Run BioScout yourself to see the agent work" in captions
+    # With no key the page says live questions are off, and shows no question counter.
+    assert "Live questions are switched off here" in "\n".join(i.value for i in app.info)
+    assert [c.value for c in app.sidebar.caption][0] == "Live questions are off on this page."
     # Asking the same question again still needs no key and no call.
     next(b for b in app.button if b.label == "Ask").click().run()
-    assert not app.exception and "Questions left in this session: 5" in [c.value for c in app.sidebar.caption]
+    assert not app.exception
