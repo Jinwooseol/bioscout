@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioScout</title>
+<meta name="description" content="A biomedical research agent that cites PubMed for every sentence and checks each citation against the abstract.">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2933; --muted: #5b6770; --line: #dde3e8; --card: #f6f8fa; --link: #0b62c4;
+    --accent: #0b62c4; --on-accent: #ffffff;
+    --green-bg: #d9f2e1; --green-fg: #14532d; --orange-bg: #ffe8c7; --orange-fg: #7a3d00;
+    --red-bg: #fbdcdc; --red-fg: #7f1d1d; --gray-bg: #e6eaee; --gray-fg: #3d4852;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1419; --fg: #e6eaee; --muted: #9aa7b2; --line: #2a343d; --card: #172029; --link: #7ab8ff;
+      --accent: #2f7fe0; --on-accent: #ffffff;
+      --green-bg: #12381f; --green-fg: #a7e3b8; --orange-bg: #44290a; --orange-fg: #ffcf8f;
+      --red-bg: #451515; --red-fg: #f7b4b4; --gray-bg: #26313a; --gray-fg: #c3ccd4;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); line-height: 1.6;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 56px; }
+  h1 { font-size: 2rem; margin: 0 0 8px; }
+  h2 { font-size: 1.25rem; margin: 32px 0 12px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--link); }
+  .muted { color: var(--muted); font-size: 0.875rem; }
+  .notice { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+            border-radius: 8px; padding: 12px 14px; margin: 16px 0 24px; font-size: 0.9375rem; }
+  .examples { display: grid; gap: 8px; margin: 8px 0 8px; }
+  .examples button {
+    font: inherit; text-align: left; padding: 10px 14px; border-radius: 8px; cursor: pointer;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  }
+  .examples button:hover { border-color: var(--accent); }
+  .examples button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .short { font-weight: 600; margin: 0 0 12px; }
+  ol.sentences { list-style: none; margin: 0; padding: 0; }
+  ol.sentences li { padding: 10px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  ol.sentences li:last-child { border-bottom: 0; }
+  .num { font-weight: 700; margin-right: 4px; }
+  .pmid { white-space: nowrap; font-size: 0.875rem; margin-left: 4px; }
+  .badge { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 1px 10px; border-radius: 999px; margin-top: 4px; }
+  .badge.supported { background: var(--green-bg); color: var(--green-fg); }
+  .badge.partial { background: var(--orange-bg); color: var(--orange-fg); }
+  .badge.unsupported { background: var(--red-bg); color: var(--red-fg); }
+  .badge.none { background: var(--gray-bg); color: var(--gray-fg); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; overflow-wrap: anywhere; }
+  .card a { font-weight: 600; }
+  details { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-top: 24px; }
+  summary { cursor: pointer; font-weight: 600; }
+  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+  .metric b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; margin: 8px 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  s { color: var(--muted); }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <h1>BioScout</h1>
+  <p>BioScout answers biomedical research questions from PubMed. It searches, answers with a citation on every
+     sentence, and checks each citation against the paper's abstract before showing it.</p>
+  <div class="notice">
+    This page shows answers recorded from the real agent, so it runs no model and costs nothing.
+    To ask your own question, run BioScout with your own Claude API key:
+    <a href="https://github.com/Jinwooseol/bioscout">github.com/Jinwooseol/bioscout</a>
+  </div>
+
+  <p class="muted">Pick an example question:</p>
+  <div class="examples" id="examples"></div>
+  <div id="result" aria-live="polite"><p class="muted">Loading the recorded answers…</p></div>
+
+  <footer>
+    <p class="muted">BioScout helps you find and read biomedical literature. It is not a medical device and must
+       not be used to make diagnostic or treatment decisions about individual patients.</p>
+    <p class="muted"><a href="https://github.com/Jinwooseol/bioscout">Source code and evaluation results</a></p>
+  </footer>
+</main>
+
+<script>
+// The labels match bioscout.demo (VERDICT_LABELS, DROP_REASONS, STEP_LABELS); a test keeps them in step.
+const VERDICTS = { supported: "Supported", partial: "Partly supported", unsupported: "Not supported" };
+const NOT_CHECKED = "Not checked";
+const DROP_REASONS = {
+  not_backed: "Nothing in the abstracts backs it.",
+  unsupported: "Still not backed after one rewrite.",
+};
+const STEPS = {
+  plan: "Planned the PubMed searches",
+  search: "Searched PubMed and fetched abstracts",
+  screen: "Read the abstracts and picked the relevant ones",
+  answer: "Wrote the answer",
+  verify: "Checked each sentence against the abstracts it cites",
+  revise: "Rewrote sentences that were not fully backed",
+};
+const pubmed = (pmid) => `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+
+// Every piece of recorded text is set as text, never as HTML.
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.className = value; else node.setAttribute(key, value);
+  }
+  for (const child of children) node.append(child);
+  return node;
+}
+
+function table(headers, rows) {
+  const head = el("tr", {}, ...headers.map(([text, numeric]) => el("th", numeric ? { class: "n" } : {}, text)));
+  const body = rows.map((row) =>
+    el("tr", {}, ...row.map((cell, i) => el("td", headers[i][1] ? { class: "n" } : {}, String(cell)))));
+  return el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, ...body)));
+}
+
+function stepRows(steps) {
+  const rows = new Map();
+  for (const step of steps) {
+    const row = rows.get(step.name) || { label: STEPS[step.name] || step.name, runs: 0, calls: 0, usd: 0 };
+    row.runs += 1;
+    row.calls += step.usage.llm_calls || 0;
+    row.usd += step.usage.usd || 0;
+    rows.set(step.name, row);
+  }
+  return [...rows.values()].map((r) => [r.label, r.runs, r.calls, r.usd.toFixed(4)]);
+}
+
+function show(record) {
+  const { answer, articles } = record;
+  const out = el("div");
+  out.append(el("h2", {}, "Answer"));
+  const usd = answer.steps.reduce((sum, step) => sum + (step.usage.usd || 0), 0);
+  out.append(el("p", { class: "muted" },
+    `A recorded answer (it cost $${usd.toFixed(2)} to produce). Every sentence carries the verdict of the citation check.`));
+  if (["yes", "no", "maybe"].includes(answer.decision)) out.append(el("p", { class: "short" }, `In short: ${answer.decision}.`));
+
+  const citedBy = new Map();
+  const list = el("ol", { class: "sentences" });
+  answer.sentences.forEach((sentence, index) => {
+    const item = el("li", {}, el("span", { class: "num" }, `${index + 1}.`), sentence.text);
+    for (const pmid of sentence.citations) {
+      item.append(" ", el("a", { class: "pmid", href: pubmed(pmid), target: "_blank", rel: "noopener" }, `PMID ${pmid}`));
+      if (!citedBy.has(pmid)) citedBy.set(pmid, []);
+      citedBy.get(pmid).push(index + 1);
+    }
+    const verdict = sentence.verdict;
+    item.append(el("br"), el("span", { class: `badge ${verdict || "none"}` }, VERDICTS[verdict] || NOT_CHECKED));
+    list.append(item);
+  });
+  out.append(list);
+
+  if (answer.dropped.length) {
+    const removed = el("details", {}, el("summary", {},
+      `Removed from the answer: ${answer.dropped.length} sentence(s) that nothing backed`));
+    for (const dropped of answer.dropped) {
+      removed.append(el("p", {}, el("s", {}, dropped.text)),
+        el("p", { class: "muted" }, DROP_REASONS[dropped.reason] || dropped.reason));
+    }
+    out.append(removed);
+  }
+
+  if (citedBy.size) out.append(el("h2", {}, "Sources"));
+  for (const [pmid, sentences] of citedBy) {
+    const article = articles[pmid];
+    const title = article ? article.title : "Not among the abstracts the agent read";
+    const details = article ? [`${article.journal || ""} ${article.year || ""}`.trim()].filter(Boolean) : [];
+    details.push(`PMID ${pmid}`, `cited by sentence ${sentences.join(", ")}`);
+    out.append(el("div", { class: "card" },
+      el("a", { href: pubmed(pmid), target: "_blank", rel: "noopener" }, title),
+      el("div", { class: "muted" }, details.join(" · "))));
+  }
+
+  const made = el("details", {}, el("summary", {}, "How this answer was made"));
+  made.append(el("div", { class: "metrics" },
+    el("div", { class: "metric" }, el("b", {}, `$${usd.toFixed(2)}`), el("span", { class: "muted" }, "Cost")),
+    el("div", { class: "metric" }, el("b", {}, String(answer.searches.length)), el("span", { class: "muted" }, "PubMed searches")),
+    el("div", { class: "metric" }, el("b", {}, String(answer.context_pmids.length)), el("span", { class: "muted" }, "Abstracts used"))));
+  made.append(el("p", { class: "muted" }, "The cost is what the answer cost when it was first produced."));
+  made.append(table([["Step"], ["Runs", true], ["LLM calls", true], ["Cost (USD)", true]], stepRows(answer.steps)));
+  made.append(table([["PubMed search"], ["Results", true]], answer.searches.map((s) => [s.query, s.total_found])));
+  out.append(made);
+
+  document.getElementById("result").replaceChildren(out);
+}
+
+async function start() {
+  const result = document.getElementById("result");
+  try {
+    const response = await fetch("examples.json");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const records = await response.json();
+    const buttons = records.map((record) => {
+      const button = el("button", { type: "button", "aria-pressed": "false" }, record.answer.question);
+      button.addEventListener("click", () => {
+        buttons.forEach((other) => other.setAttribute("aria-pressed", String(other === button)));
+        show(record);
+      });
+      return button;
+    });
+    document.getElementById("examples").replaceChildren(...buttons);
+    if (buttons.length) buttons[0].click();
+  } catch (error) {
+    result.replaceChildren(el("p", {}, `The recorded answers could not be loaded (${error.message}).`));
+  }
+}
+start();
+</script>
+</body>
+</html>
