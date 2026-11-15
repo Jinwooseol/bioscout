@@ -56,6 +56,8 @@ async def run_eval(
     await asyncio.to_thread(_write_meta, run_dir, meta)
 
     semaphore = asyncio.Semaphore(concurrency)
+    # Appends from two worker threads can land at the same offset on Windows, losing a record.
+    write_lock = asyncio.Lock()
     total = len(items) * len(variants)
     done = 0
     records: list[Record] = []
@@ -65,7 +67,8 @@ async def run_eval(
         async with semaphore:
             record = await answer_and_score(item, variant, ctx)
         records.append(record)
-        await asyncio.to_thread(_append, run_dir / "records.jsonl", record.model_dump_json())
+        async with write_lock:
+            await asyncio.to_thread(_append, run_dir / "records.jsonl", record.model_dump_json())
         done += 1
         progress(f"[{done}/{total}] {_progress_line(record)}")
 
