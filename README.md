@@ -9,7 +9,7 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 
 > Status: work in progress. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
 > domain questions), the research agent (a LangGraph graph, variant C), the citation judge and the
-> verify step (variant D) and a local demo page are built, and variants A to C have been run and
+> verify step (variant D) and the demo page are built, and variants A to C have been run and
 > judged on all 115 questions. Checking the judge against hand labels and running variant D come next.
 > Progress: [`docs/progress.html`](docs/progress.html).
 
@@ -48,6 +48,9 @@ down per variant and per step.
 
 ## Demo
 
+**Live page: <https://brakey-bioscout.static.hf.space>** (answers recorded from the real agent for three example questions; it
+runs no model).
+
 A one-page Streamlit app: ask a question, watch the steps run, and read the answer with a verdict
 and the abstract passage behind every sentence, the cited papers, what was removed, and what it
 cost.
@@ -65,6 +68,10 @@ As a container (port 7860, ready for a Hugging Face Docker Space):
 docker build -t bioscout-demo .
 docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo
 ```
+
+The live page is a static Hugging Face Space that reads the same recorded answers as the app
+(`app/examples.json`). `scripts/deploy_space.py` publishes it; `--sdk docker` publishes the Streamlit
+app itself instead, which Hugging Face hosts only on a paid plan.
 
 ## Architecture
 

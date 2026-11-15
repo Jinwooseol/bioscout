@@ -17,6 +17,9 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   (free for questions already in the cache)
 - `docker build -t bioscout-demo .`: the demo image. There is no Docker on the author's PC; the CI
   `image` job builds it and checks the page starts
+- `uv run --with huggingface_hub python scripts/deploy_space.py brakey/bioscout`: publish the public page
+  (a static Space with the recorded answers). `--dry-run` lists the files; `--sdk docker` publishes the
+  Streamlit app instead, which Hugging Face refuses without a paid plan (HTTP 402)
 - `uv run bioscout-eval run --variants A,B,C --limit 10`: eval run (needs `ANTHROPIC_API_KEY`, costs money);
   `check-datasets` and `retrieval` are free and need only PubMed
 - `uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10`: judge a run's citations and
@@ -47,7 +50,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/demo.py`: what the demo page shows for a question, as plain data (no UI code);
   `app/streamlit_app.py` only lays it out
 - `Dockerfile`, `.dockerignore`: the demo as a container (uid 1000, port 7860, no secrets in the image)
-- Coming: the public deployment of the demo
+- `space/static/index.html`: the public page (https://brakey-bioscout.static.hf.space). It reads `examples.json` and
+  shows the recorded answers; its labels must match `demo.py` (a test checks)
+- `scripts/deploy_space.py`, `space/*/README.md`: publish to a Hugging Face Space from an allow-list of
+  files, with the login saved on the PC (no token in the repository)
 
 ## Rules
 
@@ -67,6 +73,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - Never commit `.env` or the cache.
 - `app/examples.json` holds answers and bibliographic lines only: no abstract text and no passage
   quoted from one. `demo.record()` strips them and a test checks the committed file.
+- The public page runs no model. Do not put a Claude API key on a public deployment until there is a
+  cap on the total number of questions: the per-session limit resets on refresh.
 - After each work session, update `docs/progress.html` (the `PROGRESS` object at the top of its
   script) and add a log entry: what was decided, what failed, which numbers moved.
 - No schedule or timeline wording in code, tracked files, commit messages or branch names: no

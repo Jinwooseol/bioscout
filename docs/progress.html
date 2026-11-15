@@ -127,8 +127,8 @@ const PROGRESS = {
     ]},
     { phase: 6, title: "데모", tasks: [
       { t: "Streamlit UI: 답변, 인용 카드, 검증 배지", s: "done", why: "app/streamlit_app.py. 읽기 전용 캐시로 예시 질문을 실제로 돌려 확인" },
-      { t: "Dockerfile", s: "doing", why: "Dockerfile과 .dockerignore 작성, 설치 단계를 빈 폴더에서 미리 돌려 확인. 이 PC에 Docker가 없어 이미지 빌드는 CI의 image 작업이 통과하면 완료" },
-      { t: "Hugging Face Spaces 배포", s: "todo" },
+      { t: "Dockerfile", s: "done", why: "Dockerfile과 .dockerignore. CI의 image 작업이 이미지를 빌드하고, 키 없이 컨테이너를 띄워 화면이 뜨는 것을 확인" },
+      { t: "Hugging Face Spaces 배포", s: "done", why: "Static Space brakey/bioscout에 기록된 예시 답변 페이지를 올림 (https://brakey-bioscout.static.hf.space). Docker Space는 Hugging Face가 유료 플랜을 요구해 보류" },
       { t: "세션당 질의 수 제한, 예시 질문 캐시", s: "done", why: "세션당 질문 5개와 400자 제한. 예시 질문 3개는 기록된 답변(app/examples.json)을 바로 보여 줌" },
     ]},
     { phase: 7, title: "공개", tasks: [
@@ -419,6 +419,23 @@ const PROGRESS = {
       numbers: [
         "기록된 예시 3개: 문장 5개, 6개, 6개 모두 지지. 처음 만들 때의 비용 $0.25, $0.23, $0.18. 기록하는 데 든 새 비용 없음",
         "단위 테스트 84 → 87개 (demo 없이 실행하면 85개 통과, 2개 건너뜀)",
+        "CI의 image 작업 통과: 이미지 첫 빌드가 성공했고, 컨테이너에서 화면이 뜨고 기록된 예시 3개가 읽힘",
+      ],
+    },
+    { phase: 6, title: "공개 배포",
+      decided: [
+        "공개 주소에는 정적 페이지 한 장을 올렸다. Streamlit 화면과 같은 기록 파일(app/examples.json)을 읽어 답변, 판정, 출처, 비용을 그린다. 모델을 부르지 않으므로 비용이 들지 않는다.",
+        "올릴 파일은 배포 스크립트가 목록으로 골라 임시 폴더에 모은다. 저장소 전체를 올리지 않으므로 .env, 캐시, 평가 기록이 섞일 수 없다. 토큰은 저장소에 두지 않고 PC에 저장된 로그인을 쓴다.",
+        "Streamlit 화면은 API 키가 없으면 실시간 질문이 꺼져 있다고 알리고, 남은 질문 수 표시를 숨기고, 소스 저장소 링크를 보여 준다.",
+        "Docker Space 배포도 같은 스크립트에 남겼다(--sdk docker).",
+      ],
+      blocked: [
+        "Hugging Face가 Docker Space 호스팅에 유료 플랜(PRO)을 요구한다. 생성 요청이 402로 거절됐다. 그래서 Streamlit 화면 자체는 공개 주소에 올리지 못했다.",
+        "공개 주소에서 직접 질문을 받으려면 전체 질문 수 한도가 먼저 필요하다. 아직 만들지 않았다.",
+      ],
+      numbers: [
+        "공개 주소: https://brakey-bioscout.static.hf.space (예시 답변 3개). 페이지와 examples.json 응답 확인",
+        "단위 테스트 87 → 92개",
       ],
     },
   ],
