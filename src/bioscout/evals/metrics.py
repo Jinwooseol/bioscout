@@ -174,6 +174,13 @@ def render_markdown(rows: list[dict[str, Any]], meta: dict[str, Any]) -> str:
             f"Citation precision and coverage come from the LLM judge (prompt `{judge['prompt_sha']}`, "
             f"{judge['sentences']} sentences judged)."
         )
+        if calibration := meta.get("calibration"):
+            note += (
+                f" Against hand labels on {calibration['pairs']} pairs the judge agrees "
+                f"{calibration['agreement']:.1%} of the time, Cohen's kappa {calibration['kappa']:.2f}."
+            )
+        else:
+            note += " The judge has not been checked against hand labels yet."
     head = "| " + " | ".join(label for _, label, _ in columns) + " |"
     rule = "|" + "|".join(" --- " for _ in columns) + "|"
     body = ["| " + " | ".join(_fmt(row.get(key), kind) for key, _, kind in columns) + " |" for row in rows]

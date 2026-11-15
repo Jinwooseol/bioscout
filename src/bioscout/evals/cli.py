@@ -2,6 +2,8 @@
 
 uv run bioscout-eval run --variants A,B --datasets pubmedqa,domain --limit 10
 uv run bioscout-eval judge evals/runs/<run_id> --variants C --limit 10
+uv run bioscout-eval calibrate-sample evals/runs/<run_id>
+uv run bioscout-eval calibrate-score evals/runs/<run_id>
 uv run bioscout-eval report evals/runs/<run_id>
 uv run bioscout-eval check-datasets
 """
@@ -10,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import subprocess
 import sys
@@ -17,12 +20,22 @@ from datetime import datetime
 from pathlib import Path
 
 from bioscout.config import CacheMode, Settings
+from bioscout.evals.calibration import (
+    PairSet,
+    describe_calibration,
+    read_labels,
+    render_labeling_file,
+    sample_pairs,
+    score_labels,
+)
 from bioscout.evals.datasets import DATASET_FILES, load_dataset
-from bioscout.evals.judging import describe_judgments, judge_run
+from bioscout.evals.judging import describe_judgments, judge_run, load_judgments
 from bioscout.evals.runner import load_records, run_eval, write_report
 from bioscout.evals.variants import VARIANTS, Context
 from bioscout.llm import ClaudeLLM
 from bioscout.mcp_server import Sources
+from bioscout.models import ArticleAbstract
+from bioscout.verifier import JUDGE_SHA
 
 
 def _git_commit() -> str | None:
@@ -123,6 +136,86 @@ async def cmd_judge(args: argparse.Namespace) -> int:
     return 0 if judged or not cited else 1
 
 
+def _run_id(run_dir: Path) -> str:
+    return json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))["run_id"]
+
+
+def _labels_path(args: argparse.Namespace) -> Path:
+    return args.labels or args.evals_dir / "review" / "calibration.md"
+
+
+async def cmd_calibrate_sample(args: argparse.Namespace) -> int:
+    """Write the file of (sentence, cited abstract) pairs to label by hand, without the judge's verdicts."""
+    judged = load_judgments(args.run_dir)
+    if not judged:
+        print("No verdicts from the current judge prompt. Run `bioscout-eval judge` first.", file=sys.stderr)
+        return 2
+    out = _labels_path(args)
+    if out.exists() and not args.force:
+        try:
+            started = any(read_labels(out.read_text(encoding="utf-8-sig")).values())
+        except ValueError:
+            started = True
+        if started:  # hand labels are not ours to throw away
+            print(f"{out} already holds labels. Pass --force to replace it.", file=sys.stderr)
+            return 2
+
+    pairs = sample_pairs(judged, n=args.n, seed=args.seed)
+    pair_set = PairSet(run_id=_run_id(args.run_dir), judge_sha=JUDGE_SHA, seed=args.seed, pairs=pairs)
+    pmids = sorted({p.pmid for p in pairs})
+    abstracts: dict[str, ArticleAbstract] = {}
+    sources = Sources(Settings.from_env())
+    try:
+        for start in range(0, len(pmids), 50):
+            batch = await sources.pubmed.abstracts(pmids[start : start + 50])
+            abstracts |= {a.pmid: a for a in batch.articles}
+    finally:
+        await sources.http.aclose()
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    text = render_labeling_file(pair_set, load_records(args.run_dir), abstracts)
+    out.write_text(text, encoding="utf-8", newline="\n")
+    out.with_suffix(".pairs.json").write_text(
+        pair_set.model_dump_json(indent=2), encoding="utf-8", newline="\n"
+    )
+    print(f"{len(pairs)} pairs to label: {out}")
+    print(f"Fill in each `label:` with s, p or u, then run: bioscout-eval calibrate-score {args.run_dir}")
+    return 0
+
+
+def cmd_calibrate_score(args: argparse.Namespace) -> int:
+    """Compare the hand labels with the judge. The result is saved once every pair has a label."""
+    labels_path = _labels_path(args)
+    pairs_path = labels_path.with_suffix(".pairs.json")
+    if not labels_path.exists() or not pairs_path.exists():
+        print(
+            f"No labeling file at {labels_path}. Run `bioscout-eval calibrate-sample` first.", file=sys.stderr
+        )
+        return 2
+    pair_set = PairSet.model_validate_json(pairs_path.read_text(encoding="utf-8"))
+    if pair_set.run_id != _run_id(args.run_dir):
+        print(f"{labels_path} was sampled from run {pair_set.run_id}, not from this run.", file=sys.stderr)
+        return 2
+    try:
+        labels = read_labels(labels_path.read_text(encoding="utf-8-sig"))
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+
+    result, disagreements = score_labels(pair_set, labels, load_judgments(args.run_dir, pair_set.judge_sha))
+    print("\n".join(describe_calibration(result, disagreements)))
+    if result.labelled < result.pairs:
+        print(f"\n{result.pairs - result.labelled} pairs have no label yet. The result is saved once all do.")
+        return 1
+    reports_dir = args.evals_dir / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    out = reports_dir / f"{pair_set.run_id}.calibration.json"
+    out.write_text(result.model_dump_json(indent=2), encoding="utf-8", newline="\n")
+    write_report(args.run_dir, reports_dir)
+    print(f"\nsaved: {out}")
+    return 0
+
+
 async def cmd_check(args: argparse.Namespace) -> int:
     """Every PMID a dataset relies on must exist in PubMed (the domain set is written by hand)."""
     settings = Settings.from_env()
@@ -188,6 +281,17 @@ def main() -> None:
     judge.add_argument("--limit", type=int, default=0, help="first N items of each dataset (0 = all)")
     judge.add_argument("--concurrency", type=int, default=4)
 
+    sample = sub.add_parser("calibrate-sample", help="write pairs from a judged run to label by hand")
+    sample.add_argument("run_dir", type=Path)
+    sample.add_argument("--n", type=int, default=60, help="number of (sentence, abstract) pairs")
+    sample.add_argument("--seed", type=int, default=2026)
+    sample.add_argument("--labels", type=Path, help="labeling file (default: evals/review/calibration.md)")
+    sample.add_argument("--force", action="store_true", help="replace a labeling file that holds labels")
+
+    score = sub.add_parser("calibrate-score", help="compare the hand labels with the judge (Cohen's kappa)")
+    score.add_argument("run_dir", type=Path)
+    score.add_argument("--labels", type=Path, help="labeling file (default: evals/review/calibration.md)")
+
     report = sub.add_parser("report", help="rebuild the report of an existing run")
     report.add_argument("run_dir", type=Path)
 
@@ -201,6 +305,10 @@ def main() -> None:
         sys.exit(asyncio.run(cmd_run(args)))
     if args.command == "judge":
         sys.exit(asyncio.run(cmd_judge(args)))
+    if args.command == "calibrate-sample":
+        sys.exit(asyncio.run(cmd_calibrate_sample(args)))
+    if args.command == "calibrate-score":
+        sys.exit(cmd_calibrate_score(args))
     if args.command == "report":
         out = write_report(args.run_dir, args.evals_dir / "reports")
         print(out.with_suffix(".md").read_text(encoding="utf-8"))

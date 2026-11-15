@@ -108,8 +108,16 @@ def write_report(run_dir: Path, reports_dir: Path) -> Path:
     if any(by_group.values()):  # at least one group is judged in full with the current judge prompt
         rows = [row | by_group.get((row["variant"], row["dataset"]), {}) for row in rows]
         meta = meta | {"judge": {"prompt_sha": JUDGE_SHA, "sentences": len(judged)}}
+        # The judge's agreement with hand labels, if this judge prompt has been calibrated on this run.
+        calibration = reports_dir / f"{meta['run_id']}.calibration.json"
+        if calibration.exists():
+            result = json.loads(calibration.read_text(encoding="utf-8"))
+            if result["judge_sha"] == JUDGE_SHA:
+                keys = ("pairs", "agreement", "kappa", "kappa_supported_vs_rest")
+                meta = meta | {"calibration": {key: result[key] for key in keys}}
     reports_dir.mkdir(parents=True, exist_ok=True)
     out = reports_dir / f"{meta['run_id']}.json"
-    out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=2), encoding="utf-8")
-    out.with_suffix(".md").write_text(render_markdown(rows, meta), encoding="utf-8")
+    # Reports are committed; LF keeps them identical on Windows and in the repository.
+    out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=2), encoding="utf-8", newline="\n")
+    out.with_suffix(".md").write_text(render_markdown(rows, meta), encoding="utf-8", newline="\n")
     return out
