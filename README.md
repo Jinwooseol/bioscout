@@ -7,10 +7,10 @@ exist, or real papers that do not say what is claimed. BioScout is built eval-fi
 failure. Every sentence in an answer carries PMIDs, every PMID is checked against PubMed, and every
 (claim, abstract) pair is judged for support before the answer is shown.
 
-> Status: **Day 3 of 7**. The MCP tool server is done and checked against the live APIs. The eval
-> harness, datasets (100 PubMedQA + 15 domain questions) and the research agent (a LangGraph graph,
-> variant C) are built; the first A/B/C numbers come next. The verifier lands on Day 4.
-> Progress: [`docs/progress.html`](docs/progress.html).
+> Status: **Day 4 of 7**. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
+> domain questions) and the research agent (a LangGraph graph, variant C) are built. The first A/B/C
+> numbers, on 20 questions, are in [`evals/reports/`](evals/reports/); the full 115-question run and
+> the citation verifier come next. Progress: [`docs/progress.html`](docs/progress.html).
 
 ## Results
 
