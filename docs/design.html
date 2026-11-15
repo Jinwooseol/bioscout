@@ -88,7 +88,7 @@
 
       <rect class="box planned" x="630" y="340" width="250" height="70" rx="10"/>
       <text class="t" x="755" y="366" text-anchor="middle">Langfuse</text>
-      <text class="s" x="755" y="386" text-anchor="middle">트레이스 · 토큰 비용 · 지연 (예정)</text>
+      <text class="s" x="755" y="386" text-anchor="middle">요청별 트레이스 (예정)</text>
 
       <path class="edge" d="M280 300V340" marker-end="url(#a)"/>
       <text class="s" x="290" y="325">MCP 도구 호출</text>
@@ -166,7 +166,7 @@
       <tr><td>Citation coverage</td><td>사실 진술 문장 중 지지 인용이 1개 이상인 비율</td><td>LLM judge</td></tr>
       <tr><td>정답률 · 키포인트 커버리지</td><td>PubMedQA 라벨 일치, 도메인 셋 핵심 포인트 포함 비율</td><td>규칙 + LLM judge</td></tr>
       <tr><td>Retrieval recall@10</td><td>정답 PMID가 검색 상위 10건에 들어간 비율</td><td>결정적</td></tr>
-      <tr><td>비용 · 지연</td><td>질의당 USD, p50/p95 지연, 도구 호출 수</td><td>트레이스 집계</td></tr>
+      <tr><td>비용 · 지연</td><td>질의당 USD, p50/p95 지연, 도구 호출 수. <a href="#costs">집계 방식</a></td><td>실행 기록 집계</td></tr>
     </tbody>
   </table></div>
 
@@ -600,6 +600,67 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>src/bioscout/verifier/revise.py</code></td><td>인용 정리 규칙, 수정 프롬프트와 스키마, <code>revise_sentences()</code>, <code>VerifyConfig</code></td></tr>
       <tr><td><code>src/bioscout/agent/graph.py</code></td><td><code>verify</code>, <code>revise</code>, <code>finish</code> 노드. <code>ResearchAgent(..., verify=VerifyConfig())</code>일 때만 붙음</td></tr>
       <tr><td><code>bioscout-eval run --variants D</code></td><td>변형 D 실행. 리포트에 답변당 삭제 문장 수가 더해짐</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="costs">비용 · 지연 집계 <span class="tag built">구현됨</span></h2>
+  <p>변형을 비교하려면 품질 수치 옆에 비용과 시간이 있어야 합니다. 실행 기록에는 답변마다 비용, 토큰, 호출 수, 걸린 시간이 남으므로, 리포트가 이를 변형별로 모읍니다. 답변은 단계마다 쓴 비용과 시간도 따로 남깁니다.</p>
+
+  <h3>리포트에 더하는 표</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>표</th><th>행</th><th>열</th></tr></thead>
+    <tbody>
+      <tr><td>비용과 지연</td><td>변형 × 데이터셋</td><td>질의당 비용, 총비용, 새로 쓴 비용, 질의당 입력·출력 토큰, 질의당 LLM 호출 수와 도구 호출 수, 지연 p50과 p95, 지연을 잰 답변 수</td></tr>
+      <tr><td>단계별 비용과 지연</td><td>변형 × 단계</td><td>질의당 실행 횟수, 질의당 LLM 호출 수와 도구 호출 수, 질의당 비용, 비용에서 차지하는 비중, 지연 p50, 지연을 잰 답변 수</td></tr>
+    </tbody>
+  </table></div>
+  <p>단계는 A가 <code>answer</code>, B가 <code>search</code>, <code>answer</code>, C가 <code>plan</code>, <code>search</code>, <code>screen</code>, <code>answer</code>이고, D는 여기에 <code>verify</code>, <code>revise</code>가 붙습니다. 같은 단계가 한 답변에서 두 번 돌면(두 번째 검색, 고쳐 쓴 뒤의 재판정) 그 답변 안에서 합칩니다.</p>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>지연은 캐시에서 재생된 답변을 빼고 계산</td><td>재생된 답변은 거의 0초에 끝나 중앙값을 끌어내림. 전체 실행의 도메인 행이 0.0초로 나왔던 이유임. 몇 개 답변으로 쟀는지 표에 함께 적음</td><td>모든 답변으로 계산</td></tr>
+      <tr><td>비용은 재생된 답변도 처음 실행했을 때의 비용으로 셈</td><td>질의당 비용은 캐시 여부와 무관해야 변형끼리 비교할 수 있음. 실제로 나간 돈은 "새로 쓴 비용" 열에 따로 적음</td><td>재생분을 0으로 계산</td></tr>
+      <tr><td>p95는 잰 답변이 20개 이상일 때만 표시</td><td>표본이 작으면 가장 느린 답변 하나가 그대로 p95가 됨</td><td>항상 표시</td></tr>
+      <tr><td>단계별 기록은 그래프 노드를 감싸서 남김</td><td>노드 코드를 바꾸지 않고 모든 단계를 같은 방식으로 잼. 새 노드를 더해도 따로 손댈 것이 없음</td><td>노드마다 직접 시간을 재기</td></tr>
+      <tr><td>단계별 지연에 기다린 시간도 포함</td><td>PubMed 요청 한도(키 없이 초당 3건) 때문에 기다린 시간도 사용자가 실제로 기다리는 시간임</td><td>API 응답 시간만 재기</td></tr>
+      <tr><td>집계는 실행 기록만으로 계산</td><td>외부 서비스나 계정 없이 누구나 같은 표를 다시 만들 수 있음. Langfuse 트레이스는 요청 하나하나를 들여다볼 때 쓰는 별도 작업</td><td>트레이스 서비스에서 집계</td></tr>
+    </tbody>
+  </table></div>
+  <p>단계별 표는 이 기록을 남기기 시작한 뒤의 실행에만 나옵니다. 그 전의 실행 기록에는 답변 전체의 비용과 시간만 있습니다.</p>
+
+  <h3>전체 실행의 수치</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>질의당 비용</th><th>질의당 입력 토큰</th><th>질의당 출력 토큰</th><th>LLM 호출</th><th>도구 호출</th><th>지연 p50</th><th>지연 p95</th></tr></thead>
+    <tbody>
+      <tr><td>A. LLM 단독</td><td class="num">$0.016</td><td class="num">603</td><td class="num">658</td><td class="num">1.00</td><td class="num">0</td><td class="num">8.3초</td><td class="num">11.5초</td></tr>
+      <tr><td>B. 단순 RAG</td><td class="num">$0.024</td><td class="num">4,254</td><td class="num">362</td><td class="num">1.00</td><td class="num">1.79</td><td class="num">5.4초</td><td class="num">8.7초</td></tr>
+      <tr><td>C. 에이전트</td><td class="num">$0.148</td><td class="num">29,744</td><td class="num">1,461</td><td class="num">3.24</td><td class="num">6.22</td><td class="num">20.0초</td><td class="num">32.7초</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">지연은 115개 답변 중 캐시에서 재생된 20개를 뺀 95개로 잰 값입니다. PubMed 키 없이 초당 3건 한도에서, 문항 4개를 동시에 돌린 조건입니다.</p>
+  <p>C의 비용이 어느 단계에서 나오는지는 전체 실행을 캐시에서 다시 재생해 얻었습니다. 새로 든 비용은 없습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>C의 단계</th><th>질의당 실행</th><th>질의당 입력 토큰</th><th>질의당 비용</th><th>비용 비중</th></tr></thead>
+    <tbody>
+      <tr><td><code>plan</code></td><td class="num">1.00</td><td class="num">566</td><td class="num">$0.017</td><td class="num">11%</td></tr>
+      <tr><td><code>search</code></td><td class="num">1.24</td><td class="num">0</td><td class="num">$0.000</td><td class="num">0%</td></tr>
+      <tr><td><code>screen</code></td><td class="num">1.24</td><td class="num">23,423</td><td class="num">$0.098</td><td class="num">66%</td></tr>
+      <tr><td><code>answer</code></td><td class="num">1.00</td><td class="num">5,755</td><td class="num">$0.033</td><td class="num">23%</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li>C 비용의 3분의 2는 선별 단계입니다. 라운드마다 후보 초록을 최대 25건 읽어서, C가 보내는 입력 토큰의 79%가 여기서 나옵니다. 비용을 줄이려면 여기부터 봐야 합니다. 다만 선별이 읽는 초록을 줄이면 찾는 논문이 달라질 수 있으니, 평가로 확인한 뒤에 바꿉니다.</li>
+    <li>A가 B보다 느린 것은 출력이 더 길기 때문입니다(질의당 658 토큰, B는 362 토큰).</li>
+    <li>단계별 지연은 아직 없습니다. 캐시 없이 실제로 실행한 기록이 있어야 나옵니다.</li>
+  </ul>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/answer.py</code></td><td><code>Step</code>: 단계 이름과 그 단계의 비용, 호출 수, 걸린 시간. <code>CitedAnswer.steps</code>에 실행 순서대로 남음</td></tr>
+      <tr><td><code>src/bioscout/evals/costs.py</code></td><td>단계별 집계와 리포트의 비용 표 두 개</td></tr>
+      <tr><td><code>bioscout-eval report evals/runs/&lt;run_id&gt;</code></td><td>이미 끝난 실행의 리포트를 다시 만들어 비용 표를 더함. 비용은 들지 않음</td></tr>
     </tbody>
   </table></div>
 

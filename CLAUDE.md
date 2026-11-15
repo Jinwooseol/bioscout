@@ -23,7 +23,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/sources/`: PubMed (E-utilities), Europe PMC, ClinicalTrials.gov clients
 - `src/bioscout/http.py`, `cache.py`: shared rate-limited HTTP + SQLite response cache
 - `src/bioscout/mcp_server.py`: MCP SDK 2.x `MCPServer` (FastMCP was renamed in mcp 2.x)
-- `src/bioscout/answer.py`: `CitedAnswer`, the answer contract every variant, the demo and scoring share
+- `src/bioscout/answer.py`: `CitedAnswer`, the answer contract every variant, the demo and scoring share;
+  its `steps` record what each step cost and how long it took
 - `src/bioscout/prompts.py`: answer schema, rules and the grounded-answer prompt that B and C share
 - `src/bioscout/agent/`: variants C and D, a LangGraph graph over `bioscout.llm` (plan, search, screen,
   answer; D adds verify, revise, finish)
@@ -32,7 +33,7 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   unsupported) and what variant D does with its verdicts (keep supporting citations, revise once)
 - `src/bioscout/evals/`: datasets, variants (A to D), deterministic metrics, runner, run-level judging
   (`judgments.jsonl`, citation precision and coverage), judge calibration against hand labels,
-  `bioscout-eval` CLI
+  cost and latency tables (`costs.py`), `bioscout-eval` CLI
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share

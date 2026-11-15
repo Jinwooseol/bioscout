@@ -31,6 +31,10 @@ coverage is the share of answer sentences fully backed by the abstracts they cit
 LLM judge over all 1,151 cited sentences. They are provisional until the judge has been checked
 against hand labels.
 
+The median answer takes 8 s (A), 5 s (B) and 20 s (C). Two thirds of the agent's cost is its screening
+step, which reads up to 25 candidate abstracts per search round; the report breaks cost and latency
+down per variant and per step.
+
 - No variant cited a PMID that does not exist (0 of 1,681 citations), so an existence check alone
   does not separate the variants.
 - The LLM alone rarely cites, and half of what it cites from memory does not clearly back the

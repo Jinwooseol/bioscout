@@ -51,7 +51,7 @@ notepad .env</code></pre></div>
     <li>
       <h3>단위 테스트</h3>
       <div class="cmd"><pre><code>uv run pytest -q</code></pre></div>
-      <p><code>73 passed</code>가 나오면 정상입니다. 네트워크와 API 키를 쓰지 않습니다.</p>
+      <p><code>80 passed</code>가 나오면 정상입니다. 네트워크와 API 키를 쓰지 않습니다.</p>
     </li>
     <li>
       <h3>실제 API 스모크 테스트</h3>
@@ -107,7 +107,7 @@ uv run bioscout-eval calibrate-score evals/runs/&lt;run_id&gt;</code></pre></div
       <h3>리포트 다시 만들기와 재생</h3>
       <div class="cmd"><pre><code>uv run bioscout-eval report evals/runs/&lt;run_id&gt;
 $env:BIOSCOUT_CACHE_MODE = "readonly"; uv run bioscout-eval run --variants A,B,C</code></pre></div>
-      <p>첫 줄은 기존 레코드로 결과표만 다시 만듭니다. 둘째 줄은 캐시된 응답만으로 같은 실행을 네트워크 없이 재현합니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_CACHE_MODE</code>로 되돌립니다.</p>
+      <p>첫 줄은 기존 레코드로 리포트를 다시 만듭니다. 리포트에는 결과표 아래에 비용과 지연 표가 붙습니다. 질의당 비용과 토큰, 호출 수, 지연 p50과 p95가 변형별로 나오고, 단계별 기록이 있는 실행이면 단계별 표도 나옵니다. 둘째 줄은 캐시된 응답만으로 같은 실행을 네트워크 없이 재현합니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_CACHE_MODE</code>로 되돌립니다.</p>
     </li>
   </ol>
 
