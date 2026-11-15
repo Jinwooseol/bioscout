@@ -124,25 +124,25 @@ def sample_pairs(judged: dict[Key, JudgedSentence], n: int = 60, seed: int = 202
 
 
 HEADER = """\
-# judge 보정 라벨링 ({count}쌍)
+# Judge calibration: {count} pairs to label
 
-실행 `{run_id}` · judge 프롬프트 `{judge_sha}` · 시드 {seed}
+Run `{run_id}` · judge prompt `{judge_sha}` · seed {seed}
 
-각 쌍은 답변의 문장 하나와 그 문장이 인용한 논문 초록 하나입니다. 초록만 보고 이 초록이 문장을 뒷받침하는지
-판정해, `label:` 뒤에 `s`, `p`, `u` 중 하나를 적어 주세요. judge의 판정과 어느 변형의 답변인지는 일부러
-숨겼습니다.
+Each pair is one sentence from an answer and the abstract of one paper that the sentence cites. Read the
+abstract and decide whether it backs the sentence, then write `s`, `p` or `u` after `label:`. The judge's
+verdict and the variant that wrote the answer are left out on purpose.
 
-- `s` (supported): 초록이 문장의 사실 주장 중 적어도 하나를 분명히 말합니다. 효과의 방향이 같고, 문장이 대상,
-  조건, 수치를 말했다면 그것도 같습니다.
-- `p` (partial): 같은 결과를 다루지만 느슨하게만 뒷받침합니다. 더 약하거나 좁은 결과, 다른 대상이나 결과 지표,
-  맞지 않는 수치가 여기에 듭니다.
-- `u` (unsupported): 문장의 어떤 주장도 뒷받침하지 않거나 반대입니다.
+- `s` (supported): the abstract clearly states at least one factual claim that the sentence makes, with
+  the same direction of effect and, where the sentence gives them, the same population, setting and numbers.
+- `p` (partial): the abstract is about the same finding but backs it only loosely: a weaker or narrower
+  result, a different population or outcome, or numbers that do not match.
+- `u` (unsupported): the abstract backs no claim in the sentence, or contradicts it.
 
-알고 있는 지식이 아니라 초록에 적힌 내용만으로 판정합니다. 사실인 문장이라도 초록에 없으면 지지가 아닙니다.
-문장이 여러 논문을 인용했더라도 여기서는 이 초록 하나만 봅니다. 애매한 쌍은 `note:`에 이유를 적어 두면
-나중에 judge와 어긋난 쌍을 볼 때 도움이 됩니다.
+Judge only from the abstract as written, not from what you know: a sentence that is true but is not stated
+in the abstract is not supported. If the sentence cites several papers, look only at this one abstract.
+For a pair that is hard to call, a few words after `note:` help later when reading the disagreements.
 
-다 적은 뒤 실행: `uv run bioscout-eval calibrate-score evals/runs/{run_id}`
+When every pair has a label, run: `uv run bioscout-eval calibrate-score evals/runs/{run_id}`
 """
 
 
