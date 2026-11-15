@@ -77,3 +77,15 @@ def synthetic_abstract(pmid: str, text: str) -> ArticleAbstract:
 def reply(decision: str, *sentences: tuple[str, list[str]]) -> dict[str, Any]:
     """An ANSWER_SCHEMA reply."""
     return {"decision": decision, "sentences": [{"text": t, "citations": c} for t, c in sentences]}
+
+
+@dataclass
+class RoutedLLM(FakeLLM):
+    """Replies queued per schema, so calls that run at the same time (the judge's) cannot swap replies."""
+
+    routes: list[tuple[dict[str, Any], list[dict[str, Any] | None]]] = field(default_factory=list)
+
+    async def json(self, *, system: str, user: str, schema: dict, max_tokens: int = 16000) -> LLMResult:
+        queue = next(replies for routed, replies in self.routes if routed is schema)
+        self.replies.append(queue.pop(0))
+        return await super().json(system=system, user=user, schema=schema, max_tokens=max_tokens)

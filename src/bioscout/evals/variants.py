@@ -22,6 +22,7 @@ from bioscout.prompts import (
     format_abstracts,
 )
 from bioscout.sources.pubmed import Literature
+from bioscout.verifier import VerifyConfig, verify_fingerprint
 
 SYSTEM_LLM_ONLY = f"""\
 You are a biomedical research assistant answering from your knowledge of the published literature.
@@ -87,8 +88,21 @@ async def agent(item: EvalItem, ctx: Context) -> CitedAnswer:
     return await ResearchAgent(ctx.llm, ctx.pubmed).answer(item.question)
 
 
+async def verified_agent(item: EvalItem, ctx: Context) -> CitedAnswer:
+    """D: C, then every sentence is checked against the abstracts it cites; what is not fully backed is
+    rewritten once and what nothing backs is removed (src/bioscout/verifier)."""
+    return await ResearchAgent(ctx.llm, ctx.pubmed, verify=VerifyConfig()).answer(item.question)
+
+
 VARIANTS: dict[str, Variant] = {
     "A": Variant("A", "LLM only", SYSTEM_LLM_ONLY, llm_only),
     "B": Variant("B", "Naive RAG", SYSTEM_GROUNDED, naive_rag),
     "C": Variant("C", "Agent", SYSTEM_GROUNDED, agent, ResearchAgent.fingerprint()),
+    "D": Variant(
+        "D",
+        "Agent + verifier",
+        SYSTEM_GROUNDED,
+        verified_agent,
+        (*ResearchAgent.fingerprint(), *verify_fingerprint()),
+    ),
 }

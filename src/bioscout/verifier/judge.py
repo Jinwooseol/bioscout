@@ -73,7 +73,11 @@ _BY_RANK = {rank: verdict for verdict, rank in _RANK.items()}
 
 
 class JudgeRefusedError(RuntimeError):
-    """The judge call was refused, so the sentence has no verdict."""
+    """The judge call was refused, so the sentence has no verdict. `usage` is what the call still cost."""
+
+    def __init__(self, message: str, usage: Usage | None = None) -> None:
+        super().__init__(message)
+        self.usage = usage or Usage()
 
 
 class CitationJudgment(BaseModel):
@@ -141,7 +145,9 @@ async def judge_sentence(
     user = f"Question: {question}\n\nSentence: {text}\n\nCited abstracts:\n\n{format_abstracts(usable)}"
     result = await llm.json(system=SYSTEM_JUDGE, user=user, schema=JUDGE_SCHEMA)
     if result.refused or result.data is None:
-        raise JudgeRefusedError(f"judge refused ({result.refusal_category or 'no category'})")
+        raise JudgeRefusedError(
+            f"judge refused ({result.refusal_category or 'no category'})", usage=result.usage
+        )
 
     by_pmid = {a.pmid: a for a in usable}
     for item in result.data["citations"]:

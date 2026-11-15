@@ -20,7 +20,7 @@ class Verdict(StrEnum):
 class CitedSentence(BaseModel):
     text: str
     citations: list[str] = Field(default_factory=list, description="PMIDs that support this sentence")
-    verdict: Verdict | None = Field(default=None, description="Set by the verifier (Day 4)")
+    verdict: Verdict | None = Field(default=None, description="Set by the verifier (variant D)")
     evidence: str | None = Field(default=None, description="Abstract sentence the verdict rests on")
 
 

@@ -1,7 +1,11 @@
-"""Variant C: plan -> search -> screen (-> search once more) -> answer, as a LangGraph state graph.
+"""Variants C and D as a LangGraph state graph.
+
+C: plan -> search -> screen (-> search once more) -> answer.
+D: the same, then verify -> (revise -> verify) -> finish, which checks every sentence against the
+abstracts it cites, rewrites what is not fully backed once, and removes what nothing backs.
 
 Every LLM step is a single JSON call through bioscout.llm, so a run replays from the response cache
-and each step can be tested with a scripted LLM. Day 4 adds a verify node after answer (variant D).
+and each step can be tested with a scripted LLM.
 """
 
 from __future__ import annotations
@@ -15,11 +19,20 @@ from typing import Annotated, Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from bioscout.agent.prompts import PLAN_SCHEMA, SCREEN_SCHEMA, SYSTEM_PLAN, SYSTEM_SCREEN
-from bioscout.answer import CitedAnswer, SearchLog, Usage
+from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, SearchLog, Usage, Verdict
 from bioscout.llm import LLM
 from bioscout.models import AbstractBatch, ArticleAbstract
 from bioscout.prompts import ANSWER_SCHEMA, SYSTEM_GROUNDED, answer_from_result, format_abstracts
 from bioscout.sources.pubmed import Literature
+from bioscout.verifier import (
+    JudgeRefusedError,
+    SentenceJudgment,
+    VerifyConfig,
+    apply_judgment,
+    judge_sentence,
+    revise_sentences,
+    unbacked_note,
+)
 
 
 @dataclass(frozen=True)
@@ -45,6 +58,12 @@ class AgentState(TypedDict, total=False):
     usages: Annotated[list[Usage], operator.add]
     refused: bool
     answer: CitedAnswer
+    # Variant D: the answer's sentences while the verify step works on them.
+    work: list[CitedSentence | None]  # None marks a sentence that was removed
+    pending: list[int]  # indexes into `work` that still need a verdict
+    notes: dict[int, str]  # what the judge found unbacked, by index
+    revisions: int
+    dropped: Annotated[list[DroppedSentence], operator.add]
 
 
 def _unique(values: Iterable[str]) -> list[str]:
@@ -58,10 +77,17 @@ def _interleave(ranked: list[list[str]], exclude: set[str]) -> list[str]:
 
 
 class ResearchAgent:
-    def __init__(self, llm: LLM, pubmed: Literature, config: AgentConfig | None = None) -> None:
+    def __init__(
+        self,
+        llm: LLM,
+        pubmed: Literature,
+        config: AgentConfig | None = None,
+        verify: VerifyConfig | None = None,
+    ) -> None:
         self.llm = llm
         self.pubmed = pubmed
         self.config = config or AgentConfig()
+        self.verify = verify  # None: variant C, the answer is returned as written
         self.graph = self._build()
 
     @staticmethod
@@ -79,13 +105,31 @@ class ResearchAgent:
         graph.add_conditional_edges("plan", self._after_plan, ["search", END])
         graph.add_edge("search", "screen")
         graph.add_conditional_edges("screen", self._after_screen, ["search", "answer", END])
-        graph.add_edge("answer", END)
+        if self.verify is None:
+            graph.add_edge("answer", END)
+        else:
+            graph.add_node("verify", self._verify)
+            graph.add_node("revise", self._revise)
+            graph.add_node("finish", self._finish)
+            graph.add_edge("answer", "verify")
+            graph.add_conditional_edges("verify", self._after_verify, ["revise", "finish"])
+            graph.add_edge("revise", "verify")
+            graph.add_edge("finish", END)
         return graph.compile(name="bioscout-agent")
 
     async def answer(self, question: str) -> CitedAnswer:
-        state: AgentState = await self.graph.ainvoke(
-            {"question": question, "round": 0, "searches": [], "abstracts": {}, "selected": [], "usages": []}
-        )
+        start: AgentState = {
+            "question": question,
+            "round": 0,
+            "searches": [],
+            "abstracts": {},
+            "selected": [],
+            "usages": [],
+            "notes": {},
+            "revisions": 0,
+            "dropped": [],
+        }
+        state: AgentState = await self.graph.ainvoke(start)
         if "answer" in state:
             return state["answer"]
         # A step before the answer was refused, even after the server-side fallback.
@@ -184,4 +228,89 @@ class ResearchAgent:
         answer = answer_from_result(
             state["question"], result, usage=usage, searches=state["searches"], context_pmids=pmids
         )
-        return {"answer": answer}
+        return {
+            "answer": answer,
+            "usages": [result.usage],
+            "work": list(answer.sentences),
+            "pending": list(range(len(answer.sentences))),
+        }
+
+    async def _verify(self, state: AgentState) -> AgentState:
+        """Judge the sentences that have no verdict yet against the abstracts they cite."""
+        work = list(state["work"])
+
+        async def judge(index: int) -> tuple[SentenceJudgment | None, Usage]:
+            sentence = work[index]
+            assert sentence is not None
+            try:
+                return await judge_sentence(
+                    self.llm, state["question"], sentence.text, sentence.citations, state["abstracts"]
+                )
+            except JudgeRefusedError as exc:
+                return None, exc.usage  # the sentence stays as written, without a verdict
+
+        results = await asyncio.gather(*(judge(i) for i in state["pending"]))
+        notes = dict(state["notes"])
+        for index, (judgment, _) in zip(state["pending"], results, strict=True):
+            sentence = work[index]
+            if judgment is not None and sentence is not None:
+                notes[index] = unbacked_note(sentence, judgment)
+                work[index] = apply_judgment(sentence, judgment)
+        return {"work": work, "pending": [], "notes": notes, "usages": [usage for _, usage in results]}
+
+    @staticmethod
+    def _unbacked(state: AgentState) -> dict[int, CitedSentence]:
+        """Sentences the judge did not find fully backed. One it could not check is not among them."""
+        return {
+            i: s
+            for i, s in enumerate(state["work"])
+            if s is not None and s.verdict in (Verdict.PARTIAL, Verdict.UNSUPPORTED)
+        }
+
+    def _after_verify(self, state: AgentState) -> str:
+        assert self.verify is not None
+        if self._unbacked(state) and state["revisions"] < self.verify.max_revisions:
+            return "revise"
+        return "finish"
+
+    async def _revise(self, state: AgentState) -> AgentState:
+        """Rewrite what is not fully backed from the abstracts the answer was written from."""
+        context = [state["abstracts"][p] for p in state["selected"]]
+        revised, usage = await revise_sentences(
+            self.llm, state["question"], self._unbacked(state), state["notes"], context
+        )
+        work = list(state["work"])
+        dropped: list[DroppedSentence] = []
+        pending: list[int] = []
+        for index, sentence in revised.items():
+            old = work[index]
+            assert old is not None
+            if sentence is None:  # the reviser found nothing in the abstracts to keep
+                dropped.append(DroppedSentence(text=old.text, citations=old.citations, reason="not_backed"))
+            else:
+                pending.append(index)
+            work[index] = sentence
+        return {
+            "work": work,
+            "pending": pending,
+            "dropped": dropped,
+            "revisions": state["revisions"] + 1,
+            "usages": [usage],
+        }
+
+    async def _finish(self, state: AgentState) -> AgentState:
+        """The verified answer: sentences that nothing backs are removed, the rest carry their verdict."""
+        kept: list[CitedSentence] = []
+        dropped = list(state["dropped"])
+        for sentence in state["work"]:
+            if sentence is None:
+                continue
+            if sentence.verdict is Verdict.UNSUPPORTED:
+                reason = "unsupported"
+                dropped.append(
+                    DroppedSentence(text=sentence.text, citations=sentence.citations, reason=reason)
+                )
+            else:
+                kept.append(sentence)
+        update = {"sentences": kept, "dropped": dropped, "usage": Usage.total(state["usages"])}
+        return {"answer": state["answer"].model_copy(update=update)}

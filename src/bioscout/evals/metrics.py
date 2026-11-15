@@ -21,6 +21,7 @@ class ItemScores(BaseModel):
     cited: int = Field(description="Unique cited PMIDs")
     fabricated: int = Field(description="Cited PMIDs that PubMed does not know")
     fabricated_pmids: list[str] = Field(default_factory=list)
+    dropped: int = Field(default=0, description="Sentences the verifier removed from the answer")
     correct: bool | None = Field(default=None, description="PubMedQA: decision matches the label")
     retrieved_gold: bool | None = Field(default=None, description="PubMedQA: source paper in a top 10")
     gold_in_context: bool | None = Field(
@@ -52,6 +53,7 @@ async def score_item(item: EvalItem, answer: CitedAnswer, pubmed: Literature) ->
         cited=len(check.existing) + len(check.missing),
         fabricated=len(check.missing),
         fabricated_pmids=check.missing,
+        dropped=len(answer.dropped),
     )
     if item.answer is not None:
         scores.correct = answer.decision == item.answer
@@ -94,6 +96,7 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
         "answers_with_fabrication": _mean([s.fabricated > 0 for s in scores]),
         "cited_per_answer": _mean([s.cited for s in scores]),
         "citation_rate": sum(s.cited_sentences for s in scores) / sentences if sentences else None,
+        "dropped_per_answer": _mean([s.dropped for s in scores]),
         "accuracy": _mean([s.correct for s in scores if s.correct is not None]),
         "retrieval_recall_at_10": _mean([s.retrieved_gold for s in scores if s.retrieved_gold is not None]),
         "gold_in_context_rate": _mean([s.gold_in_context for s in scores if s.gold_in_context is not None]),
@@ -166,10 +169,13 @@ JUDGE_COLUMNS = [
 
 def render_markdown(rows: list[dict[str, Any]], meta: dict[str, Any]) -> str:
     columns = COLUMNS
+    if any(row.get("dropped_per_answer") for row in rows):  # only a verifying variant removes sentences
+        at = [key for key, _, _ in columns].index("citation_rate") + 1
+        columns = columns[:at] + [("dropped_per_answer", "Dropped / answer", "num")] + columns[at:]
     note = "Deterministic metrics only; this run has not been judged (`bioscout-eval judge`)."
     if judge := meta.get("judge"):
-        at = [key for key, _, _ in COLUMNS].index("citation_rate") + 1
-        columns = COLUMNS[:at] + JUDGE_COLUMNS + COLUMNS[at:]
+        at = [key for key, _, _ in columns].index("citation_rate") + 1
+        columns = columns[:at] + JUDGE_COLUMNS + columns[at:]
         note = (
             f"Citation precision and coverage come from the LLM judge (prompt `{judge['prompt_sha']}`, "
             f"{judge['sentences']} sentences judged)."
