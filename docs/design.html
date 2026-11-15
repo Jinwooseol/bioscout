@@ -470,7 +470,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>unsupported</code></td><td>뒷받침되는 주장이 없음. 인용이 없는 문장도 여기에 넣음</td></tr>
     </tbody>
   </table></div>
-  <p>judge는 주어진 초록만 보고 판정합니다. 사실인 문장이라도 초록에 없으면 지지가 아닙니다. 판정마다 근거가 된 초록 구절을 40단어 이내로 그대로 옮기게 하고, 그 구절이 실제로 초록에 있는지 코드로 대조합니다.</p>
+  <p>judge는 주어진 초록만 보고 판정합니다. 사실인 문장이라도 초록에 없으면 지지가 아닙니다. 판정마다 근거가 된 초록 구절을 40단어 이내로 그대로 옮기게 하고, 그 구절이 실제로 초록에 있는지 코드로 대조합니다. judge가 구절 여러 개를 "..."로 이어 붙인 경우에는 조각마다 초록에 있는지 봅니다.</p>
 
   <h3>흐름</h3>
   <ol>
@@ -503,12 +503,27 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td>근거 구절을 그대로 옮기게 하고 코드로 대조</td><td>judge가 초록에 없는 근거를 만들어 내는지 싸게 확인함</td><td>근거를 요약으로 받기</td></tr>
       <tr><td>답변과 같은 모델, 같은 effort</td><td>설정을 하나로 유지함. judge는 어느 변형의 답변인지 모름. 자기 답변에 후한지는 사람 라벨과의 일치도로 확인</td><td>다른 모델을 judge로 쓰기</td></tr>
       <tr><td>판정을 레코드와 다른 파일에 저장</td><td>judge 프롬프트를 바꿔도 답변을 다시 만들지 않고 재판정함. 판정마다 judge 프롬프트 해시를 남김</td><td>레코드에 덮어쓰기</td></tr>
+      <tr><td>일부만 판정한 그룹은 리포트에 judge 지표를 넣지 않음</td><td>몇 문항만 시험 판정한 수치가 전체 실행의 수치 옆에 놓이면 전체 결과로 읽힘. 판정한 부분의 수치는 <code>judge</code> 명령이 화면에 따로 출력</td><td>판정된 문장만으로 계산해 리포트에 넣기</td></tr>
       <tr><td>초록과 근거 구절은 Git에 넣지 않음</td><td>판정 파일은 Git에서 제외한 <code>evals/runs/</code>에만 둠. 리포트에는 집계만 들어감</td><td>판정 파일 커밋</td></tr>
     </tbody>
   </table></div>
 
   <h3>보정 (다음 작업)</h3>
   <p>judge 수치를 믿으려면 사람 판정과 맞는지 봐야 합니다. 판정 결과에서 (문장, 인용 초록) 60쌍을 변형과 판정이 고르게 섞이도록 뽑아 직접 라벨링하고, 인용 판정의 Cohen's kappa가 0.7 이상인지 확인합니다. 낮으면 프롬프트를 고치고 다시 잽니다.</p>
+
+  <h3>시험 판정과 비용</h3>
+  <p>11/15 전체 실행의 답변 19개(인용 문장 66개)에 judge를 돌렸습니다. A가 번호를 4만큼 틀리게 적은 인용(10430922)은 <code>unsupported</code>로 판정됐습니다. judge가 옮긴 근거 구절 102개는 모두 초록에서 확인됐습니다. 비용은 문장당 약 $0.013(입력 2.0K, 출력 0.2K 토큰)입니다. 판정도 캐시되므로 다시 돌릴 때는 비용이 들지 않습니다.</p>
+
+  <h3>전체 판정 결과 (11/15, 보정 전)</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>Citation precision</th><th>Partial 인용</th><th>Coverage</th><th>모든 문장이 확인된 답변</th><th>확인된 문장이 없는 답변</th></tr></thead>
+    <tbody>
+      <tr><td>A. LLM 단독</td><td class="num">51.0%</td><td class="num">38.2%</td><td class="num">6.3%</td><td class="num">0 / 115</td><td class="num">98 / 115</td></tr>
+      <tr><td>B. 단순 RAG</td><td class="num">90.8%</td><td class="num">8.8%</td><td class="num">81.5%</td><td class="num">62 / 115</td><td class="num">24 / 115</td></tr>
+      <tr><td>C. 에이전트</td><td class="num">86.1%</td><td class="num">13.2%</td><td class="num">93.4%</td><td class="num">80 / 115</td><td class="num">0 / 115</td></tr>
+    </tbody>
+  </table></div>
+  <p>인용 문장 1,151개를 약 8분, $13.37에 판정했고 오류는 없었습니다. PubMedQA에서 원 논문을 인용한 경우는 B와 C 모두 97%가 <code>supported</code>이고, 다른 논문을 인용한 경우는 B 83%, C 84%입니다. C의 precision이 B보다 낮은 것은 다른 논문을 3배 더 인용하기 때문입니다. B가 이미 성공 기준 0.90을 넘으므로, 변형 D의 개선은 precision과 coverage를 함께 놓고 봅니다. D의 목표는 C의 <code>partial</code> 인용을 걸러 precision을 0.90 위로 올리면서 coverage를 지키는 것입니다.</p>
 
   <h3>파일과 명령</h3>
   <div class="table-wrap"><table>

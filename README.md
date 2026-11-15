@@ -8,21 +8,39 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 (claim, abstract) pair is judged for support before the answer is shown.
 
 > Status: **Day 4 of 7**. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
-> domain questions) and the research agent (a LangGraph graph, variant C) are built. The first A/B/C
-> numbers, on 20 questions, are in [`evals/reports/`](evals/reports/); the full 115-question run and
-> the citation verifier come next. Progress: [`docs/progress.html`](docs/progress.html).
+> domain questions), the research agent (a LangGraph graph, variant C) and the citation judge are
+> built, and variants A to C have been run and judged on all 115 questions. Checking the judge
+> against hand labels and the verify loop (variant D) come next.
+> Progress: [`docs/progress.html`](docs/progress.html).
 
 ## Results
 
-Pending. The evaluation compares four variants on 100 PubMedQA questions and 25 hand-written
-MSI / digital PCR / liquid biopsy questions:
+First full run: 100 PubMedQA questions and 15 hand-written MSI / digital PCR / liquid biopsy
+questions, the same model and effort for every variant
+([`evals/reports/20261115-195946-ABC.md`](evals/reports/20261115-195946-ABC.md)).
 
-| Variant | Fabricated PMIDs | Citation precision | Citation coverage | Cost / query |
-| --- | --- | --- | --- | --- |
-| A. LLM only | | | | |
-| B. Naive RAG | | | | |
-| C. Agent | | | | |
-| D. Agent + verifier | | | | |
+| Variant | Fabricated PMIDs | Sentences cited | Source paper used (PubMedQA) | Citation precision | Citation coverage | Cost / query |
+| --- | --- | --- | --- | --- | --- | --- |
+| A. LLM only | 0.0% | 15.7% | n/a | 51.0% | 6.3% | $0.016 |
+| B. Naive RAG | 0.0% | 87.1% | 85% | 90.8% | 81.5% | $0.024 |
+| C. Agent | 0.0% | 99.7% | 91% | 86.1% | 93.4% | $0.148 |
+| D. Agent + verifier | not built yet | | | | | |
+
+Citation precision is the share of citations whose abstract clearly backs the sentence; citation
+coverage is the share of answer sentences fully backed by the abstracts they cite. Both come from an
+LLM judge over all 1,151 cited sentences. They are provisional until the judge has been checked
+against hand labels.
+
+- No variant cited a PMID that does not exist (0 of 1,681 citations), so an existence check alone
+  does not separate the variants.
+- The LLM alone rarely cites, and half of what it cites from memory does not clearly back the
+  sentence. 11 of its 102 citations are unsupported, several of them real papers on an unrelated
+  topic; all of them pass the existence check.
+- Naive RAG is precise when its search finds something, but 24 of its 115 answers have no backed
+  sentence: PubMed returns nothing for 13 of the 15 long domain questions searched as typed.
+- The agent backs 93% of its sentences and leaves no answer without evidence. It cites an unrelated
+  paper 0.7% of the time; its misses are mostly partial support, which the verifier (variant D) is
+  meant to remove.
 
 ## Architecture
 

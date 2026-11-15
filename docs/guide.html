@@ -51,7 +51,7 @@ notepad .env</code></pre></div>
     <li>
       <h3>단위 테스트</h3>
       <div class="cmd"><pre><code>uv run pytest -q</code></pre></div>
-      <p><code>57 passed</code>가 나오면 정상입니다. 네트워크와 API 키를 쓰지 않습니다.</p>
+      <p><code>58 passed</code>가 나오면 정상입니다. 네트워크와 API 키를 쓰지 않습니다.</p>
     </li>
     <li>
       <h3>실제 API 스모크 테스트</h3>
@@ -92,7 +92,7 @@ notepad .env</code></pre></div>
       <h3>인용 판정</h3>
       <div class="cmd"><pre><code>uv run bioscout-eval judge evals/runs/&lt;run_id&gt; --variants C --limit 10
 uv run bioscout-eval judge evals/runs/&lt;run_id&gt;</code></pre></div>
-      <p>끝난 실행의 인용을 판정해 citation precision과 coverage를 리포트에 더합니다. 문장마다 Claude를 한 번 부르므로 비용이 듭니다(문장당 약 $0.01). 첫 줄처럼 변형과 문항 수를 줄여 먼저 확인하세요. 이미 판정한 문장은 건너뛰므로 중간에 끊겨도 이어서 실행하면 됩니다. 판정 결과는 <code>evals/runs/&lt;run_id&gt;/judgments.jsonl</code>에 남습니다.</p>
+      <p>끝난 실행의 인용을 판정해 citation precision과 coverage를 리포트에 더합니다. 문장마다 Claude를 한 번 부르므로 비용이 듭니다(문장당 약 $0.01). 첫 줄처럼 변형과 문항 수를 줄여 먼저 확인하세요. 이미 판정한 문장은 건너뛰므로 중간에 끊겨도 이어서 실행하면 됩니다. 일부만 판정했을 때는 그 부분의 수치를 화면에만 출력하고, 리포트에는 전부 판정한 변형과 데이터셋만 넣습니다. 판정 결과는 <code>evals/runs/&lt;run_id&gt;/judgments.jsonl</code>에 남습니다.</p>
     </li>
     <li>
       <h3>리포트 다시 만들기와 재생</h3>

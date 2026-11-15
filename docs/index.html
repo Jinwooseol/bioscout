@@ -60,7 +60,7 @@
     <tbody>
       <tr><td><a href="https://doi.org/10.1038/s41598-023-41032-5">Walters &amp; Wilder, 2023</a><br><span class="small">Scientific Reports</span></td><td>ChatGPT가 쓴 문헌 리뷰 84편의 인용 636개</td><td>GPT-3.5 인용의 55%, GPT-4 인용의 18%가 존재하지 않는 문헌. 실제 문헌을 가리킨 인용도 각각 43%, 24%에 실질적 오류</td></tr>
       <tr><td><a href="https://doi.org/10.1038/s41467-025-58551-6">Wu 외, 2025</a><br><span class="small">Nature Communications, PMID 40240349</span></td><td>LLM 7종, 의학 질문 800개, 문장과 출처 쌍 58,000개</td><td>응답의 50–90%가 스스로 인용한 출처로 완전히 뒷받침되지 않음. 웹 검색을 붙인 GPT-4o도 문장의 약 30%가 근거 없음</td></tr>
-      <tr><td><a href="progress.html">BioScout 첫 평가</a><br><span class="small">2026-11-15, 20문항, Claude Opus 5.5</span></td><td>LLM 단독, 단순 RAG, 에이전트의 답변 60개</td><td>존재하지 않는 PMID는 0개. 하지만 LLM이 기억으로 단 인용 32개 중 1개는 의도한 논문과 PMID가 4만큼 어긋나, 같은 학술지 호의 전혀 다른 논문을 가리킴</td></tr>
+      <tr><td><a href="progress.html">BioScout 첫 평가</a><br><span class="small">2026-11-15, 115문항, Claude Opus 5.5</span></td><td>LLM 단독, 단순 RAG, 에이전트의 답변 345개, 인용 1,681건</td><td>존재하지 않는 PMID는 0건. 하지만 LLM이 기억으로 단 인용 102건 중 11건은 초록이 문장을 전혀 뒷받침하지 않음. PMID가 4만큼 어긋나 같은 학술지 호의 다른 논문을 가리킨 것처럼, 실제로 있지만 전혀 다른 논문인 경우가 여럿. 모두 존재 확인은 통과했고 judge가 잡아냄</td></tr>
     </tbody>
   </table></div>
   <p>모델이 좋아질수록 "없는 논문"은 줄고, "실제로 있지만 그 문장을 뒷받침하지 않는 논문"이 남습니다. 이런 인용은 논문이 존재하는지만 확인해서는 걸러지지 않습니다. 문장과 초록을 맞대어 봐야 합니다. BioScout는 그 확인을 사람에게 넘기지 않고, 답변을 보여 주기 전에 하도록 설계했습니다.</p>
@@ -85,35 +85,36 @@
   <div class="table-wrap"><table>
     <thead><tr><th>이점</th><th>내용</th><th>상태</th></tr></thead>
     <tbody>
-      <tr><td>인용을 시스템이 검사</td><td>답변의 모든 PMID를 PubMed에 조회해 존재를 확인합니다. 이어서 문장과 초록을 맞대어 지지, 부분 지지, 근거 없음으로 판정하고, 다시 검색해도 근거가 없는 문장은 삭제합니다</td><td><span class="tag built">존재 확인 구현됨</span> <span class="tag">판정·삭제 Day 4</span></td></tr>
+      <tr><td>인용을 시스템이 검사</td><td>답변의 모든 PMID를 PubMed에 조회해 존재를 확인합니다. 이어서 문장과 초록을 맞대어 지지, 부분 지지, 근거 없음으로 판정하고, 다시 검색해도 근거가 없는 문장은 삭제합니다</td><td><span class="tag built">존재 확인, 판정 구현됨</span> <span class="tag">삭제 루프 Day 4</span></td></tr>
       <tr><td>PubMed를 직접 검색</td><td>웹 페이지가 아니라 NCBI의 PubMed를 PMID 단위로 조회합니다. 질문을 MeSH 용어와 동의어 검색식으로 바꾸고, 초록을 읽어 근거가 되는 논문만 골라 답변에 씁니다</td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>성능이 숫자로 공개됨</td><td>같은 모델로 LLM 단독, 단순 RAG, 에이전트, 에이전트 + 검증을 비교합니다. 가짜 PMID 비율, 인용 정확도, 질의당 비용과 시간이 리포트로 남고, 응답 캐시로 같은 실행을 다시 재생할 수 있습니다</td><td><span class="tag built">A–C 구현됨</span> <span class="tag">검증 변형 Day 4</span></td></tr>
       <tr><td>도구를 떼어 쓸 수 있음</td><td>PubMed 검색, 초록, PMID 확인, 오픈액세스 본문, 임상시험 검색을 MCP 서버로 제공합니다. Claude Code나 Claude Desktop 같은 MCP 지원 에이전트에 그대로 연결됩니다. 공개 API만 써서 구독료가 없고, 드는 비용은 LLM 호출뿐입니다</td><td><span class="tag built">구현됨</span></td></tr>
     </tbody>
   </table></div>
-  <p>첫 평가(20문항)에서 세 방식은 이렇게 갈렸습니다.</p>
+  <p>115문항 평가에서 세 방식은 이렇게 갈렸습니다.</p>
   <div class="table-wrap"><table>
-    <thead><tr><th>방식</th><th>인용이 달린 문장</th><th>가짜 PMID</th><th>도메인 필수 논문 인용</th><th>질의당 비용</th></tr></thead>
+    <thead><tr><th>방식</th><th>근거로 확인된 문장</th><th>인용 정확도</th><th>가짜 PMID</th><th>질의당 비용</th></tr></thead>
     <tbody>
-      <tr><td>LLM 단독 (기억으로 인용)</td><td class="num">44%</td><td class="num">0%</td><td class="num">42%</td><td class="num">$0.017</td></tr>
-      <tr><td>단순 RAG (질문 그대로 검색)</td><td class="num">65%</td><td class="num">0%</td><td class="num">0%</td><td class="num">$0.016</td></tr>
-      <tr><td>BioScout 에이전트</td><td class="num">99%</td><td class="num">0%</td><td class="num">43%</td><td class="num">$0.157</td></tr>
+      <tr><td>LLM 단독 (기억으로 인용)</td><td class="num">6%</td><td class="num">51%</td><td class="num">0%</td><td class="num">$0.016</td></tr>
+      <tr><td>단순 RAG (질문 그대로 검색)</td><td class="num">82%</td><td class="num">91%</td><td class="num">0%</td><td class="num">$0.024</td></tr>
+      <tr><td>BioScout 에이전트</td><td class="num">93%</td><td class="num">86%</td><td class="num">0%</td><td class="num">$0.148</td></tr>
     </tbody>
   </table></div>
+  <p class="note">근거로 확인된 문장은 답변 문장 중 인용한 초록이 그 내용을 모두 뒷받침한 비율(citation coverage)입니다. 인용 정확도는 인용 중 초록이 문장을 분명히 뒷받침한 비율(citation precision)입니다. 둘 다 judge가 판정했습니다.</p>
   <ul>
-    <li>LLM 단독은 구체적인 질문(PubMedQA)에서 문장의 5%에만 인용을 달았습니다. 확실하지 않으면 비우라는 지시를 지킨 결과라 정직하지만, 읽는 사람이 근거를 확인할 수 없습니다.</li>
-    <li>질문을 그대로 검색하는 단순 RAG는 도메인 질문 10개 중 9개에서 검색 결과가 0건이었습니다. 긴 질문은 PubMed가 모든 단어를 AND로 묶기 때문입니다.</li>
-    <li>에이전트는 거의 모든 문장에 PubMed에서 방금 가져온 초록을 근거로 달았습니다. 대신 비용이 약 10배이고 질의당 24초가 걸립니다.</li>
-    <li>인용이 문장을 실제로 뒷받침하는지는 아직 재지 않았습니다. Day 4의 판정 단계가 이 숫자를 내야 이점을 확정할 수 있습니다.</li>
+    <li>LLM 단독의 답변 115개 중 98개는 근거로 확인된 문장이 하나도 없습니다. 대부분의 문장에 인용을 달지 않았고, 기억으로 단 인용도 절반만 문장을 뒷받침했습니다. 인용의 11%는 초록이 문장을 전혀 뒷받침하지 않았습니다. 항응고제 임상시험을 말하는 문장에 청소년 치과 진료 연구가 달린 식으로, 실제로 있지만 전혀 다른 논문을 가리킨 경우가 여럿입니다.</li>
+    <li>단순 RAG는 논문을 찾았을 때는 정확합니다. 하지만 답변 24개에는 확인된 문장이 하나도 없습니다. 도메인 질문 15개 중 13개에서 검색 결과가 0건이었습니다. 긴 질문은 PubMed가 모든 단어를 AND로 묶기 때문입니다.</li>
+    <li>에이전트는 모든 답변에 확인된 문장이 있고, 답변 80개는 모든 문장이 확인됐습니다. 문장과 무관한 논문을 인용한 경우는 0.7%입니다. 인용 정확도가 단순 RAG보다 낮은 것은 원 논문 말고도 여러 논문을 인용하기 때문입니다. 어긋난 인용은 대부분 주제는 맞지만 문장의 세부까지는 말하지 않는 부분 지지입니다. 비용은 약 6배이고 질의당 19초가 걸립니다.</li>
+    <li>이 수치는 아직 잠정입니다. judge의 판정이 사람의 판정과 얼마나 맞는지 60쌍으로 확인하는 일이 남아 있습니다.</li>
   </ul>
-  <p class="note">수치는 <code>evals/reports/20261115-193337-ABC</code>에서 옮겼습니다. 문항 수가 적어 방향만 보여 줍니다. 전체 115문항 결과가 나오면 바꿉니다.</p>
+  <p class="note">수치는 <code>evals/reports/20261115-195946-ABC</code>에서 옮겼습니다. PubMedQA 100문항과 도메인 15문항이며, 도메인 수치는 문항이 적어 방향만 보여 줍니다.</p>
   <p>문헌 근거를 문장 단위로 확인해야 하는 연구자, 그리고 인용을 다는 LLM 에이전트를 만들고 평가하려는 개발자에게 쓸모가 있습니다.</p>
 
   <h2 id="limits">한계</h2>
   <ul>
     <li>초록만 읽습니다. 본문에만 있는 근거는 찾지도 판정하지도 못합니다.</li>
-    <li>평가가 아직 작습니다. 지금 수치는 20문항이고, 전체 115문항 실행과 인용 정확도 측정이 남아 있습니다.</li>
-    <li>판정 단계와 화면은 아직 구현 전입니다. 맨 위 예시는 목표로 하는 출력 형식입니다.</li>
+    <li>인용 정확도 수치는 잠정입니다. judge가 답변과 같은 모델이고, 사람 라벨과 맞는지 확인하는 일이 남아 있습니다.</li>
+    <li>근거 없는 문장을 답변에서 빼는 단계와 화면은 아직 구현 전입니다. 맨 위 예시는 목표로 하는 출력 형식입니다.</li>
     <li>혼자 만드는 포트폴리오 프로젝트입니다. 상업 서비스 수준의 규모, 속도, 지원은 없습니다.</li>
     <li>의료기기가 아닙니다. 개별 환자의 진단이나 치료 결정에 쓰지 않습니다.</li>
   </ul>
