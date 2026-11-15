@@ -352,7 +352,7 @@
 
       <rect class="box accent" id="n-search" x="420" y="60" width="200" height="72" rx="10"/>
       <text class="t" x="520" y="86" text-anchor="middle">검색 · 도구</text>
-      <text class="s" x="520" y="106" text-anchor="middle">검색어별 상위 10건, 병렬</text>
+      <text class="s" x="520" y="106" text-anchor="middle">질문 그대로 + 검색어별 10건</text>
       <text class="s" x="520" y="122" text-anchor="middle">새 후보 초록 최대 25건</text>
 
       <rect class="box accent" id="n-screen" x="670" y="60" width="210" height="72" rx="10"/>
@@ -401,8 +401,8 @@
     <thead><tr><th>노드</th><th>하는 일</th><th>입력 → 출력</th><th>호출</th><th>상한</th></tr></thead>
     <tbody>
       <tr><td><code>plan</code></td><td>질문을 개념(대상, 개입·노출, 결과, 비교)으로 나누고 개념마다 MeSH와 [tiab] 동의어로 검색어를 씀. 반대 근거를 찾을 넓은 검색어도 하나 넣음</td><td>질문 → 하위 질문과 검색어</td><td>LLM 1회</td><td>검색어 4개</td></tr>
-      <tr><td><code>search</code></td><td>검색어마다 PubMed 상위 10건을 받고, 처음 보는 PMID의 초록을 가져옴. 검색어별로 번갈아 뽑아 한 검색어가 후보를 독차지하지 않게 함</td><td>검색어 → <code>SearchLog</code>, 초록</td><td>검색 · 초록 도구, 병렬</td><td>라운드당 새 후보 25건</td></tr>
-      <tr><td><code>screen</code></td><td>후보 초록을 읽고 질문에 근거가 되는 논문을 관련도 순으로 고름. 부족하면 빠진 근거와 새 검색어를 냄. 검색 결과가 0건이어도 호출되어 더 넓은 검색어를 냄</td><td>질문, 지금까지의 검색어와 건수, 후보 초록 → 선택 PMID, 충분 여부, 새 검색어</td><td>LLM 라운드당 1회</td><td>2라운드, 새 검색어 3개</td></tr>
+      <tr><td><code>search</code></td><td>검색어마다 PubMed 상위 10건을 받고, 처음 보는 PMID의 초록을 가져옴. 1라운드에는 질문 그대로 검색(B의 검색)도 돌려 그 결과를 후보 맨 앞에 둠. 나머지는 검색어별로 번갈아 뽑아 한 검색어가 후보를 독차지하지 않게 함</td><td>검색어 → <code>SearchLog</code>, 초록</td><td>검색 · 초록 도구, 병렬</td><td>라운드당 새 후보 25건</td></tr>
+      <tr><td><code>screen</code></td><td>후보 초록을 읽고 질문에 근거가 되는 논문을 관련도 순으로 고름. 부족하면 빠진 근거와 새 검색어를 냄. 새 검색어도 계획과 같은 PubMed 형식으로 씀. 검색 결과가 0건이어도 호출되어 더 넓은 검색어를 냄</td><td>질문, 지금까지의 검색어와 건수, 후보 초록 → 선택 PMID, 충분 여부, 새 검색어</td><td>LLM 라운드당 1회</td><td>2라운드, 새 검색어 3개</td></tr>
       <tr><td><code>answer</code></td><td>선택한 초록만 주고 문장별 인용 답변을 받음. 시스템 프롬프트와 스키마는 B와 같음</td><td>질문, 선택 초록 → <code>CitedAnswer</code></td><td>LLM 1회</td><td>초록 10건</td></tr>
     </tbody>
   </table></div>
@@ -424,6 +424,8 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     <tbody>
       <tr><td>답변 단계는 B와 같은 시스템 프롬프트, 스키마, 초록 상한 10건</td><td>B 대비 개선이 검색·선별에서 왔다고 말할 수 있음. 공유 프롬프트는 <code>src/bioscout/prompts.py</code>로 옮겨 두 변형이 같은 상수를 씀</td><td>에이전트 전용 답변 프롬프트</td></tr>
       <tr><td>정해진 그래프 + 조건부 재검색 1회</td><td>질의당 LLM 호출이 3–4회로 정해져 비용 상한이 분명함. 단계마다 JSON 호출 하나라 응답 캐시로 재생되고, 가짜 LLM으로 단계별 테스트 가능</td><td>모델이 도구를 자유롭게 부르는 tool-use 루프. 호출 수가 문항마다 달라 비용과 재현성이 흔들림</td></tr>
+      <tr><td>1라운드에 질문 그대로 검색도 실행하고, 그 결과를 후보 맨 앞에 둠 (11/15 추가)</td><td>첫 실행에서 넓은 MeSH 검색이 PubMedQA 원 논문을 상위 10건에서 놓쳐, C가 B보다 덜 찾았음(원 논문이 답변 초록에 든 비율 40% vs 90%). 이렇게 하면 C가 고를 후보에 B가 답변에 쓰는 초록 10건이 늘 들어감</td><td>계획 노드에 논문 제목 같은 검색어를 쓰게 하기. PubMedQA에만 맞춘 요령이 됨</td></tr>
+      <tr><td>선별 노드의 새 검색어도 계획과 같은 형식 규칙(<code>QUERY_SYNTAX</code>)을 따름 (11/15 추가)</td><td>첫 실행에서 선별 노드가 쓴 키워드 나열은 PubMed가 단어마다 AND로 묶어 0–3건만 돌려준 경우가 많았음</td><td>형식 자유</td></tr>
       <tr><td>LangGraph <code>StateGraph</code></td><td>Day 4 검증 루프(조건 분기와 순환)를 노드 하나로 붙이고, Day 5에 Langfuse가 노드 단위로 트레이스함</td><td>순수 async 함수 체인</td></tr>
       <tr><td>선별은 제목이 아니라 초록 전체를 읽음</td><td>근거는 초록의 결과·결론에 있음. 후보 25건이면 입력 약 9K 토큰</td><td>제목만 보고 고르기</td></tr>
       <tr><td>ClinicalTrials.gov와 본문은 변형 C에서 쓰지 않음</td><td>인용 단위가 PMID이고 Day 4 judge는 초록으로 판정함. 시험 등록 정보나 본문에만 있는 근거는 채점도 검증도 할 수 없음. "일정이 밀릴 때" 1번과도 같음</td><td>도구 5개 모두 사용</td></tr>

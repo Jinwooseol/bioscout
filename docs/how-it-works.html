@@ -259,14 +259,14 @@ Replay mode: no recorded response for this call.</code></pre>
     <thead><tr><th>단계</th><th>Claude 또는 도구가 받는 것</th><th>상태에 남는 것</th></tr></thead>
     <tbody>
       <tr><td>1 계획</td><td>질문만</td><td>검색어 3개. 예: <code>("Microsatellite Instability"[MeSH] OR "MSI-H"[tiab]) AND ("Colorectal Neoplasms"[MeSH] OR "colorectal cancer"[tiab]) AND ("Immune Checkpoint Inhibitors"[MeSH] OR "anti-PD-1"[tiab])</code>, 그리고 개념을 하나 뺀 넓은 검색어</td></tr>
-      <tr><td>2 검색</td><td>검색어 3개를 동시에, 각 상위 10건</td><td>검색 기록 3개. 검색어별 1등, 2등… 순으로 번갈아 뽑은 새 후보 최대 25건과 그 초록</td></tr>
+      <tr><td>2 검색</td><td>질문 그대로 검색 1개와 검색어 3개를 동시에, 각 상위 10건</td><td>검색 기록 4개. 질문 그대로 검색의 결과를 맨 앞에 두고, 나머지는 검색어별 1등, 2등… 순으로 번갈아 뽑아 새 후보 최대 25건과 그 초록</td></tr>
       <tr><td>3 선별</td><td>질문, 검색어와 건수, 후보 초록 25건</td><td>근거 논문 PMID를 관련도 순으로(예: 10000004, 10000001). 충분하면 4로, 부족하면 빠진 근거와 새 검색어를 내고 2로 한 번 더</td></tr>
       <tr><td>2′ 재검색</td><td>새 검색어 (이미 실행한 것은 제외)</td><td>새로 나온 PMID만 초록을 가져옴. 2라운드 선별에는 1라운드에서 고른 초록과 새 후보만 보여 줌</td></tr>
       <tr><td>4 답변</td><td>질문, 선별한 초록 최대 10건, B와 같은 시스템 프롬프트</td><td>문장별 인용 답변. <code>context_pmids</code>에 답변 단계가 본 PMID, <code>usage</code>에 LLM 3–4회와 도구 호출의 합</td></tr>
     </tbody>
   </table></div>
   <p class="note">PMID 10000001, 10000004는 가상 번호입니다. 검색어는 형식을 보여 주는 예시이며, 실제 실행의 검색어는 <code>records.jsonl</code>의 <code>searches</code>에 남습니다.</p>
-  <p>안전장치가 몇 가지 있습니다. 계획이 검색어를 하나도 내지 않으면 질문을 그대로 검색해 B와 같은 상태로 진행합니다. 선별이 보여 주지 않은 PMID를 고르면 버려서, 답변 단계에는 실제로 가져온 초록만 들어갑니다. 어느 단계든 모델이 거절하면 그 자리에서 끝내고 거절로 기록합니다.</p>
+  <p>안전장치가 몇 가지 있습니다. 1라운드에는 계획한 검색어와 함께 질문 그대로 검색(B의 검색)도 돌립니다. 그래서 C가 고를 후보에 B가 답변에 쓰는 초록 10건이 늘 들어가고, C가 B보다 덜 찾는 일이 없습니다. 계획이 검색어를 하나도 내지 않으면 그 검색만으로 진행합니다. 선별이 보여 주지 않은 PMID를 고르면 버려서, 답변 단계에는 실제로 가져온 초록만 들어갑니다. 어느 단계든 모델이 거절하면 그 자리에서 끝내고 거절로 기록합니다.</p>
 
   <h3>답변 하나를 채점하면</h3>
   <p>Day 2 채점은 판정 없이 계산되는 것만 봅니다. PMID 존재 여부는 PubMed에 물어 확인하고, 문장이 초록에 의해 지지되는지는 Day 4 judge가 같은 레코드 위에서 판정합니다.</p>
