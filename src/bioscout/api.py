@@ -15,7 +15,8 @@ passes four checks, in this order, and only the last one counts it:
   1. a recorded answer is returned as it is (the example questions cost nothing);
   2. with no key to run with, the request is refused (503 live_off);
   3. a free slot: BIOSCOUT_API_MAX_CONCURRENT answers run at a time (503 busy);
-  4. the question allowance of quota.py, per day and in total (429 quota_exceeded).
+  4. the question allowance of quota.py: per day and in total for everyone, and per day for the
+     caller (429 quota_exceeded).
 
 The layout of an answer comes from demo.py, which the demo page shares, so both show the same thing.
 """
@@ -23,6 +24,7 @@ The layout of an answer comes from demo.py, which the demo page shares, so both 
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import traceback
 from collections.abc import AsyncIterator, Callable, Mapping
@@ -136,6 +138,7 @@ class LimitsOut(BaseModel):
     question_chars: int
     questions_per_day: int
     questions_total: int
+    questions_per_caller: int = Field(description="Of the day's questions, how many one caller may ask")
     concurrent: int
     timeout_s: float
 
@@ -259,6 +262,28 @@ def service_of(request: Request) -> Service:
     return request.app.state.service
 
 
+def caller_of(request: Request, header: str | None = None) -> str | None:
+    """What tells one caller from another, for the limit per caller: the network address.
+
+    Behind a proxy the connection comes from the proxy, so `header` names the request header in which
+    that proxy gives the caller's address. It must be one the proxy sets itself (Fly-Client-IP on
+    Fly.io), not one a caller can fill in, like X-Forwarded-For. An IPv6 caller is counted by /64: one
+    subscriber holds that whole range."""
+    given = request.headers.get(header) if header else None
+    raw = (given or (request.client.host if request.client else "")).strip()
+    if not raw:
+        return None
+    try:
+        address = ipaddress.ip_address(raw)
+    except ValueError:
+        return raw[:100]  # not an address (a test client's name): still tells callers apart
+    if isinstance(address, ipaddress.IPv6Address):
+        if address.ipv4_mapped is not None:
+            return str(address.ipv4_mapped)
+        return str(ipaddress.ip_network(f"{address}/64", strict=False))
+    return str(address)
+
+
 async def admit(ask: Ask, request: Request) -> AsyncIterator[Ticket]:
     """The four checks of the module docstring. The slot is held until the response has been sent,
     which for a stream is after its last event."""
@@ -273,7 +298,7 @@ async def admit(ask: Ask, request: Request) -> AsyncIterator[Ticket]:
     if service.running >= service.settings.api_max_concurrent:
         raise Problem(503, "busy", BUSY, retry_after_s=BUSY_RETRY_S)
     try:
-        service.quota.take()
+        service.quota.take(caller_of(request, service.settings.api_client_header))
     except QuotaExceeded as exc:
         raise Problem(429, "quota_exceeded", demo.quota_text(exc), exc.retry_after_s) from None
     service.running += 1
@@ -315,7 +340,7 @@ async def answer_for(
 router = APIRouter()
 Admitted = Annotated[Ticket, Depends(admit)]
 REFUSALS: dict[int | str, dict[str, object]] = {
-    429: {"model": ProblemBody, "description": "The question allowance is used up (`quota_exceeded`)"},
+    429: {"model": ProblemBody, "description": "An allowance of questions is used up (`quota_exceeded`)"},
     503: {"model": ProblemBody, "description": "No key to answer with (`live_off`), or `busy`"},
 }
 FAILURES: dict[int | str, dict[str, object]] = {
@@ -342,6 +367,7 @@ async def status(request: Request) -> StatusOut:
             question_chars=demo.MAX_QUESTION_CHARS,
             questions_per_day=quota.per_day,
             questions_total=quota.total,
+            questions_per_caller=quota.per_caller,
             concurrent=settings.api_max_concurrent,
             timeout_s=settings.api_timeout_s,
         ),

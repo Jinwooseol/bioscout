@@ -45,11 +45,12 @@ def build(
     *,
     per_day: int = 5,
     total: int = 50,
+    per_caller: int | None = None,
     recorded: dict[str, demo.DemoResult] | None = None,
     live: bool | None = None,
     **settings: Any,
 ):
-    quota = Quota(folder / "quota.sqlite", per_day=per_day, total=total)
+    quota = Quota(folder / "quota.sqlite", per_day=per_day, total=total, per_caller=per_caller)
     return api.create_app(
         Settings(cache_dir=folder, **settings),
         answerer=answerer,
@@ -182,6 +183,35 @@ def test_the_allowance_is_one_for_every_caller_and_a_used_up_one_answers_429(tmp
         assert "for this deployment is used up" in refused.json()["detail"]["message"]
 
 
+def test_one_caller_may_ask_only_so_many_of_the_days_questions(tmp_path: Path):
+    app = build(tmp_path, per_day=10, per_caller=2, api_client_header="Fly-Client-IP")
+
+    def ask(address: str | None):
+        headers = {"Fly-Client-IP": address} if address else {}
+        return client.post("/v1/answers", json=ASK, headers=headers)
+
+    with TestClient(app) as client:
+        assert client.get("/v1/status").json()["limits"]["questions_per_caller"] == 2
+        assert [ask("203.0.113.9").status_code for _ in range(3)] == [200, 200, 429]
+        refused = ask("203.0.113.9")
+        detail = refused.json()["detail"]
+        assert detail["code"] == "quota_exceeded" and "one visitor may ask in a day" in detail["message"]
+        assert 0 < int(refused.headers["retry-after"]) <= 86400
+        assert left_today(client) == 8  # a refused question is not counted
+
+        assert ask("203.0.113.10").status_code == 200  # another caller still has a share
+        # One IPv6 subscriber holds a whole /64, so its addresses are one caller.
+        assert [ask(f"2001:db8:1:2::{n}").status_code for n in (1, 2, 3)] == [200, 200, 429]
+        assert ask("2001:db8:1:3::1").status_code == 200
+        # With no such header on the request, the caller is where the connection comes from.
+        assert [ask(None).status_code for _ in range(3)] == [200, 200, 429]
+        assert left_today(client) == 2
+
+    # Without the setting a header a caller sends is not believed: all of these are one caller.
+    with TestClient(build(tmp_path / "plain", per_day=10, per_caller=1)) as client:
+        assert [ask(address).status_code for address in ("203.0.113.9", "203.0.113.10")] == [200, 429]
+
+
 def test_without_a_key_only_the_recorded_answers_are_served(tmp_path: Path):
     app = build(tmp_path, answerer=None, recorded={QUESTION: recorded_example()}, live=False)
     with TestClient(app) as client:
@@ -192,6 +222,7 @@ def test_without_a_key_only_the_recorded_answers_are_served(tmp_path: Path):
             "question_chars": 400,
             "questions_per_day": 5,
             "questions_total": 50,
+            "questions_per_caller": 5,
             "concurrent": 2,
             "timeout_s": 300.0,
         }

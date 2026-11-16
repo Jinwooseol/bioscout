@@ -48,6 +48,9 @@ class Settings:
     # together and survives a restart; raise it here, never remove it.
     max_questions_per_day: int = 20
     max_questions_total: int = 200
+    # Of the day's questions, how many one caller of the API may ask: it keeps one visitor from using
+    # up the day for the others. It does not bound the bill; the two limits above do.
+    max_questions_per_caller: int = 5
     quota_path: Path | None = None  # None: quota.sqlite in the cache directory
     # The HTTP API (api.py).
     api_host: str = "127.0.0.1"
@@ -55,6 +58,9 @@ class Settings:
     api_max_concurrent: int = 2  # questions answered at the same time
     api_timeout_s: float = 300.0  # one answer may take this long, then the request fails
     api_cors_origins: tuple[str, ...] = ()  # web pages on other origins allowed to call the API
+    # The request header in which the host's proxy gives the caller's address (Fly-Client-IP on
+    # Fly.io). None: the address the connection comes from, which behind a proxy is the proxy's.
+    api_client_header: str | None = None
     examples_path: Path = Path("app/examples.json")  # the recorded answers the API serves
 
     def __post_init__(self) -> None:
@@ -100,11 +106,15 @@ class Settings:
             trace_content=env.get("BIOSCOUT_TRACE_CONTENT", "on").lower() not in ("off", "0", "false", "no"),
             max_questions_per_day=int(env.get("BIOSCOUT_MAX_QUESTIONS_PER_DAY") or cls.max_questions_per_day),
             max_questions_total=int(env.get("BIOSCOUT_MAX_QUESTIONS_TOTAL") or cls.max_questions_total),
+            max_questions_per_caller=int(
+                env.get("BIOSCOUT_MAX_QUESTIONS_PER_CALLER") or cls.max_questions_per_caller
+            ),
             quota_path=Path(quota_path).expanduser() if quota_path else None,
             api_host=env.get("BIOSCOUT_API_HOST") or cls.api_host,
             api_port=int(env.get("BIOSCOUT_API_PORT") or cls.api_port),
             api_max_concurrent=int(env.get("BIOSCOUT_API_MAX_CONCURRENT") or cls.api_max_concurrent),
             api_timeout_s=float(env.get("BIOSCOUT_API_TIMEOUT_S") or cls.api_timeout_s),
             api_cors_origins=tuple(o.strip().rstrip("/") for o in origins.split(",") if o.strip()),
+            api_client_header=(env.get("BIOSCOUT_API_CLIENT_HEADER") or "").strip() or None,
             examples_path=Path(env.get("BIOSCOUT_EXAMPLES") or cls.examples_path),
         )

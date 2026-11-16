@@ -161,11 +161,19 @@ first, and only the last one counts it:
 3. Two answers run at a time (`BIOSCOUT_API_MAX_CONCURRENT`); a third is refused with `Retry-After`
    (503 `busy`).
 4. The question allowance: 20 a day and 200 in all (`BIOSCOUT_MAX_QUESTIONS_PER_DAY`,
-   `BIOSCOUT_MAX_QUESTIONS_TOTAL`). When it is used up the answer is 429 `quota_exceeded`.
+   `BIOSCOUT_MAX_QUESTIONS_TOTAL`), and of the day's questions one caller may ask 5
+   (`BIOSCOUT_MAX_QUESTIONS_PER_CALLER`). When one of them is used up the answer is 429
+   `quota_exceeded`.
 
 The count is kept in a SQLite file, so it survives a restart, holds for all callers together, and is
 shared with the demo page. At about $0.25 a question with the citation check on, the defaults bound
 spending near $5 a day and $50 in all. A question that fails stays counted.
+
+The limit per caller keeps one visitor from using up the day for the others. It does not bound
+spending, since a caller who changes address gets a new count; the allowance for everyone does.
+Callers are told apart by network address (an IPv6 caller by /64). Behind a proxy, name the request
+header in which the proxy gives that address in `BIOSCOUT_API_CLIENT_HEADER`. The file keeps a salted
+hash of the address, and only for the day.
 
 An error response names the kind of failure and never quotes it: a failed request to PubMed carries
 the API key in its URL. An answer that runs longer than `BIOSCOUT_API_TIMEOUT_S` (300) is stopped, and
@@ -174,7 +182,7 @@ closing a stream stops the agent. Pages on other origins may call the API only w
 
 From the container: `docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo bioscout-api`.
 
-Not built: limits per caller and authentication. The API is not hosted anywhere yet, so the public
+Not built: authentication. The API is not hosted anywhere yet, so the public
 page still shows recorded answers only.
 
 ## Architecture

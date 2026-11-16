@@ -151,6 +151,12 @@ def quota() -> Quota:
 
 def quota_text(exceeded: QuotaExceeded) -> str:
     """What a visitor is told when the allowance is used up."""
+    if exceeded.scope == "caller":
+        return (
+            f"You have asked the {exceeded.status.per_caller} live questions one visitor may ask in a "
+            f"day. You can ask again at {exceeded.status.resets_at:%H:%M} UTC. The example questions "
+            "still show recorded answers."
+        )
     if exceeded.scope == "day":
         return (
             "Today's allowance of live questions, shared by all visitors, is used up. It starts again at "

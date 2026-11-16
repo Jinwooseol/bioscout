@@ -133,6 +133,11 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   `request_answer` in the page): never add a path around it, never give a question back when its
   answer fails, and never let zero or a missing value mean "no limit". The public page still runs no
   model: the API is not hosted anywhere.
+- The limit per caller (`Quota.take(caller)`, the API only) is a courtesy that keeps one visitor from
+  using up the day. Never count on it to bound spending: a caller who changes address gets a new
+  count. The quota file must never hold an address, only the salted hash, and only for the day.
+  Believe a header for the caller's address only when the operator named it
+  (`BIOSCOUT_API_CLIENT_HEADER`): a caller can send any header.
 - What a visitor is told about a failed answer is `demo.failure_text`: the kind of error, never its
   text. The API logs the kind and the stack frames only. An exception can quote a request, and a
   request to PubMed carries the API key and the contact address.
