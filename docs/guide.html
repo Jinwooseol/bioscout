@@ -167,16 +167,63 @@ curl.exe -N -X POST http://127.0.0.1:8000/v1/answers/stream -H "Content-Type: ap
     <tbody>
       <tr><td><code>BIOSCOUT_MAX_QUESTIONS_PER_DAY</code></td><td>20</td><td>하루(UTC)에 받는 질문 수. 모든 호출자와 Streamlit 화면이 함께 씀. 0이면 닫힘</td></tr>
       <tr><td><code>BIOSCOUT_MAX_QUESTIONS_TOTAL</code></td><td>200</td><td>전체 질문 수. 다 쓰면 값을 올리기 전까지 열리지 않음</td></tr>
+      <tr><td><code>BIOSCOUT_MAX_QUESTIONS_PER_CALLER</code></td><td>5</td><td>하루 질문 가운데 API 호출자 한 명이 쓸 수 있는 수. 호출자는 네트워크 주소로 구별</td></tr>
       <tr><td><code>BIOSCOUT_QUOTA_PATH</code></td><td>캐시 폴더의 <code>quota.sqlite</code></td><td>질문 수를 세는 파일. 지우면 수가 0으로 돌아감</td></tr>
       <tr><td><code>BIOSCOUT_API_MAX_CONCURRENT</code></td><td>2</td><td>동시에 실행하는 답변 수</td></tr>
       <tr><td><code>BIOSCOUT_API_TIMEOUT_S</code></td><td>300</td><td>답변 하나의 시간 제한(초)</td></tr>
       <tr><td><code>BIOSCOUT_API_HOST</code>, <code>BIOSCOUT_API_PORT</code></td><td>127.0.0.1, 8000</td><td>서버 주소. 컨테이너에서는 0.0.0.0, 7860</td></tr>
       <tr><td><code>BIOSCOUT_API_CORS_ORIGINS</code></td><td>없음</td><td>API를 부를 수 있는 다른 출처의 웹 페이지. 쉼표로 구분</td></tr>
+      <tr><td><code>BIOSCOUT_API_CLIENT_HEADER</code></td><td>없음</td><td>프록시 뒤에서 호출자 주소가 담긴 요청 헤더의 이름. 프록시가 직접 넣는 헤더만 적음(Fly.io는 <code>Fly-Client-IP</code>). 없으면 연결이 온 주소를 씀</td></tr>
+      <tr><td><code>BIOSCOUT_SERVE</code></td><td>page</td><td>컨테이너에서만 쓰임. 실행 명령을 주지 않았을 때 무엇을 띄울지. <code>api</code>면 API</td></tr>
     </tbody>
   </table></div>
   <p>한도는 이 PC에서 화면이나 API로 직접 질문할 때도 적용됩니다. 하루 20개를 넘겨 쓰려면 <code>.env</code>에 <code>BIOSCOUT_MAX_QUESTIONS_PER_DAY</code>를 적습니다. 평가 실행(<code>bioscout-eval</code>)은 한도와 무관합니다.</p>
   <p>컨테이너에서는 실행 명령을 바꿔 API를 띄웁니다. 질문 수 파일이 컨테이너 안에 있으므로, 컨테이너를 새로 만들어도 수를 유지하려면 볼륨을 붙입니다.</p>
   <div class="cmd"><pre><code>docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=&lt;키&gt; -v bioscout-state:/home/user/.cache/bioscout bioscout-demo bioscout-api</code></pre></div>
+
+  <h2 id="hosting">API를 공개 주소에 올리기 (Fly.io)</h2>
+  <p>아직 실행해 보지 않은 순서입니다. Fly 문서를 보고 적었습니다. 계정 만들기, 카드 등록, 키 입력은 직접 해야 합니다. 이렇게 정한 이유는 <a href="design.html#hosting">설계 문서</a>에 있습니다.</p>
+  <ol class="steps">
+    <li>
+      <h3>준비</h3>
+      <p><a href="https://fly.io">Fly.io</a> 계정을 만들고 카드를 등록합니다. flyctl은 <a href="https://fly.io/docs/flyctl/install/">Fly 문서</a>를 따라 설치한 뒤 로그인합니다.</p>
+      <div class="cmd"><pre><code>fly auth login</code></pre></div>
+      <p><a href="https://platform.claude.com/settings/keys">Claude Console</a>에서 이 배포에만 쓸 키를 새로 만들고, 그 키가 속한 워크스페이스에 월 지출 한도를 겁니다. 질문 수 한도는 이 프로젝트의 코드가 세는 값이고, Console의 지출 한도는 코드가 틀려도 지켜집니다.</p>
+    </li>
+    <li>
+      <h3>앱 만들기</h3>
+      <div class="cmd"><pre><code>fly launch --copy-config --no-deploy --name &lt;이름&gt; --region nrt</code></pre></div>
+      <p>이름은 Fly 전체에서 하나뿐이어야 하고, 주소는 <code>https://&lt;이름&gt;.fly.dev</code>가 됩니다. <code>fly.toml</code>의 <code>app</code> 값을 그 이름으로 바꿉니다. 리전 <code>nrt</code>는 도쿄입니다. Fly에는 한국 리전이 없습니다.</p>
+    </li>
+    <li>
+      <h3>볼륨 만들기</h3>
+      <div class="cmd"><pre><code>fly volumes create bioscout_data --size 1 --region nrt --app &lt;이름&gt;</code></pre></div>
+      <p>질문 수 파일과 응답 캐시가 여기에 놓입니다. 볼륨을 지우면 질문 수가 0으로 돌아갑니다.</p>
+    </li>
+    <li>
+      <h3>키 넣기</h3>
+      <div class="cmd"><pre><code>fly secrets set ANTHROPIC_API_KEY=&lt;키&gt; NCBI_API_KEY=&lt;키&gt; NCBI_EMAIL=&lt;주소&gt; --app &lt;이름&gt;</code></pre></div>
+      <p>키는 Fly에만 저장됩니다. 저장소의 어떤 파일에도 적지 않습니다.</p>
+    </li>
+    <li>
+      <h3>올리기</h3>
+      <div class="cmd"><pre><code>fly deploy --ha=false</code></pre></div>
+      <p><code>--ha=false</code>는 머신을 하나만 만듭니다. 질문 수가 볼륨의 파일이라, 머신이 둘이면 한도를 각자 셉니다. 올린 뒤 아래 주소에서 <code>"live": true</code>가 나오는지 봅니다.</p>
+      <div class="cmd"><pre><code>curl.exe https://&lt;이름&gt;.fly.dev/v1/status
+fly status --app &lt;이름&gt;</code></pre></div>
+    </li>
+    <li>
+      <h3>공개 페이지에 주소 넣기</h3>
+      <p><code>space/static/config.json</code>을 <code>{"api": "https://&lt;이름&gt;.fly.dev"}</code>로 바꾸고 페이지를 다시 게시합니다.</p>
+      <div class="cmd"><pre><code>uv run --with huggingface_hub python scripts/deploy_space.py brakey/bioscout</code></pre></div>
+      <p>공개 페이지를 열어 질문 칸이 보이는지 확인하고 질문 하나를 보내 봅니다. 이 질문에는 실제 비용($0.25쯤)이 듭니다.</p>
+    </li>
+  </ol>
+  <h3>비용</h3>
+  <p>Fly 문서에 적힌 요금입니다. 512MB 머신은 켜져 있는 시간만큼 내고, 한 달 내내 켜 두면 $3.69입니다. 멈춘 동안에는 디스크 요금(GB당 월 $0.15)만 나오고, 볼륨 1GB도 월 $0.15입니다. 개인 계정은 월 청구액이 $5 미만이면 면제됩니다. 질문에 드는 Claude API 비용은 따로이고, 기본 한도에서 하루 약 $5, 전체 약 $50이 상한입니다.</p>
+  <h3>새 질문 닫기</h3>
+  <p>한도를 0으로 두면 새 질문을 받지 않고 기록된 답변만 나옵니다. 공개 페이지의 질문 칸도 잠깁니다.</p>
+  <div class="cmd"><pre><code>fly secrets set BIOSCOUT_MAX_QUESTIONS_PER_DAY=0 --app &lt;이름&gt;</code></pre></div>
 
   <h2>트레이싱 (Langfuse)</h2>
   <p>답변 하나가 거친 단계, 모델 호출, PubMed 호출을 Langfuse에서 볼 수 있습니다. 설정하지 않으면 꺼져 있습니다.</p>

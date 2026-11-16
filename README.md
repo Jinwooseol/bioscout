@@ -21,7 +21,7 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 | Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
 | Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
 | Tracing | One trace per answer: steps, model calls and PubMed calls as OpenTelemetry spans, sent to Langfuse when keys are set | `src/bioscout/tracing.py` |
-| CI | 146 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| CI | 160 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
 | API | A FastAPI service: the answer as JSON, or as server-sent events step by step, behind a cap on questions per day and in total that is kept in SQLite | `src/bioscout/api.py`, `src/bioscout/quota.py` |
 | Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
