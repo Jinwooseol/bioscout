@@ -91,7 +91,11 @@ class CachedHttp:
                 if resp.status_code == 200:
                     return resp.text
                 if resp.status_code not in self._RETRY_STATUS:
-                    resp.raise_for_status()
+                    # Not resp.raise_for_status(): its message quotes the whole URL, and the query
+                    # string of a PubMed request carries the API key and the contact address.
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {resp.status_code} from {url}", request=resp.request, response=resp
+                    )
                 last_error = httpx.HTTPStatusError(
                     f"HTTP {resp.status_code}", request=resp.request, response=resp
                 )

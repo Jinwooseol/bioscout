@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import httpx
 import pytest
 
 from bioscout.cache import ResponseCache
@@ -71,3 +72,12 @@ async def test_a_cache_miss_is_reported_without_the_api_key_or_the_contact_addre
     assert "10000001" in message  # what was asked for is still there, to find the missing recording
     assert "secret-test-key" not in message and "dev@example.com" not in message
     await http.aclose()
+
+
+async def test_a_rejected_request_is_reported_without_the_api_key_or_the_contact_address(http, api):
+    api.get("https://eutils.example/esearch.fcgi").mock(return_value=httpx.Response(400, text="bad term"))
+    params = {"term": "msi", "api_key": "test-key", "email": "dev@example.com"}
+    with pytest.raises(httpx.HTTPStatusError) as rejected:
+        await http.get_text("https://eutils.example/esearch.fcgi", params)
+    assert str(rejected.value) == "HTTP 400 from https://eutils.example/esearch.fcgi"
+    assert rejected.value.response.status_code == 400  # what the MCP server's tool error reads
