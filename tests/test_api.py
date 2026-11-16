@@ -111,6 +111,7 @@ def test_a_question_gets_the_answer_with_verdicts_sources_and_what_it_cost(tmp_p
         assert body["usd"] == pytest.approx(0.04) and body["seconds"] is not None  # four model calls
         assert body["verified"] and not body["recorded"] and not body["replayed"]
         assert body["searches"] and all(search["query"] for search in body["searches"])
+        assert body["abstracts"] >= 1  # what the answer was written from
         assert left_today(client) == 4
 
         unchecked = client.post("/v1/answers", json={"question": QUESTION, "verify": False}).json()

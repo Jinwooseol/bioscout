@@ -21,6 +21,7 @@
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; background: var(--bg); color: var(--fg); line-height: 1.6;
     font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -33,13 +34,29 @@
   .muted { color: var(--muted); font-size: 0.875rem; }
   .notice { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
             border-radius: 8px; padding: 12px 14px; margin: 16px 0 24px; font-size: 0.9375rem; }
+  form.ask { display: grid; gap: 8px; margin: 0 0 24px; }
+  form.ask label { font-weight: 600; }
+  form.ask textarea {
+    font: inherit; width: 100%; padding: 10px 14px; border-radius: 8px; resize: vertical;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  }
+  form.ask textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .ask-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .ask-row button {
+    font: inherit; font-weight: 600; padding: 8px 22px; border-radius: 8px; cursor: pointer;
+    background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
+  }
+  button:disabled, textarea:disabled { opacity: 0.55; cursor: not-allowed; }
   .examples { display: grid; gap: 8px; margin: 8px 0 8px; }
   .examples button {
     font: inherit; text-align: left; padding: 10px 14px; border-radius: 8px; cursor: pointer;
     background: var(--bg); color: var(--fg); border: 1px solid var(--line);
   }
-  .examples button:hover { border-color: var(--accent); }
+  .examples button:hover:not(:disabled) { border-color: var(--accent); }
   .examples button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .asked { font-weight: 600; margin: 0 0 12px; overflow-wrap: anywhere; }
+  ol.progress { margin: 0 0 12px; padding-left: 22px; }
+  .problem { background: var(--red-bg); color: var(--red-fg); border-radius: 8px; padding: 10px 14px; }
   .short { font-weight: 600; margin: 0 0 12px; }
   ol.sentences { list-style: none; margin: 0; padding: 0; }
   ol.sentences li { padding: 10px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
@@ -51,11 +68,12 @@
   .badge.partial { background: var(--orange-bg); color: var(--orange-fg); }
   .badge.unsupported { background: var(--red-bg); color: var(--red-fg); }
   .badge.none { background: var(--gray-bg); color: var(--gray-fg); }
+  .evidence { display: block; margin-top: 4px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; overflow-wrap: anywhere; }
   .card a { font-weight: 600; }
   details { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-top: 24px; }
   summary { cursor: pointer; font-weight: 600; }
-  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 14px 0; }
   .metric b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
   .table-wrap { overflow-x: auto; margin: 8px 0 16px; }
   table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
@@ -70,13 +88,23 @@
   <h1>BioScout</h1>
   <p>BioScout answers biomedical research questions from PubMed. It searches, answers with a citation on every
      sentence, and checks each citation against the paper's abstract before showing it.</p>
-  <div class="notice">
+  <div class="notice" id="notice">
     This page shows answers recorded from the real agent, so it runs no model and costs nothing.
     To ask your own question, run BioScout with your own Claude API key:
     <a href="https://github.com/Jinwooseol/bioscout">github.com/Jinwooseol/bioscout</a>
   </div>
 
-  <p class="muted">Pick an example question:</p>
+  <form class="ask" id="ask" hidden>
+    <label for="question">Ask your own question</label>
+    <textarea id="question" rows="3" maxlength="400" required
+              placeholder="A biomedical research question, in English"></textarea>
+    <div class="ask-row">
+      <button type="submit" id="send">Ask</button>
+      <span class="muted" id="allowance"></span>
+    </div>
+  </form>
+
+  <p class="muted" id="pick">Pick an example question:</p>
   <div class="examples" id="examples"></div>
   <div id="result" aria-live="polite"><p class="muted">Loading the recorded answers…</p></div>
 
@@ -104,9 +132,10 @@ const STEPS = {
   verify: "Checked each sentence against the abstracts it cites",
   revise: "Rewrote sentences that were not fully backed",
 };
-const pubmed = (pmid) => `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+const pubmed = (pmid) => `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(pmid)}/`;
+const $ = (id) => document.getElementById(id);
 
-// Every piece of recorded text is set as text, never as HTML.
+// Every piece of text from a recorded answer or from the API is set as text, never as HTML.
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
@@ -123,95 +152,300 @@ function table(headers, rows) {
   return el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, ...body)));
 }
 
-function stepRows(steps) {
-  const rows = new Map();
-  for (const step of steps) {
-    const row = rows.get(step.name) || { label: STEPS[step.name] || step.name, runs: 0, calls: 0, usd: 0 };
-    row.runs += 1;
-    row.calls += step.usage.llm_calls || 0;
-    row.usd += step.usage.usd || 0;
-    rows.set(step.name, row);
+// A recorded answer (examples.json) in the shape the API gives a live one (POST /v1/answers), so both
+// are drawn by the same code.
+function fromRecord(record) {
+  const { answer, articles } = record;
+  const citedBy = new Map();
+  answer.sentences.forEach((sentence, index) => {
+    for (const pmid of sentence.citations) {
+      if (!citedBy.has(pmid)) citedBy.set(pmid, []);
+      if (!citedBy.get(pmid).includes(index + 1)) citedBy.get(pmid).push(index + 1);
+    }
+  });
+  const steps = new Map();
+  for (const step of answer.steps) {
+    const total = steps.get(step.name) ||
+      { name: step.name, label: STEPS[step.name] || step.name, runs: 0, llm_calls: 0, usd: 0, seconds: 0 };
+    total.runs += 1;
+    total.llm_calls += step.usage.llm_calls || 0;
+    total.usd += step.usage.usd || 0;
+    steps.set(step.name, total);
   }
-  return [...rows.values()].map((r) => [r.label, r.runs, r.calls, r.usd.toFixed(4)]);
+  return {
+    question: answer.question,
+    decision: answer.decision,
+    refused: Boolean(answer.refused),
+    sentences: answer.sentences.map((sentence) => ({
+      text: sentence.text,
+      citations: sentence.citations,
+      verdict: sentence.verdict || null,
+      verdict_label: VERDICTS[sentence.verdict] || NOT_CHECKED,
+      evidence: sentence.evidence || null,
+    })),
+    dropped: answer.dropped.map((dropped) => ({
+      text: dropped.text, explanation: DROP_REASONS[dropped.reason] || dropped.reason,
+    })),
+    sources: [...citedBy].map(([pmid, sentences]) => {
+      const article = articles[pmid];
+      return {
+        pmid, sentences,
+        title: article ? article.title : null,
+        journal: article ? article.journal || null : null,
+        year: article ? article.year || null : null,
+      };
+    }),
+    searches: answer.searches.map((search) => ({ query: search.query, total_found: search.total_found })),
+    steps: [...steps.values()],
+    abstracts: answer.context_pmids.length,
+    usd: answer.steps.reduce((sum, step) => sum + (step.usage.usd || 0), 0),
+    seconds: null,
+    recorded: true,
+    replayed: true,
+  };
 }
 
-function show(record) {
-  const { answer, articles } = record;
+function show(view) {
   const out = el("div");
+  if (!view.recorded) out.append(el("p", { class: "asked" }, view.question));
+  if (view.refused) {
+    out.append(el("p", {}, "The model declined to answer this question."));
+    $("result").replaceChildren(out);
+    return;
+  }
   out.append(el("h2", {}, "Answer"));
-  const usd = answer.steps.reduce((sum, step) => sum + (step.usage.usd || 0), 0);
-  out.append(el("p", { class: "muted" },
-    `A recorded answer (it cost $${usd.toFixed(2)} to produce). Every sentence carries the verdict of the citation check.`));
-  if (["yes", "no", "maybe"].includes(answer.decision)) out.append(el("p", { class: "short" }, `In short: ${answer.decision}.`));
+  const cost = `$${view.usd.toFixed(2)}`;
+  const timed = view.seconds !== null && !view.replayed;
+  let how = `Answered just now in ${timed ? view.seconds.toFixed(0) : "?"} s for ${cost}.`;
+  if (view.recorded) how = `A recorded answer (it cost ${cost} to produce).`;
+  else if (!timed) how = `Replayed from recorded responses (it cost ${cost} when first produced).`;
+  out.append(el("p", { class: "muted" }, `${how} Every sentence carries the verdict of the citation check.`));
+  if (["yes", "no", "maybe"].includes(view.decision)) out.append(el("p", { class: "short" }, `In short: ${view.decision}.`));
+  if (!view.sentences.length) {
+    out.append(el("p", {}, "Nothing in the abstracts that were found backs an answer, so no statement is shown."));
+  }
 
-  const citedBy = new Map();
   const list = el("ol", { class: "sentences" });
-  answer.sentences.forEach((sentence, index) => {
+  view.sentences.forEach((sentence, index) => {
     const item = el("li", {}, el("span", { class: "num" }, `${index + 1}.`), sentence.text);
     for (const pmid of sentence.citations) {
       item.append(" ", el("a", { class: "pmid", href: pubmed(pmid), target: "_blank", rel: "noopener" }, `PMID ${pmid}`));
-      if (!citedBy.has(pmid)) citedBy.set(pmid, []);
-      citedBy.get(pmid).push(index + 1);
     }
-    const verdict = sentence.verdict;
-    item.append(el("br"), el("span", { class: `badge ${verdict || "none"}` }, VERDICTS[verdict] || NOT_CHECKED));
+    item.append(el("br"), el("span", { class: `badge ${sentence.verdict || "none"}` }, sentence.verdict_label || NOT_CHECKED));
+    if (sentence.evidence) {
+      item.append(el("span", { class: "muted evidence" }, `Evidence in the abstract: “${sentence.evidence}”`));
+    }
     list.append(item);
   });
   out.append(list);
 
-  if (answer.dropped.length) {
+  if (view.dropped.length) {
     const removed = el("details", {}, el("summary", {},
-      `Removed from the answer: ${answer.dropped.length} sentence(s) that nothing backed`));
-    for (const dropped of answer.dropped) {
-      removed.append(el("p", {}, el("s", {}, dropped.text)),
-        el("p", { class: "muted" }, DROP_REASONS[dropped.reason] || dropped.reason));
+      `Removed from the answer: ${view.dropped.length} sentence(s) that nothing backed`));
+    for (const dropped of view.dropped) {
+      removed.append(el("p", {}, el("s", {}, dropped.text)), el("p", { class: "muted" }, dropped.explanation));
     }
     out.append(removed);
   }
 
-  if (citedBy.size) out.append(el("h2", {}, "Sources"));
-  for (const [pmid, sentences] of citedBy) {
-    const article = articles[pmid];
-    const title = article ? article.title : "Not among the abstracts the agent read";
-    const details = article ? [`${article.journal || ""} ${article.year || ""}`.trim()].filter(Boolean) : [];
-    details.push(`PMID ${pmid}`, `cited by sentence ${sentences.join(", ")}`);
+  if (view.sources.length) out.append(el("h2", {}, "Sources"));
+  for (const source of view.sources) {
+    const title = source.title || "Not among the abstracts the agent read";
+    const details = [`${source.journal || ""} ${source.year || ""}`.trim()].filter(Boolean);
+    details.push(`PMID ${source.pmid}`, `cited by sentence ${source.sentences.join(", ")}`);
     out.append(el("div", { class: "card" },
-      el("a", { href: pubmed(pmid), target: "_blank", rel: "noopener" }, title),
+      el("a", { href: pubmed(source.pmid), target: "_blank", rel: "noopener" }, title),
       el("div", { class: "muted" }, details.join(" · "))));
   }
 
+  const metric = (value, label) => el("div", { class: "metric" }, el("b", {}, value), el("span", { class: "muted" }, label));
   const made = el("details", {}, el("summary", {}, "How this answer was made"));
-  made.append(el("div", { class: "metrics" },
-    el("div", { class: "metric" }, el("b", {}, `$${usd.toFixed(2)}`), el("span", { class: "muted" }, "Cost")),
-    el("div", { class: "metric" }, el("b", {}, String(answer.searches.length)), el("span", { class: "muted" }, "PubMed searches")),
-    el("div", { class: "metric" }, el("b", {}, String(answer.context_pmids.length)), el("span", { class: "muted" }, "Abstracts used"))));
-  made.append(el("p", { class: "muted" }, "The cost is what the answer cost when it was first produced."));
-  made.append(table([["Step"], ["Runs", true], ["LLM calls", true], ["Cost (USD)", true]], stepRows(answer.steps)));
-  made.append(table([["PubMed search"], ["Results", true]], answer.searches.map((s) => [s.query, s.total_found])));
+  const metrics = el("div", { class: "metrics" }, metric(cost, "Cost"));
+  if (timed) metrics.append(metric(`${view.seconds.toFixed(0)} s`, "Time"));
+  metrics.append(metric(String(view.searches.length), "PubMed searches"), metric(String(view.abstracts), "Abstracts used"));
+  made.append(metrics);
+  if (!timed) made.append(el("p", { class: "muted" }, "The cost is what the answer cost when it was first produced."));
+  const headers = [["Step"], ["Runs", true], ["LLM calls", true], ["Cost (USD)", true]];
+  if (timed) headers.push(["Seconds", true]);
+  made.append(table(headers, view.steps.map((step) => {
+    const row = [step.label, step.runs, step.llm_calls, step.usd.toFixed(4)];
+    if (timed) row.push(step.seconds.toFixed(1));
+    return row;
+  })));
+  made.append(table([["PubMed search"], ["Results", true]], view.searches.map((s) => [s.query, s.total_found])));
   out.append(made);
 
-  document.getElementById("result").replaceChildren(out);
+  $("result").replaceChildren(out);
+}
+
+// ----------------------------------------------------------------------------- asking a new question
+// config.json names the API that answers new questions. With no address in it, or while that API does
+// not answer, this page stays what it was: the recorded answers only.
+let api = null;
+let busy = false;
+let exampleButtons = [];
+
+async function getJson(url, milliseconds) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), milliseconds);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function setBusy(now) {
+  busy = now;
+  for (const control of [$("question"), $("send"), ...exampleButtons]) control.disabled = now;
+}
+
+// What the API says it can do now decides whether the question box is shown and whether it is open.
+async function refresh() {
+  let status;
+  try {
+    status = await getJson(`${api}/v1/status`, 30000);  // a server that was asleep takes a while
+  } catch (error) {
+    return;
+  }
+  if (!status.live) return;
+  const left = Math.min(status.quota.left_today, status.quota.left_total);
+  $("question").maxLength = status.limits.question_chars;
+  let allowance = `${left} live question${left === 1 ? "" : "s"} left today for all visitors, ` +
+    `up to ${status.limits.questions_per_caller} each. An answer takes a minute or two.`;
+  if (status.quota.left_total === 0) allowance = "The allowance of live questions for this page is used up.";
+  else if (left === 0) {
+    allowance = "Today's allowance of live questions is used up. It starts again at " +
+      `${new Date(status.quota.resets_at).toISOString().slice(11, 16)} UTC.`;
+  }
+  $("allowance").textContent = allowance;
+  if (!busy) $("question").disabled = $("send").disabled = left === 0;
+  $("notice").textContent = "The example answers are recorded. You can also ask your own question: the agent " +
+    "then searches PubMed, writes the answer and checks every citation, live.";
+  $("pick").textContent = "Or pick an example question (a recorded answer, shown at once):";
+  $("ask").hidden = false;
+}
+
+// The events of a server-sent event stream read from a fetch response: {event, data}.
+async function* events(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, "\n");
+    let end;
+    while ((end = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      let event = "message";
+      const data = [];
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
+      }
+      if (data.length) yield { event, data: JSON.parse(data.join("\n")) };  // comments (keep-alives) have none
+    }
+  }
+}
+
+// Why a question was not let in, in the API's own words where it gave them.
+async function refusal(response) {
+  try {
+    const { detail } = await response.json();
+    if (detail && typeof detail.message === "string") return detail.message;
+  } catch (error) { /* not JSON: fall through */ }
+  if (response.status === 422) return "The question must be text of no more than the length the box allows.";
+  return `The server could not take the question (HTTP ${response.status}).`;
+}
+
+async function ask(question) {
+  setBusy(true);
+  exampleButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+  const progress = el("ol", { class: "progress" });
+  const waiting = el("p", { class: "muted" }, "Sending the question…");
+  $("result").replaceChildren(el("p", { class: "asked" }, question), progress, waiting);
+  const started = Date.now();
+  const clock = setInterval(() => {
+    waiting.textContent = `Working… ${Math.round((Date.now() - started) / 1000)} s. An answer takes a minute or two.`;
+  }, 1000);
+  const fail = (message) => $("result").replaceChildren(
+    el("p", { class: "asked" }, question), el("p", { class: "problem" }, message));
+  try {
+    const response = await fetch(`${api}/v1/answers/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    if (!response.ok) {
+      fail(await refusal(response));
+      return;
+    }
+    let ended = false;
+    for await (const { event, data } of events(response)) {
+      if (event === "step") {
+        progress.append(el("li", {}, data.label || STEPS[data.name] || data.name,
+          el("span", { class: "muted" }, ` ${Number(data.seconds).toFixed(1)} s`)));
+      } else if (event === "answer") {
+        show(data);
+        ended = true;
+      } else if (event === "error") {
+        fail(data.message || "The answer could not be produced.");
+        ended = true;
+      }
+    }
+    if (!ended) fail("The connection closed before the answer arrived.");
+  } catch (error) {
+    fail("The question could not be sent or the connection was lost. Try again in a moment.");
+  } finally {
+    clearInterval(clock);
+    setBusy(false);
+    refresh();
+  }
+}
+
+async function connect() {
+  try {
+    const config = await getJson("config.json", 8000);
+    if (!config.api) return;
+    const address = new URL(config.api);
+    const local = ["localhost", "127.0.0.1"].includes(address.hostname);
+    if (address.protocol !== "https:" && !local) return;
+    api = address.origin;
+  } catch (error) {
+    return;  // published without an API
+  }
+  $("ask").addEventListener("submit", (submitted) => {
+    submitted.preventDefault();
+    const question = $("question").value.trim();
+    if (question && !busy) ask(question);
+  });
+  await refresh();
 }
 
 async function start() {
-  const result = document.getElementById("result");
+  const result = $("result");
   try {
     const response = await fetch("examples.json");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const records = await response.json();
-    const buttons = records.map((record) => {
+    exampleButtons = records.map((record) => {
       const button = el("button", { type: "button", "aria-pressed": "false" }, record.answer.question);
       button.addEventListener("click", () => {
-        buttons.forEach((other) => other.setAttribute("aria-pressed", String(other === button)));
-        show(record);
+        exampleButtons.forEach((other) => other.setAttribute("aria-pressed", String(other === button)));
+        show(fromRecord(record));
       });
       return button;
     });
-    document.getElementById("examples").replaceChildren(...buttons);
-    if (buttons.length) buttons[0].click();
+    $("examples").replaceChildren(...exampleButtons);
+    if (exampleButtons.length) exampleButtons[0].click();
   } catch (error) {
     result.replaceChildren(el("p", {}, `The recorded answers could not be loaded (${error.message}).`));
   }
+  connect();
 }
 start();
 </script>

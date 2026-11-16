@@ -131,6 +131,12 @@ The live page is a static Hugging Face Space that reads the same recorded answer
 (`app/examples.json`). `scripts/deploy_space.py` publishes it; `--sdk docker` publishes the Streamlit
 app itself instead, which Hugging Face hosts only on a paid plan.
 
+The page can also take a visitor's own question. When `space/static/config.json` names a hosted API,
+the page asks it what it can do and, if it answers new questions, shows a question box: the steps
+appear as the agent finishes them, then the answer with a verdict and the abstract passage behind
+every sentence. With no address there, or while the API does not answer, the page is the recorded
+answers only. No address is set yet (see "Hosting the API").
+
 ## HTTP API
 
 The same agent behind a FastAPI service:
@@ -218,12 +224,25 @@ fly deploy --ha=false
 as secrets on the host and never written to a file in the repository. `--ha=false` keeps it to one
 machine.
 
+Then the public page is told where the API is: put the address in `space/static/config.json`
+(`{"api": "https://NAME.fly.dev"}`) and publish the page again.
+
+```bash
+uv run --with huggingface_hub python scripts/deploy_space.py brakey/bioscout
+```
+
+The API accepts browser calls from that page only (`BIOSCOUT_API_CORS_ORIGINS` in `fly.toml`). That
+keeps other websites from using it through their visitors' browsers; it does not keep anyone from
+calling the API directly, which is what the allowance is for.
+
 Set a spend limit on the key as well, in the Claude Console, on the workspace the key belongs to. The
 allowance is counted by this code; a limit at the provider holds even where the code is wrong.
 
 These steps are written from Fly's documentation and have not been run. CI checks what needs no
 account: the image, told by `BIOSCOUT_SERVE` to serve the API, runs as uid 1000 and keeps its count
-in a mounted folder that root owned.
+in a mounted folder that root owned. The page was checked against the API on one machine: a question
+sent from the page, the steps and the answer drawn from the stream, and what the page shows when a
+limit is reached or the API is down.
 
 ## Architecture
 

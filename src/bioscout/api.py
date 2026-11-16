@@ -123,6 +123,7 @@ class AnswerOut(BaseModel):
     dropped: list[DroppedOut] = Field(description="Sentences the citation check removed, and why")
     sources: list[SourceOut] = Field(description="The cited papers, in the order they are first cited")
     searches: list[SearchOut]
+    abstracts: int = Field(description="How many abstracts the answer was written from")
     steps: list[StepOut]
     usd: float = Field(description="What the answer cost when it was produced")
     seconds: float | None = Field(description="null for an answer replayed from recorded responses")
@@ -223,6 +224,7 @@ def answer_out(result: demo.DemoResult, verified: bool) -> AnswerOut:
         ],
         sources=sources,
         searches=[SearchOut(query=s.query, total_found=s.total_found) for s in answer.searches],
+        abstracts=len(answer.context_pmids),
         steps=[StepOut(**vars(total)) for total in demo.step_totals(answer)],
         usd=round(usd, 4),
         seconds=None if replayed else round(seconds, 1),

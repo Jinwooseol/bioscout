@@ -84,7 +84,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   started as root, hands the state folders to uid 1000 and gives up root
 - `fly.toml`: the API on Fly.io (one machine that stops when idle, a volume for the count of questions)
 - `space/static/index.html`: the public page (https://brakey-bioscout.static.hf.space). It reads `examples.json` and
-  shows the recorded answers; its labels must match `demo.py` (a test checks)
+  shows the recorded answers; its labels must match `demo.py` (a test checks). When
+  `space/static/config.json` names a hosted API, it also sends a visitor's question there and draws
+  the answer from the stream; what it reads of an answer must be what `api.AnswerOut` sends (a test
+  checks). A recorded answer is put in that same shape (`fromRecord`) before it is drawn
 - `scripts/deploy_space.py`, `space/*/README.md`: publish to a Hugging Face Space from an allow-list of
   files, with the login saved on the PC (no token in the repository)
 
@@ -136,8 +139,17 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - The question allowance (`quota.py`) is what bounds the bill of a deployment that holds a Claude API
   key. Every path that runs the agent for a visitor takes from it first (`admit` in `api.py`,
   `request_answer` in the page): never add a path around it, never give a question back when its
-  answer fails, and never let zero or a missing value mean "no limit". The public page still runs no
-  model: the API is not hosted anywhere.
+  answer fails, and never let zero or a missing value mean "no limit". The public page runs no model
+  itself: it sends a question to the hosted API only when `space/static/config.json` names one, and
+  the API is not hosted yet.
+- The page sets every piece of text from an answer as text, never as HTML, and builds a paper's link
+  from its PMID, not from a URL in the data. The address in `config.json` must be a plain https
+  address; `deploy_space.py` refuses to publish anything else.
+- To check the page against the API without spending: serve a copy of `space/static` with
+  `app/examples.json` and a `config.json` that points at a local `bioscout-api` run with
+  `BIOSCOUT_CACHE_MODE=readonly`, `BIOSCOUT_QUOTA_PATH` outside the cache folder,
+  `BIOSCOUT_API_CORS_ORIGINS` set to the copy's address and `BIOSCOUT_EXAMPLES` pointing at a file
+  holding `[]` (then an example question typed into the box runs the agent from the cache).
 - The limit per caller (`Quota.take(caller)`, the API only) is a courtesy that keeps one visitor from
   using up the day. Never count on it to bound spending: a caller who changes address gets a new
   count. The quota file must never hold an address, only the salted hash, and only for the day.
