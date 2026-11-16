@@ -22,6 +22,7 @@ class ItemScores(BaseModel):
     fabricated: int = Field(description="Cited PMIDs that PubMed does not know")
     fabricated_pmids: list[str] = Field(default_factory=list)
     dropped: int = Field(default=0, description="Sentences the verifier removed from the answer")
+    ungrounded: int = Field(default=0, description="Citations that were not among the abstracts given")
     correct: bool | None = Field(default=None, description="PubMedQA: decision matches the label")
     retrieved_gold: bool | None = Field(default=None, description="PubMedQA: source paper in a top 10")
     gold_in_context: bool | None = Field(
@@ -54,6 +55,7 @@ async def score_item(item: EvalItem, answer: CitedAnswer, pubmed: Literature) ->
         fabricated=len(check.missing),
         fabricated_pmids=check.missing,
         dropped=len(answer.dropped),
+        ungrounded=len(answer.ungrounded),
     )
     if item.answer is not None:
         scores.correct = answer.decision == item.answer
@@ -82,6 +84,22 @@ def percentile(values: list[int], q: float) -> float | None:
     return float(ordered[index])
 
 
+def live_usd(answer: CitedAnswer) -> float:
+    """What the answer cost this time: calls replayed from the cache cost nothing now. With steps
+    recorded, each step counts by the share of its calls that really ran, so an answer whose plan was
+    replayed and whose answer step was new is counted for the answer step. A step that mixes replayed
+    and new calls (a verify step) is split by their number."""
+    usage = answer.usage
+    if not answer.steps:  # recorded before steps were: the whole answer ran, or the whole answer replayed
+        return 0.0 if usage.cached_llm_calls else (usage.usd or 0.0)
+    spent = 0.0
+    for step in answer.steps:
+        calls = step.usage.llm_calls
+        if calls and step.usage.usd:
+            spent += step.usage.usd * (calls - step.usage.cached_llm_calls) / calls
+    return spent
+
+
 def summarize_group(records: list[Record]) -> dict[str, Any]:
     ok = [r for r in records if r.scores is not None and r.answer is not None]
     scores = [r.scores for r in ok if r.scores]
@@ -90,7 +108,7 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
     sentences = sum(s.sentences for s in scores)
     usd = [a.usage.usd for a in answers]
     llm_calls = sum(a.usage.llm_calls for a in answers)
-    # A replayed answer returns at once, so only answers that really ran count towards latency and spend.
+    # A replayed call returns at once, so only answers that ran from start to end count towards latency.
     live = [a for a in answers if a.usage.llm_calls and not a.usage.cached_llm_calls]
     latencies = [a.usage.latency_ms for a in live]
     return {
@@ -103,6 +121,7 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
         "cited_per_answer": _mean([s.cited for s in scores]),
         "citation_rate": sum(s.cited_sentences for s in scores) / sentences if sentences else None,
         "dropped_per_answer": _mean([s.dropped for s in scores]),
+        "ungrounded_citations": sum(s.ungrounded for s in scores),
         "accuracy": _mean([s.correct for s in scores if s.correct is not None]),
         "retrieval_recall_at_10": _mean([s.retrieved_gold for s in scores if s.retrieved_gold is not None]),
         "gold_in_context_rate": _mean([s.gold_in_context for s in scores if s.gold_in_context is not None]),
@@ -110,7 +129,7 @@ def summarize_group(records: list[Record]) -> dict[str, Any]:
         "must_cite_recall": _mean([s.must_cite_recall for s in scores if s.must_cite_recall is not None]),
         "usd_per_query": None if None in usd else _mean(usd),
         "usd_total": None if None in usd else sum(usd),
-        "usd_live": None if None in usd else sum(a.usage.usd or 0.0 for a in live),
+        "usd_live": None if None in usd else sum(live_usd(a) for a in answers),
         "input_tokens_per_query": _mean([a.usage.input_tokens for a in answers]),
         "output_tokens_per_query": _mean([a.usage.output_tokens for a in answers]),
         "llm_calls_per_query": _mean([a.usage.llm_calls for a in answers]),
@@ -186,6 +205,10 @@ def render_markdown(rows: list[dict[str, Any]], meta: dict[str, Any]) -> str:
     if any(row.get("dropped_per_answer") for row in rows):  # only a verifying variant removes sentences
         at = [key for key, _, _ in columns].index("citation_rate") + 1
         columns = columns[:at] + [("dropped_per_answer", "Dropped / answer", "num")] + columns[at:]
+    if any(row.get("ungrounded_citations") for row in rows):  # the citation guard removed something
+        at = [key for key, _, _ in columns].index("citation_rate") + 1
+        extra = ("ungrounded_citations", "Citations outside the abstracts, removed", "str")
+        columns = columns[:at] + [extra] + columns[at:]
     note = "Deterministic metrics only; this run has not been judged (`bioscout-eval judge`)."
     if judge := meta.get("judge"):
         at = [key for key, _, _ in columns].index("citation_rate") + 1

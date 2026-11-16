@@ -6,6 +6,8 @@ comes from which abstracts they read, not from how the answer was asked for.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Sequence
 from typing import Any
 
 from bioscout.answer import CitedAnswer, CitedSentence, SearchLog, Usage
@@ -53,6 +55,30 @@ def format_abstracts(articles: list[ArticleAbstract]) -> str:
     )
 
 
+# Part of the fingerprint of every variant that answers from abstracts: change it when the rule changes.
+GROUNDING = "citations limited to the abstracts given, v1"
+
+
+def ground_citations(citations: Sequence[str], context: Sequence[str]) -> tuple[list[str], list[str]]:
+    """Keep only citations of the abstracts the answer was written from.
+
+    An entry that is not one of those PMIDs is searched for them: "24, 41022185" yields 41022185 when
+    that paper was given, and the stray "24" is not kept. Returns the citations to keep, without
+    repeats, and the entries as written that were reduced or removed."""
+    allowed = set(context)
+    kept: list[str] = []
+    odd: list[str] = []
+    for raw in citations:
+        entry = str(raw).strip()
+        if entry in allowed:
+            found = [entry]
+        else:
+            odd.append(entry)
+            found = [token for token in re.findall(r"\d+", entry) if token in allowed]
+        kept += [pmid for pmid in found if pmid not in kept]
+    return kept, odd
+
+
 def answer_from_result(
     question: str,
     result: LLMResult,
@@ -67,8 +93,13 @@ def answer_from_result(
     )
     if result.refused or result.data is None:
         return base.model_copy(update={"refused": True})
-    sentences = [
-        CitedSentence(text=s["text"].strip(), citations=[str(c).strip() for c in s["citations"]])
-        for s in result.data["sentences"]
-    ]
-    return base.model_copy(update={"decision": result.data["decision"], "sentences": sentences})
+    sentences: list[CitedSentence] = []
+    ungrounded: list[str] = []
+    for s in result.data["sentences"]:
+        citations = [str(c).strip() for c in s["citations"]]
+        if context_pmids is not None:  # written from these abstracts, so no other paper may be cited
+            citations, odd = ground_citations(citations, context_pmids)
+            ungrounded += odd
+        sentences.append(CitedSentence(text=s["text"].strip(), citations=citations))
+    update = {"decision": result.data["decision"], "sentences": sentences, "ungrounded": ungrounded}
+    return base.model_copy(update=update)

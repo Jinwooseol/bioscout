@@ -33,6 +33,23 @@ def record(variant: str, item_id: str, total: Usage, steps: list[Step] | None = 
     return Record(item_id=item_id, dataset="pubmedqa", variant=variant, answer=answer, scores=scores)
 
 
+def test_new_spend_counts_the_steps_that_ran_when_only_part_of_an_answer_was_replayed():
+    # Variant E after C: the plan call is replayed from C's run, the answer call is new.
+    steps = [
+        Step(name="plan", usage=usage(usd=0.02, ms=1, llm=1, cached=1)),
+        Step(name="rank", usage=usage(ms=1800)),
+        Step(name="answer", usage=usage(usd=0.04, ms=6000, llm=1)),
+    ]
+    partly = record("E", "partly", usage(usd=0.06, ms=7801, llm=2, cached=1), steps)
+    # A verify step with four judge calls, three of them replayed: a quarter of it is new.
+    mixed = [Step(name="verify", usage=usage(usd=0.08, ms=900, llm=4, cached=3))]
+    verified = record("E", "verified", usage(usd=0.08, ms=900, llm=4, cached=3), mixed)
+    row = summarize_group([partly, verified])
+
+    assert row["usd_total"] == pytest.approx(0.14) and row["usd_live"] == pytest.approx(0.04 + 0.02)
+    assert row["latency_n"] == 0  # neither answer ran from start to end, so neither is timed as a whole
+
+
 def test_latency_and_new_spend_leave_out_replayed_answers():
     live = [record("C", f"live-{i}", usage(usd=0.10, ms=1000 * (i + 1), llm=3, tokens=900)) for i in range(3)]
     replayed = [record("C", "replayed", usage(usd=0.10, ms=2, llm=3, cached=3, tokens=900))]

@@ -19,6 +19,7 @@ from bioscout.models import AbstractBatch
 from bioscout.prompts import (
     ANSWER_RULES,
     ANSWER_SCHEMA,
+    GROUNDING,
     SYSTEM_GROUNDED,
     answer_from_result,
     format_abstracts,
@@ -115,7 +116,7 @@ async def ranking_agent(item: EvalItem, ctx: Context) -> CitedAnswer:
 
 VARIANTS: dict[str, Variant] = {
     "A": Variant("A", "LLM only", SYSTEM_LLM_ONLY, llm_only),
-    "B": Variant("B", "Naive RAG", SYSTEM_GROUNDED, naive_rag),
+    "B": Variant("B", "Naive RAG", SYSTEM_GROUNDED, naive_rag, (GROUNDING,)),
     "C": Variant("C", "Agent", SYSTEM_GROUNDED, agent, ResearchAgent.fingerprint()),
     "D": Variant(
         "D",

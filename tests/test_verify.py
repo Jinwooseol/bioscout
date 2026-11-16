@@ -191,5 +191,5 @@ async def test_variant_d_is_scored_with_its_dropped_sentences_and_has_its_own_ha
     record = EvalRecord(item_id=item.id, dataset="pubmedqa", variant="D", answer=result, scores=scores)
     assert summarize_group([record])["dropped_per_answer"] == 1.0
     # C's hash must not move when the verify step changes; update it only on purpose.
-    assert VARIANTS["C"].prompt_sha == "263c2ad233de"
+    assert VARIANTS["C"].prompt_sha == "1c10fdf891a1"
     assert VARIANTS["D"].prompt_sha not in {v.prompt_sha for k, v in VARIANTS.items() if k != "D"}

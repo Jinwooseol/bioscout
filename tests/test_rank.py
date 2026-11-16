@@ -90,7 +90,7 @@ async def test_variant_e_runs_with_the_rankers_name_in_its_fingerprint():
     assert ResearchAgent.rank_fingerprint("embedding:other") != ResearchAgent.rank_fingerprint(
         f"embedding:{EMBED_MODEL}"
     )
-    assert VARIANTS["C"].prompt_sha == "263c2ad233de"  # adding E must not change what C was measured with
+    assert VARIANTS["C"].prompt_sha == "1c10fdf891a1"  # adding E must not change what C was measured with
 
     llm = FakeLLM([plan("drug X"), reply("yes", ("X lowers mortality.", ["10000002"]))])
     item = EvalItem(id="q1", dataset="pubmedqa", question=QUESTION, answer="yes", pmid="10000002")

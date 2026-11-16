@@ -21,14 +21,15 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 | Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
 | Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
 | Tracing | One trace per answer: steps, model calls and PubMed calls as OpenTelemetry spans, sent to Langfuse when keys are set | `src/bioscout/tracing.py` |
-| CI | 118 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| CI | 124 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
 | Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
 ## Results
 
 First full run: 100 PubMedQA questions and 15 hand-written MSI / digital PCR / liquid biopsy
 questions, the same model and effort for every variant
-([`evals/reports/20261115-195946-ABC.md`](evals/reports/20261115-195946-ABC.md)).
+([`evals/reports/20261116-105242-ABCE.md`](evals/reports/20261116-105242-ABCE.md); A to C were first
+measured in [`20261115-195946-ABC`](evals/reports/20261115-195946-ABC.md), which also has their latency).
 
 | Variant | Fabricated PMIDs | Sentences cited | Source paper used (PubMedQA) | Citation precision | Citation coverage | Cost / query |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -36,6 +37,7 @@ questions, the same model and effort for every variant
 | B. Naive RAG | 0.0% | 87.1% | 85% | 90.8% | 81.5% | $0.024 |
 | C. Agent | 0.0% | 99.7% | 91% | 86.1% | 93.4% | $0.148 |
 | D. Agent + verifier | built, not run yet | | | | | |
+| E. Agent, embedding rank | 0.0% | 98.6% | 87% | 85.5% | 91.7% | $0.055 |
 
 Citation precision is the share of citations whose abstract clearly backs the sentence; citation
 coverage is the share of answer sentences fully backed by the abstracts they cite. Both come from an
@@ -74,8 +76,22 @@ vector database, since a question has at most 25 candidates. Run only up to the 
 because the plan calls replay from the cache, E keeps the source paper for 87 of 100 PubMedQA
 questions against C's 91, at $0.017 a question up to that point against $0.114. The ranking itself
 dropped nothing: E kept all 87 source papers its search had found. What it lacks is C's second search
-round, which found five more. Answers from E have not been run, so its accuracy and citation numbers
-are not known yet.
+round, which found five more.
+
+Run in full and judged (A, B and C replayed from the cache at no cost, so the four variants share one
+report), E costs 37% of
+what C does and cites about as well: citation precision 85.5% against 86.1%, citation coverage 91.7%
+against 93.4%, and no answer without a backed sentence. Accuracy is 73% against 76%; on the questions
+where the source paper was among the abstracts the two are level (71 of 87, 72 of 91).
+
+**Citation guard.** In E's first run one answer held a malformed citation: `24, 41022185` in one
+citation slot, where the second number is a paper it was given. The existence check counted it as
+fabricated and the eval gate refused that report ([`20261116-095853-ABCE`](evals/reports/20261116-095853-ABCE.md))
+as the baseline. Answers written from abstracts may now cite only those abstracts: a garbled entry is
+reduced to the given PMIDs found in it, anything else is removed, and the report counts what was
+changed. The rule is part of each variant's hash, so the gate failed until B, C and E were measured
+again; replayed from the cache that cost one judge call ($0.01). B and C had no citation outside their
+abstracts to begin with, so their numbers did not move.
 
 **Eval gate.** CI cannot run the agent: it has no API key, and the response cache that would replay a
 run holds abstracts, which are not committed. It gates on the committed evidence instead.

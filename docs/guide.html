@@ -109,8 +109,8 @@ uv run bioscout-eval calibrate-score evals/runs/&lt;run_id&gt;</code></pre></div
       <div class="cmd"><pre><code>uv sync --extra demo --extra trace --extra embed
 $env:BIOSCOUT_CACHE_MODE = "readonly"; uv run --extra embed bioscout-eval selection --variants C,E --concurrency 1</code></pre></div>
       <p>둘째 줄은 변형 C와 E를 초록을 고르는 데까지만 돌려, 원 논문이 고른 초록에 들었는지 비교합니다. 답변을 쓰지 않고, 캐시를 읽기 전용으로 두면 비용이 들지 않습니다. 처음 실행할 때 임베딩 모델(약 67MB)을 Hugging Face에서 받습니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_CACHE_MODE</code>로 되돌립니다.</p>
-      <div class="cmd"><pre><code>uv run --extra embed bioscout-eval run --variants E</code></pre></div>
-      <p>변형 E 전체를 실행합니다. 답변 단계는 새 요청이라 비용이 듭니다(질문당 약 $0.04 예상).</p>
+      <div class="cmd"><pre><code>uv run --extra embed bioscout-eval run --variants A,B,C,E</code></pre></div>
+      <p>변형 E를 이미 실행한 변형과 함께 돌립니다. 이전에 실행한 변형은 캐시에서 재생돼 새 비용이 들지 않고, 한 리포트에 모든 변형이 나옵니다. E의 답변 단계만 새 요청이며 질문당 약 $0.04입니다. 실행 뒤 <code>bioscout-eval judge evals/runs/&lt;run_id&gt;</code>로 인용을 판정합니다.</p>
     </li>
     <li>
       <h3>리포트 다시 만들기와 재생</h3>

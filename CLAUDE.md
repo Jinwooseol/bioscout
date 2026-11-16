@@ -83,12 +83,25 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   passes. Never edit a report by hand. A drop accepted on purpose goes under `accepted` with its reason.
 - Every variant uses the same model, effort and answer schema; change them for all variants or none.
 - B and C answer through the same prompt in `prompts.py`, so B-vs-C differences come from retrieval.
-  A's and B's prompt hashes are pinned in `tests/test_agent.py`; update them only on purpose.
+  A's and B's prompt hashes are pinned in `tests/test_agent.py`; update them only on purpose (B's and
+  C's last changed when the citation guard went in).
 - C's first round also runs B's search (the question as typed) and screens its hits first, so C's
   candidates always contain B's context. Keep that when changing the search step.
 - D's first four steps send the same requests as C, so they replay C's cached responses and a
   D-vs-C difference comes only from the verify step. C's prompt hash is pinned in
   `tests/test_verify.py`. Run D only with a calibrated judge: its answers depend on the judge prompt.
+- Run a new variant together with the measured ones (`bioscout-eval run --variants A,B,C,E`): cached
+  answers and judgments replay for free and one report holds every variant. Check first, with the
+  cache read-only, that the old variants replay without an error.
+- The baseline is `20261116-105242-ABCE` (A, B, C, E, measured with the citation guard). The earlier
+  `20261116-095853-ABCE` report is kept as the run the gate refused: one E answer had a malformed
+  citation (`24, 41022185`), counted as fabricated.
+- An answer written from abstracts may cite only those abstracts (`ground_citations` in `prompts.py`,
+  applied in `answer_from_result`). What it changes is kept in `CitedAnswer.ungrounded` and counted in
+  the report. The rule (`GROUNDING`) is in the hash of B, C, D and E: change the string when the rule
+  changes. Variant A answers from memory and is left alone.
+- Nothing printed, logged or stored in a record may carry the NCBI API key or contact address: build
+  such text from `cache.visible_params`, never from the raw request parameters.
 - Do not add fields to `AgentConfig`: it is part of C's and D's prompt hash, so the gate fails until
   they are measured again. Pass new parts (like the ranker) separately and give the new variant its
   own fingerprint. The embedding model's name is part of E's.

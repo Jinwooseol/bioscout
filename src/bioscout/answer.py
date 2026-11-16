@@ -91,6 +91,11 @@ class CitedAnswer(BaseModel):
     context_pmids: list[str] = Field(
         default_factory=list, description="PMIDs whose abstracts the answering step was given"
     )
+    ungrounded: list[str] = Field(
+        default_factory=list,
+        description="Citations as the model wrote them that were not among the abstracts given: removed, "
+        "or reduced to the given PMIDs found inside them",
+    )
     usage: Usage = Field(default_factory=Usage)
     steps: list[Step] = Field(default_factory=list, description="The steps that ran, in order")
     refused: bool = False

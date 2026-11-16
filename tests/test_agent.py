@@ -180,6 +180,6 @@ async def test_variant_c_is_scored_through_the_source_paper_funnel():
 def test_prompt_hashes_cover_agent_settings_and_keep_a_and_b_stable():
     # Changing A's or B's prompt makes earlier runs incomparable; update these only on purpose.
     assert VARIANTS["A"].prompt_sha == "42f57b304df8"
-    assert VARIANTS["B"].prompt_sha == "279383ac6a13"
+    assert VARIANTS["B"].prompt_sha == "10c04c73ecea"
     tweaked = replace(VARIANTS["C"], fingerprint=ResearchAgent.fingerprint(AgentConfig(max_rounds=1)))
     assert len({VARIANTS["B"].prompt_sha, VARIANTS["C"].prompt_sha, tweaked.prompt_sha}) == 3

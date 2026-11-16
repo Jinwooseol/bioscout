@@ -25,7 +25,7 @@ from bioscout.agent.rank import Ranker
 from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, SearchLog, Step, Usage, Verdict
 from bioscout.llm import LLM
 from bioscout.models import AbstractBatch, ArticleAbstract
-from bioscout.prompts import ANSWER_SCHEMA, SYSTEM_GROUNDED, answer_from_result, format_abstracts
+from bioscout.prompts import ANSWER_SCHEMA, GROUNDING, SYSTEM_GROUNDED, answer_from_result, format_abstracts
 from bioscout.sources.pubmed import Literature
 from bioscout.verifier import (
     JudgeRefusedError,
@@ -129,12 +129,13 @@ class ResearchAgent:
     @staticmethod
     def fingerprint(config: AgentConfig | None = None) -> tuple[Any, ...]:
         """Everything besides the answer prompt that changes behaviour; part of the variant's prompt_sha."""
-        return (SYSTEM_PLAN, PLAN_SCHEMA, SYSTEM_SCREEN, SCREEN_SCHEMA, asdict(config or AgentConfig()))
+        settings = asdict(config or AgentConfig())
+        return (SYSTEM_PLAN, PLAN_SCHEMA, SYSTEM_SCREEN, SCREEN_SCHEMA, settings, GROUNDING)
 
     @staticmethod
     def rank_fingerprint(ranker: str, config: AgentConfig | None = None) -> tuple[Any, ...]:
         """The same for an agent that ranks the candidates instead of screening them (variant E)."""
-        return (SYSTEM_PLAN, PLAN_SCHEMA, asdict(config or AgentConfig()), "rank", ranker)
+        return (SYSTEM_PLAN, PLAN_SCHEMA, asdict(config or AgentConfig()), "rank", ranker, GROUNDING)
 
     def _build(self, answering: bool = True) -> Any:
         """The whole graph, or with `answering` off the graph up to the choice of abstracts."""
