@@ -21,6 +21,7 @@ from bioscout.llm import LLM, ClaudeLLM
 from bioscout.mcp_server import Sources
 from bioscout.models import ArticleAbstract
 from bioscout.sources.pubmed import Literature
+from bioscout.tools import open_literature
 from bioscout.verifier import VerifyConfig
 
 # The questions offered on the page. scripts/build_examples.py records their answers so the page can
@@ -98,7 +99,8 @@ async def ask(
     settings = Settings.from_env()
     sources = Sources(settings)
     try:
-        return await answer_question(ClaudeLLM(settings), sources.pubmed, question, verify, on_step)
+        async with open_literature(sources, settings.through_mcp) as pubmed:
+            return await answer_question(ClaudeLLM(settings), pubmed, question, verify, on_step)
     finally:
         await sources.http.aclose()
 

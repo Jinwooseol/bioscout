@@ -36,6 +36,7 @@ from bioscout.evals.variants import VARIANTS, Context
 from bioscout.llm import ClaudeLLM
 from bioscout.mcp_server import Sources
 from bioscout.models import ArticleAbstract
+from bioscout.tools import open_literature
 from bioscout.verifier import JUDGE_SHA
 
 
@@ -91,6 +92,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         "model": llm.model,
         "effort": llm.effort,
         "cache_mode": str(settings.cache_mode),
+        "tools": settings.tools,
         "datasets": args.datasets,
         "limit": args.limit,
         "datasets_sha": datasets_sha(items),
@@ -98,9 +100,8 @@ async def cmd_run(args: argparse.Namespace) -> int:
     }
     print(f"run {run_id}: {len(items)} items x {len(variants)} variants, model {llm.model} ({llm.effort})")
     try:
-        records = await run_eval(
-            items, variants, Context(llm, sources.pubmed), run_dir, meta, args.concurrency
-        )
+        async with open_literature(sources, settings.through_mcp) as pubmed:
+            records = await run_eval(items, variants, Context(llm, pubmed), run_dir, meta, args.concurrency)
     finally:
         await sources.http.aclose()
     report = write_report(run_dir, args.evals_dir / "reports", args.evals_dir / "datasets")

@@ -37,6 +37,15 @@ class Settings:
     http_timeout_s: float = 20.0
     llm_model: str = "claude-opus-5-5"
     llm_effort: str = "medium"
+    tools: str = "direct"  # "mcp": the agent reaches PubMed through the MCP server's tools
+
+    def __post_init__(self) -> None:
+        if self.tools not in ("direct", "mcp"):
+            raise ValueError(f"BIOSCOUT_TOOLS must be direct or mcp, not {self.tools!r}")
+
+    @property
+    def through_mcp(self) -> bool:
+        return self.tools == "mcp"
 
     @property
     def ncbi_requests_per_second(self) -> float:
@@ -57,4 +66,5 @@ class Settings:
             cache_ttl_days=int(env.get("BIOSCOUT_CACHE_TTL_DAYS", 30)),
             llm_model=env.get("BIOSCOUT_MODEL") or cls.llm_model,
             llm_effort=env.get("BIOSCOUT_EFFORT") or cls.llm_effort,
+            tools=env.get("BIOSCOUT_TOOLS") or cls.tools,
         )
