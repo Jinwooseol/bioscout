@@ -90,6 +90,7 @@
       <tr><td>PubMed를 직접 검색</td><td>웹 페이지가 아니라 NCBI의 PubMed를 PMID 단위로 조회합니다. 질문을 MeSH 용어와 동의어 검색식으로 바꾸고, 초록을 읽어 근거가 되는 논문만 골라 답변에 씁니다</td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>성능이 숫자로 공개됨</td><td>같은 모델로 LLM 단독, 단순 RAG, 에이전트, 에이전트 + 검증을 비교합니다. 가짜 PMID 비율, 인용 정확도, 질의당 비용과 시간이 리포트로 남고, 응답 캐시로 같은 실행을 다시 재생할 수 있습니다</td><td><span class="tag built">A–D 구현됨</span> <span class="tag">D 평가 전</span></td></tr>
       <tr><td>도구를 떼어 쓸 수 있음</td><td>PubMed 검색, 초록, PMID 확인, 오픈액세스 본문, 임상시험 검색을 MCP 서버로 제공합니다. Claude Code나 Claude Desktop 같은 MCP 지원 에이전트에 그대로 연결됩니다. 공개 API만 써서 구독료가 없고, 드는 비용은 LLM 호출뿐입니다</td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>다른 프로그램에서 부를 수 있음</td><td>같은 에이전트를 HTTP API로 부릅니다. 답변을 JSON으로 받거나, 단계가 끝날 때마다 이벤트로 받습니다. 모든 호출자가 함께 쓰는 질문 수 한도가 있어, 서비스로 열어도 비용에 상한이 있습니다. <a href="design.html#api">설계</a></td><td><span class="tag built">구현됨</span> <span class="tag">호스팅 전</span></td></tr>
     </tbody>
   </table></div>
   <p>115문항 평가에서 세 방식은 이렇게 갈렸습니다.</p>

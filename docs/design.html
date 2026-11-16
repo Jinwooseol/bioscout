@@ -122,6 +122,7 @@
       <tr><td>인용 검증기</td><td>문장과 인용 초록을 맞대어 지지 / 부분 지지 / 근거 없음으로 판정하고, 부족한 문장은 고쳐 쓰거나 삭제. <a href="#judge">judge</a>, <a href="#verify">검증 루프</a></td><td><code>src/bioscout/verifier/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>관측 · CI 게이트</td><td>비용·지연 집계, 커밋된 평가 리포트를 확인하는 CI 게이트, 답변별 트레이스. <a href="#gate">게이트 설계</a>, <a href="#tracing">트레이싱 설계</a></td><td><code>src/bioscout/evals/gate.py</code>, <code>src/bioscout/tracing.py</code>, <code>.github/workflows/</code></td><td><span class="tag built">구현됨</span> <span class="tag">Langfuse 화면 확인 전</span></td></tr>
       <tr><td>데모</td><td>Streamlit 화면, Docker, Hugging Face Spaces 배포. <a href="#demo">화면 설계</a></td><td><code>app/</code>, <code>src/bioscout/demo.py</code></td><td><span class="tag built">구현됨</span> <span class="tag built">배포됨</span></td></tr>
+      <tr><td>HTTP API</td><td>답변을 JSON이나 단계별 이벤트로 돌려주는 FastAPI 서비스와 질문 수 한도. <a href="#api">상세 설계</a></td><td><code>src/bioscout/api.py</code>, <code>src/bioscout/quota.py</code></td><td><span class="tag built">구현됨</span> <span class="tag">호스팅 전</span></td></tr>
     </tbody>
   </table></div>
 
@@ -963,7 +964,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td>단계가 끝날 때마다 화면에 알림</td><td>답변 하나에 20초 넘게 걸리므로, 지금 무엇을 하는지 보여 줌. 에이전트의 <code>answer(on_step=...)</code>가 그래프의 상태 흐름에서 끝난 단계를 꺼내 알림</td><td>끝날 때까지 스피너만 표시</td></tr>
       <tr><td>출처 카드는 에이전트가 이미 가져온 초록의 서지 정보로 만듦</td><td>PubMed를 다시 부르지 않아도 되고, 캐시에서 재생한 답변에도 같은 카드가 나옴. 처음에는 답변 뒤에 PubMed를 한 번 더 조회했는데, 읽기 전용 재생에서 그 요청이 캐시에 없어 예시 질문이 실패했음. 에이전트가 가져온 적 없는 PMID는 카드에 그렇게 표시</td><td>답변이 나온 뒤 PubMed에서 다시 조회</td></tr>
       <tr><td>Streamlit은 선택 설치(<code>demo</code>)</td><td>MCP 서버와 평가만 쓰는 사람의 설치를 가볍게 유지. CI는 <code>demo</code>까지 설치해 화면 테스트를 돌림</td><td>기본 의존성에 추가</td></tr>
-      <tr><td>세션당 질문 5개, 질문 400자 제한</td><td>공개 데모는 운영하는 사람의 API 비용으로 돌아감. 한도는 환경 변수로 바꿀 수 있음</td><td>제한 없음</td></tr>
+      <tr><td>세션당 질문 5개, 질문 400자 제한</td><td>공개 데모는 운영하는 사람의 API 비용으로 돌아감. 한도는 환경 변수로 바꿀 수 있음. 세션 한도는 새로 고치면 풀리므로, 모든 방문자가 함께 쓰는 <a href="#api">질문 수 한도</a>를 먼저 확인함</td><td>제한 없음</td></tr>
       <tr><td>재생된 답변에는 시간을 표시하지 않음</td><td>캐시에서 재생한 답변은 0초로 나와 오해를 줌. 비용은 처음 만들 때의 비용을 보여 주고, 재생이라고 적음</td><td>0초 그대로 표시</td></tr>
     </tbody>
   </table></div>
@@ -987,7 +988,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     <tbody>
       <tr><td>공개 주소는 Static Space에 올린 정적 페이지 한 장</td><td>Hugging Face가 Docker Space 호스팅에 유료 플랜을 요구함. Docker Space 생성 요청이 402로 거절됐음. Static Space는 무료이고 잠들지 않아 링크를 누르면 바로 열림</td><td>유료 플랜으로 Docker Space 운영. 다른 호스팅에 새 계정 만들기</td></tr>
       <tr><td>정적 페이지는 Streamlit 화면과 같은 기록 파일(<code>app/examples.json</code>)을 읽음</td><td>답변을 HTML에 옮겨 적지 않으므로 두 화면의 내용이 어긋나지 않음. 판정, 삭제 이유, 단계 이름의 문구가 Streamlit 화면과 같은지는 테스트가 확인</td><td>답변을 HTML에 직접 써넣기</td></tr>
-      <tr><td>공개 페이지에서는 모델을 부르지 않음</td><td>세션당 질문 한도는 새로 고치면 풀리므로, 공개 주소에 API 키를 두면 비용에 상한이 없음. 전체 질문 수 한도를 만들기 전까지는 기록된 답변만 보여 줌</td><td>키를 넣고 세션 한도만으로 공개</td></tr>
+      <tr><td>공개 페이지에서는 모델을 부르지 않음</td><td>정적 페이지는 서버가 없어 모델을 부를 수 없음. 직접 질문을 받으려면 <a href="#api">HTTP API</a>를 어딘가에 호스팅해야 하는데 아직 하지 않았음. 비용의 상한이 되는 전체 질문 수 한도는 만들어 두었음</td><td>키를 넣고 세션 한도만으로 공개</td></tr>
       <tr><td>올릴 파일은 스크립트가 목록으로 골라 임시 폴더에 모은 뒤 한 번에 올림</td><td>저장소 전체를 올리지 않으므로 <code>.env</code>, 캐시, 평가 기록이 섞일 수 없음. 올라가는 파일 목록은 테스트가 확인</td><td>저장소를 Space에 그대로 push</td></tr>
       <tr><td>배포는 PC에 저장된 Hugging Face 로그인으로 실행</td><td>토큰을 저장소나 CI 비밀값에 두지 않음</td><td>GitHub Actions가 토큰으로 자동 배포</td></tr>
       <tr><td>Docker Space 배포도 같은 스크립트에 남김(<code>--sdk docker</code>)</td><td>유료 플랜을 쓰게 되면 Streamlit 화면을 그대로 올릴 수 있음. API 키가 없으면 화면이 실시간 질문이 꺼져 있다고 알리고, 남은 질문 수 표시를 숨기고, 소스 저장소 링크를 보여 줌</td><td>정적 페이지만 지원</td></tr>
@@ -1004,9 +1005,88 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>app/streamlit_app.py</code></td><td>화면 배치. <code>uv run --extra demo streamlit run app/streamlit_app.py</code></td></tr>
       <tr><td><code>tests/test_demo.py</code></td><td>데이터 로직 테스트와 화면 테스트. 화면 테스트는 <code>demo</code>를 설치했을 때만 실행</td></tr>
       <tr><td><code>app/examples.json</code></td><td>예시 질문 3개의 기록된 답변. <code>uv run python scripts/build_examples.py</code>로 다시 만듦</td></tr>
-      <tr><td><code>Dockerfile</code>, <code>.dockerignore</code></td><td>데모 화면 이미지. <code>docker build -t bioscout-demo .</code></td></tr>
+      <tr><td><code>Dockerfile</code>, <code>.dockerignore</code></td><td>데모 화면과 API의 이미지. <code>docker build -t bioscout-demo .</code></td></tr>
       <tr><td><code>space/static/index.html</code></td><td>공개 주소의 정적 페이지. <code>examples.json</code>을 읽어 답변, 판정, 출처, 비용을 그림</td></tr>
       <tr><td><code>scripts/deploy_space.py</code>, <code>space/*/README.md</code></td><td>Space에 올리는 스크립트와 Space 종류별 설정. <code>tests/test_deploy.py</code>가 올라가는 파일 목록을 확인</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="api">HTTP API <span class="tag built">구현됨</span> <span class="tag">호스팅 전</span></h2>
+  <p>같은 에이전트를 HTTP로 부르는 FastAPI 서비스입니다. 답변을 JSON으로 한 번에 받거나, 단계가 끝날 때마다 이벤트로 받습니다. 질문에 답하는 비용은 서버를 운영하는 사람의 API 키에서 나갑니다. 그래서 모든 호출자가 함께 쓰는 질문 수 한도를 같이 만들었고, Streamlit 화면도 같은 한도를 씁니다.</p>
+
+  <h3>경로</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>경로</th><th>하는 일</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST /v1/answers</code></td><td><code>{"question": "...", "verify": true}</code>를 받아 답변을 돌려줌. 문장마다 인용, 판정, 근거 구절이 붙고, 인용한 논문과 단계별 비용, 시간이 함께 옴</td></tr>
+      <tr><td><code>POST /v1/answers/stream</code></td><td>같은 답변을 server-sent events로 보냄. 단계가 끝날 때마다 <code>step</code>, 마지막에 <code>answer</code> 또는 <code>error</code></td></tr>
+      <tr><td><code>GET /v1/examples</code></td><td>기록된 예시 답변. 모델을 부르지 않음</td></tr>
+      <tr><td><code>GET /v1/status</code></td><td>새 질문을 받을 수 있는지, 한도, 남은 질문 수</td></tr>
+      <tr><td><code>GET /health</code></td><td>프로세스가 떠 있는지</td></tr>
+    </tbody>
+  </table></div>
+  <p>요청과 응답의 스키마는 <code>/docs</code>(OpenAPI)에서 볼 수 있습니다.</p>
+
+  <h3>질문 하나가 통과하는 검사</h3>
+  <p>에이전트를 돌리기 전에 아래 순서로 확인합니다. 질문 수는 마지막 검사를 통과할 때만 셉니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>순서</th><th>검사</th><th>통과하지 못하면</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>기록된 답변이 있는 예시 질문인지</td><td>해당하면 그 답변을 바로 돌려줌. 비용이 없고 질문 수에 넣지 않음</td></tr>
+      <tr><td>2</td><td>API 키가 있는지</td><td>503 <code>live_off</code></td></tr>
+      <tr><td>3</td><td>빈 자리가 있는지. 답변은 동시에 2개까지 실행</td><td>503 <code>busy</code>, <code>Retry-After</code> 30초</td></tr>
+      <tr><td>4</td><td>질문 수 한도가 남았는지. 하루 20개, 전체 200개</td><td>429 <code>quota_exceeded</code>. 하루 한도면 <code>Retry-After</code>에 다음 UTC 자정까지 남은 초</td></tr>
+    </tbody>
+  </table></div>
+  <p>빈 질문과 400자가 넘는 질문은 이 검사보다 앞에서 422로 거절합니다. 실행 중에 실패하면 502 <code>answer_failed</code>, 300초를 넘기면 504 <code>timeout</code>, 재생 전용 서버에서 기록에 없는 질문이면 404 <code>not_recorded</code>입니다.</p>
+
+  <h3>질문 수 한도</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>하루 한도와 전체 한도를 함께 둠</td><td>하루 한도는 하루 지출을, 전체 한도는 배포 하나가 쓸 수 있는 총액을 묶음. 검증을 켠 질문 하나가 약 $0.25이므로 기본값(20개, 200개)이면 하루 약 $5, 전체 약 $50</td><td>하루 한도만</td></tr>
+      <tr><td>SQLite 파일에 저장</td><td>서버를 다시 시작해도 수가 남음. 같은 파일을 여는 프로세스(API, Streamlit 화면)가 한도 하나를 같이 씀. 화면의 세션 한도는 새로 고치면 풀렸음</td><td>메모리에 저장</td></tr>
+      <tr><td>확인과 증가를 한 트랜잭션으로 처리</td><td>동시에 들어온 질문이 한도를 넘지 못함. 스레드 16개로 40번 요청했을 때 한도인 5개만 통과하는 것을 테스트가 확인</td><td>읽은 뒤 따로 쓰기</td></tr>
+      <tr><td>실패한 질문도 셈</td><td>실패하기 전에 일부 단계의 비용이 이미 나갔을 수 있음. 되돌려주면 실패하는 질문을 끝없이 다시 보낼 수 있음</td><td>실패하면 되돌려줌</td></tr>
+      <tr><td>0과 빈 값은 "제한 없음"이 아님</td><td>0은 닫힘이고 빈 값은 기본값. 설정을 잘못 적어도 한도가 사라지지 않음</td><td>0을 제한 없음으로 해석</td></tr>
+      <tr><td>호출자별 한도는 두지 않음</td><td>프록시 뒤에서 호출자 주소를 믿을 수 있게 얻는 방법이 호스팅마다 다름. 지출은 전체 한도가 묶음. 한 사람이 하루치를 다 쓰는 것은 막지 못함</td><td>IP별 한도</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>FastAPI를 선택 설치(<code>api</code>)로 추가</td><td>요청, 응답 모델에서 OpenAPI 문서가 나옴. Starlette와 uvicorn은 MCP SDK가 이미 쓰고 있어, 새로 늘어난 패키지는 FastAPI와 그 보조 패키지 하나</td><td>Starlette만으로 작성</td></tr>
+      <tr><td>답변의 모양은 <code>demo.py</code>에서 가져옴</td><td>화면과 API가 같은 출처 목록, 단계 합계, 문구를 씀</td><td>API 전용 변환 코드</td></tr>
+      <tr><td>검사는 라우트가 아니라 의존성(<code>admit</code>)에 둠</td><td>스트림 라우트 안에서 낸 오류는 응답이 시작된 뒤라 오류 응답이 되지 못하고 서버 오류로 끝남. 의존성에 두면 스트림도 일반 요청과 같은 429, 503을 받음. 자리는 응답을 다 보낸 뒤에 반납</td><td>라우트 안에서 검사</td></tr>
+      <tr><td>서버가 떠 있는 동안 HTTP 클라이언트 하나를 같이 씀</td><td>요청마다 새로 만들면 PubMed 속도 제한기도 요청마다 따로 생겨, 합치면 NCBI의 한도를 넘음</td><td>요청마다 새로 만들기</td></tr>
+      <tr><td>오류 응답과 로그에는 오류의 종류만 남김</td><td>PubMed 요청의 URL에는 API 키와 연락처가 들어 있고, 예외 문구가 그 URL을 옮길 수 있음. Streamlit 화면도 같은 문구를 쓰도록 바꿨고, <code>http.py</code>는 거절된 요청을 URL의 쿼리 없이 알림</td><td>예외 문구 그대로 전달</td></tr>
+      <tr><td>스트림 연결이 끊기면 에이전트를 멈춤</td><td>아무도 읽지 않을 답변에 비용을 쓰지 않음</td><td>끝까지 실행</td></tr>
+      <tr><td>답변 하나에 시간 제한(300초)</td><td>외부 API가 멈추면 요청이 자리를 계속 차지함</td><td>제한 없음</td></tr>
+      <tr><td>기록된 답변은 검증을 요청했을 때만 돌려줌</td><td>기록된 답변은 인용 검증을 거친 것. 검증 없이 달라는 요청에는 에이전트를 돌림</td><td>항상 기록된 답변</td></tr>
+      <tr><td>다른 출처의 웹 페이지는 목록에 있을 때만 호출 가능</td><td>기본값은 빈 목록. 정적 공개 페이지가 API를 부르게 되면 그 주소만 넣음</td><td>모든 출처 허용</td></tr>
+      <tr><td>화면과 API를 이미지 하나에 담음</td><td>실행 명령만 바꿔 API를 띄움(<code>bioscout-api</code>). 컨테이너의 상태 확인은 두 주소를 차례로 봄</td><td>이미지 두 개</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>확인한 것</h3>
+  <p>읽기 전용 캐시로 서버를 띄우고 curl로 불러 봤습니다. 새로 든 비용은 없습니다.</p>
+  <ul>
+    <li>예시 질문은 기록된 답변이 바로 나왔고 질문 수에 들어가지 않았습니다.</li>
+    <li>같은 질문을 검증 없이 요청하면 에이전트가 캐시에서 재생되어 문장 5개짜리 답변이 나왔습니다. 계획, 검색, 선별, 답변 4단계가 돌았습니다.</li>
+    <li>스트림은 <code>step</code> 이벤트 4개 뒤에 <code>answer</code> 이벤트가 왔습니다.</li>
+    <li>하루 한도를 3으로 두고 다 쓴 뒤에는 일반 요청과 스트림 모두 429와 <code>Retry-After</code>를 받았습니다. 예시 질문은 계속 나왔습니다.</li>
+    <li>캐시에 없는 질문은 404 <code>not_recorded</code>, 공백뿐인 질문은 422였습니다.</li>
+  </ul>
+  <p>확인하지 못한 것이 셋 있습니다. 실제 키로 새 질문에 답하는 경로는 비용이 들어 돌리지 않았습니다. 에이전트 자체는 평가와 데모에서 같은 코드로 돌았습니다. 컨테이너에서 API가 뜨는지는 CI의 <code>image</code> 작업이 확인하도록 넣었고, 개발 PC에는 Docker가 없어 로컬에서는 보지 못했습니다. API는 아직 어디에도 호스팅하지 않았습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/api.py</code></td><td>경로, 요청과 응답 모델, 질문을 들이는 검사. <code>uv run --extra api bioscout-api</code></td></tr>
+      <tr><td><code>src/bioscout/quota.py</code></td><td>질문 수 한도. 하루와 전체, SQLite 파일</td></tr>
+      <tr><td><code>src/bioscout/demo.py</code></td><td><code>live()</code>가 서버가 떠 있는 동안 쓸 클라이언트를 한 번 열고, 한도와 실패 안내 문구를 화면과 API에 같이 줌</td></tr>
+      <tr><td><code>tests/test_api.py</code>, <code>tests/test_quota.py</code></td><td>실제 경로와 실제 에이전트를, 대본대로 답하는 모델과 메모리 안의 PubMed로 돌림. 포트를 열지 않음. <code>api</code>를 설치했을 때만 실행</td></tr>
     </tbody>
   </table></div>
 

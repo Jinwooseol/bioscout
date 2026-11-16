@@ -1,10 +1,14 @@
-# The demo page as a container. It serves on port 7860, the port a Hugging Face Docker Space expects.
+# The demo page and the HTTP API as one image. Both serve on port 7860, the port a Hugging Face Docker
+# Space expects.
 #
 #   docker build -t bioscout-demo .
-#   docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo
+#   docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo                 # the page
+#   docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo bioscout-api    # the API
 #
-# Without a key the page still shows the recorded example answers (app/examples.json).
+# Without a key both still serve the recorded example answers (app/examples.json).
 # The key is given when the container runs; it is never copied into the image (.dockerignore keeps .env out).
+# The count of questions asked (the cap on spending) is in /home/user/.cache/bioscout/quota.sqlite:
+# mount a volume there, or the count starts again with every new container.
 FROM python:3.12-slim
 
 # A non-root user with uid 1000, as Hugging Face Spaces requires.
@@ -21,16 +25,20 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 # Dependencies first, so this layer is rebuilt only when the lock file changes.
 COPY --chown=user:user pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev --extra demo --no-install-project
+RUN uv sync --locked --no-dev --extra demo --extra api --no-install-project
 
 COPY --chown=user:user README.md LICENSE ./
 COPY --chown=user:user src ./src
 COPY --chown=user:user app ./app
-RUN uv sync --locked --no-dev --extra demo
+RUN uv sync --locked --no-dev --extra demo --extra api
 
+# Where `bioscout-api` listens when it is run instead of the page.
+ENV BIOSCOUT_API_HOST=0.0.0.0 BIOSCOUT_API_PORT=7860
 EXPOSE 7860
+# The page answers on the first address, the API on the second.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/_stcore/health')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/_stcore/health')" \
+     || python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/health')"
 CMD ["streamlit", "run", "app/streamlit_app.py", \
      "--server.port=7860", "--server.address=0.0.0.0", "--server.headless=true", \
      "--browser.gatherUsageStats=false"]

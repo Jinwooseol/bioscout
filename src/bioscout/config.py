@@ -44,6 +44,18 @@ class Settings:
     langfuse_host: str = "https://cloud.langfuse.com"
     otlp_endpoint: str | None = None
     trace_content: bool = True  # False: no questions, prompts or replies in the spans
+    # The cap on questions answered with the operator's API key (quota.py). It holds for every visitor
+    # together and survives a restart; raise it here, never remove it.
+    max_questions_per_day: int = 20
+    max_questions_total: int = 200
+    quota_path: Path | None = None  # None: quota.sqlite in the cache directory
+    # The HTTP API (api.py).
+    api_host: str = "127.0.0.1"
+    api_port: int = 8000
+    api_max_concurrent: int = 2  # questions answered at the same time
+    api_timeout_s: float = 300.0  # one answer may take this long, then the request fails
+    api_cors_origins: tuple[str, ...] = ()  # web pages on other origins allowed to call the API
+    examples_path: Path = Path("app/examples.json")  # the recorded answers the API serves
 
     def __post_init__(self) -> None:
         if self.tools not in ("direct", "mcp"):
@@ -52,6 +64,10 @@ class Settings:
     @property
     def through_mcp(self) -> bool:
         return self.tools == "mcp"
+
+    @property
+    def quota_file(self) -> Path:
+        return self.quota_path or self.cache_dir / "quota.sqlite"
 
     @property
     def ncbi_requests_per_second(self) -> float:
@@ -64,6 +80,8 @@ class Settings:
             _load_dotenv(dotenv)
         env = os.environ
         cache_dir = env.get("BIOSCOUT_CACHE_DIR")
+        quota_path = env.get("BIOSCOUT_QUOTA_PATH")
+        origins = env.get("BIOSCOUT_API_CORS_ORIGINS", "")
         return cls(
             ncbi_api_key=env.get("NCBI_API_KEY") or None,
             ncbi_email=env.get("NCBI_EMAIL") or None,
@@ -80,4 +98,13 @@ class Settings:
             or env.get("OTEL_EXPORTER_OTLP_ENDPOINT")
             or None,
             trace_content=env.get("BIOSCOUT_TRACE_CONTENT", "on").lower() not in ("off", "0", "false", "no"),
+            max_questions_per_day=int(env.get("BIOSCOUT_MAX_QUESTIONS_PER_DAY") or cls.max_questions_per_day),
+            max_questions_total=int(env.get("BIOSCOUT_MAX_QUESTIONS_TOTAL") or cls.max_questions_total),
+            quota_path=Path(quota_path).expanduser() if quota_path else None,
+            api_host=env.get("BIOSCOUT_API_HOST") or cls.api_host,
+            api_port=int(env.get("BIOSCOUT_API_PORT") or cls.api_port),
+            api_max_concurrent=int(env.get("BIOSCOUT_API_MAX_CONCURRENT") or cls.api_max_concurrent),
+            api_timeout_s=float(env.get("BIOSCOUT_API_TIMEOUT_S") or cls.api_timeout_s),
+            api_cors_origins=tuple(o.strip().rstrip("/") for o in origins.split(",") if o.strip()),
+            examples_path=Path(env.get("BIOSCOUT_EXAMPLES") or cls.examples_path),
         )

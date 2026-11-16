@@ -17,6 +17,13 @@ def fixture(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
 
 
+@pytest.fixture(autouse=True)
+def own_question_allowance(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test counts against the real allowance of questions in the user's cache directory."""
+    path = tmp_path_factory.mktemp("allowance") / "quota.sqlite"
+    monkeypatch.setenv("BIOSCOUT_QUOTA_PATH", str(path))
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(ncbi_api_key="test-key", ncbi_email="dev@example.com", cache_dir=tmp_path)

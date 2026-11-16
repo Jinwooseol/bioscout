@@ -21,7 +21,8 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 | Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
 | Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
 | Tracing | One trace per answer: steps, model calls and PubMed calls as OpenTelemetry spans, sent to Langfuse when keys are set | `src/bioscout/tracing.py` |
-| CI | 124 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| CI | 146 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| API | A FastAPI service: the answer as JSON, or as server-sent events step by step, behind a cap on questions per day and in total that is kept in SQLite | `src/bioscout/api.py`, `src/bioscout/quota.py` |
 | Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
 ## Results
@@ -123,14 +124,64 @@ docker build -t bioscout-demo .
 docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo
 ```
 
+Live questions on the page draw on the same allowance as the API below, so a page refresh does not
+reset what a deployment may spend.
+
 The live page is a static Hugging Face Space that reads the same recorded answers as the app
 (`app/examples.json`). `scripts/deploy_space.py` publishes it; `--sdk docker` publishes the Streamlit
 app itself instead, which Hugging Face hosts only on a paid plan.
 
+## HTTP API
+
+The same agent behind a FastAPI service:
+
+```bash
+uv run --extra api bioscout-api
+```
+
+It listens on <http://127.0.0.1:8000>, with interactive docs at `/docs`.
+
+| Route | What it returns |
+| --- | --- |
+| `POST /v1/answers` | The answer to `{"question": "...", "verify": true}`: each sentence with its citations, verdict and the abstract passage behind it, the cited papers, and the steps with their cost |
+| `POST /v1/answers/stream` | The same as server-sent events: a `step` event as each step of the agent finishes, then `answer` (or `error`) |
+| `GET /v1/examples` | The recorded answers to the example questions, with no model call |
+| `GET /v1/status` | Whether new questions can be answered, the limits, and the allowance left |
+| `GET /health` | The process is up |
+
+```bash
+curl -N -X POST http://127.0.0.1:8000/v1/answers/stream -H "Content-Type: application/json" -d '{"question": "Does MSI-high status predict response to PD-1 blockade?"}'
+```
+
+A question that runs the agent is paid for with the operator's API key, so it passes four checks
+first, and only the last one counts it:
+
+1. An example question returns its recorded answer, at no cost.
+2. With no API key the request is refused (503 `live_off`).
+3. Two answers run at a time (`BIOSCOUT_API_MAX_CONCURRENT`); a third is refused with `Retry-After`
+   (503 `busy`).
+4. The question allowance: 20 a day and 200 in all (`BIOSCOUT_MAX_QUESTIONS_PER_DAY`,
+   `BIOSCOUT_MAX_QUESTIONS_TOTAL`). When it is used up the answer is 429 `quota_exceeded`.
+
+The count is kept in a SQLite file, so it survives a restart, holds for all callers together, and is
+shared with the demo page. At about $0.25 a question with the citation check on, the defaults bound
+spending near $5 a day and $50 in all. A question that fails stays counted.
+
+An error response names the kind of failure and never quotes it: a failed request to PubMed carries
+the API key in its URL. An answer that runs longer than `BIOSCOUT_API_TIMEOUT_S` (300) is stopped, and
+closing a stream stops the agent. Pages on other origins may call the API only when listed in
+`BIOSCOUT_API_CORS_ORIGINS`.
+
+From the container: `docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo bioscout-api`.
+
+Not built: limits per caller and authentication. The API is not hosted anywhere yet, so the public
+page still shows recorded answers only.
+
 ## Architecture
 
 ```
-Streamlit demo ─┐                 ┌─> report (results, costs, failure classes) ─> CI eval gate
+Streamlit demo ─┐
+HTTP API ───────┤                 ┌─> report (results, costs, failure classes) ─> CI eval gate
 Eval harness ───┴─> Research agent (plan → search → screen → cited answer → verify ↺ revise)
                          │ in-process, or MCP tool calls with BIOSCOUT_TOOLS=mcp
                          ▼

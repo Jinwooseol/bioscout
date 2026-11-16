@@ -20,6 +20,7 @@ dependencies = [
 [project.scripts]
 bioscout-mcp = "bioscout.mcp_server:main"
 bioscout-eval = "bioscout.evals.cli:main"
+bioscout-api = "bioscout.api:main"
 
 [project.optional-dependencies]
 demo = [
@@ -31,6 +32,10 @@ trace = [
 ]
 embed = [
     "fastembed>=0.9.1",
+]
+api = [
+    "fastapi>=0.163.1",
+    "uvicorn>=0.54.0",
 ]
 
 [build-system]

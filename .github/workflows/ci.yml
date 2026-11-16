@@ -13,10 +13,11 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --locked --extra demo --extra trace  # the extras, so the page and tracing tests run too
+      # The extras, so the page, tracing and API tests run too.
+      - run: uv sync --locked --extra demo --extra trace --extra api
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run --extra demo --extra trace pytest -q
+      - run: uv run --extra demo --extra trace --extra api pytest -q
       - name: MCP server starts over stdio
         run: uv run python scripts/smoke_live.py --offline
 
@@ -36,6 +37,19 @@ jobs:
             sleep 2
           done
           docker logs demo
+          exit 1
+      - name: The API starts in the same image, serves the recorded answers and refuses new questions without a key
+        run: |
+          docker run -d --name api -p 7861:7860 bioscout-demo bioscout-api
+          for attempt in $(seq 1 30); do
+            if curl -fs http://localhost:7861/health; then
+              test "$(curl -fs http://localhost:7861/v1/examples | python3 -c 'import json, sys; print(len(json.load(sys.stdin)))')" = 3
+              test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:7861/v1/answers -H 'Content-Type: application/json' -d '{"question": "Does drug X lower mortality?"}')" = 503
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs api
           exit 1
 
   # CI cannot run the agent (no API key) or replay it (the response cache holds abstracts, which are

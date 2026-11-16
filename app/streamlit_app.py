@@ -17,11 +17,11 @@ import streamlit as st
 from bioscout import demo
 from bioscout.answer import CitedSentence, Step, Verdict
 from bioscout.http import CacheMissError
+from bioscout.quota import QuotaExceeded
 
 # Answers recorded for the example questions (scripts/build_examples.py), shown without calling Claude.
 RECORDED = demo.load_recorded(Path(__file__).parent / "examples.json")
 MAX_QUESTIONS = int(os.environ.get("BIOSCOUT_DEMO_MAX_QUESTIONS", "5"))  # per browser session
-MAX_CHARS = 400
 BADGES = {Verdict.SUPPORTED: "green", Verdict.PARTIAL: "orange", Verdict.UNSUPPORTED: "red", None: "gray"}
 LIVE_OFF = (
     "Live questions are switched off here: no Claude API key is configured. The example questions above "
@@ -118,7 +118,7 @@ def ask(question: str, verify: bool) -> None:
         except Exception as exc:  # a failed call must not leave the page half drawn
             st.session_state.result = None
             status.update(label="Something went wrong", state="error")
-            st.error(f"The answer could not be produced: {type(exc).__name__}: {exc}")
+            st.error(demo.failure_text(exc))  # the kind of error only: its text can quote a request
 
 
 def use_example(text: str) -> None:
@@ -131,8 +131,15 @@ def use_example(text: str) -> None:
 def request_answer() -> None:
     """The Ask click. It runs before the page is redrawn, so the counter in the sidebar is already right."""
     question = st.session_state.question.strip()
+    st.session_state.notice = ""
     if question in RECORDED:  # nothing to run, and it does not count against the session's questions
         st.session_state.result = RECORDED[question]
+        return
+    try:
+        # The allowance every visitor shares. The session limit below resets on refresh; this does not.
+        demo.quota().take()
+    except QuotaExceeded as exceeded:
+        st.session_state.notice = demo.quota_text(exceeded)
         return
     st.session_state.pending = question
     st.session_state.asked += 1
@@ -143,6 +150,7 @@ st.session_state.setdefault("question", "")
 st.session_state.setdefault("result", None)
 st.session_state.setdefault("asked", 0)
 st.session_state.setdefault("pending", "")
+st.session_state.setdefault("notice", "")
 
 st.title("BioScout")
 st.markdown(
@@ -167,11 +175,13 @@ st.caption("Try an example:")
 for example in demo.EXAMPLE_QUESTIONS:
     st.button(example, on_click=use_example, args=(example,), use_container_width=True)
 
-question = st.text_area("Your question", key="question", max_chars=MAX_CHARS, height=110)
+question = st.text_area("Your question", key="question", max_chars=demo.MAX_QUESTION_CHARS, height=110)
 if not ready:
     st.info(LIVE_OFF)
 can_ask = bool(question.strip()) and (question.strip() in RECORDED or (ready and left > 0))
 st.button("Ask", type="primary", disabled=not can_ask, on_click=request_answer)
+if st.session_state.notice:
+    st.warning(st.session_state.notice)
 if st.session_state.pending:
     asked, st.session_state.pending = st.session_state.pending, ""
     ask(asked, verify)

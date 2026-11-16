@@ -12,6 +12,7 @@ from bioscout import demo
 from bioscout.agent.prompts import PLAN_SCHEMA, SCREEN_SCHEMA
 from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, Step, Usage, Verdict
 from bioscout.prompts import ANSWER_SCHEMA
+from bioscout.quota import Quota
 from bioscout.verifier.judge import JUDGE_SCHEMA
 from bioscout.verifier.revise import REVISE_SCHEMA
 from tests.fakes import FakePubMed, RoutedLLM, reply, synthetic_abstract
@@ -122,7 +123,7 @@ def test_sources_follow_the_order_of_first_citation_and_steps_are_added_up():
     assert demo.was_replayed(CitedAnswer(question="Q?", steps=[cached]))
 
 
-def test_the_page_shows_the_answer_with_verdicts_sources_and_what_was_removed(monkeypatch):
+def test_the_page_shows_the_answer_with_verdicts_sources_and_what_was_removed(tmp_path, monkeypatch):
     testing = pytest.importorskip("streamlit.testing.v1", reason="the demo extra is not installed")
 
     async def fake_ask(question: str, verify: bool = True, on_step=None) -> demo.DemoResult:
@@ -132,6 +133,7 @@ def test_the_page_shows_the_answer_with_verdicts_sources_and_what_was_removed(mo
 
     monkeypatch.setattr(demo, "ask", fake_ask)
     monkeypatch.setattr(demo, "can_answer", lambda: True)
+    monkeypatch.setattr(demo, "quota", lambda: Quota(tmp_path / "quota.sqlite", per_day=5, total=50))
     app = testing.AppTest.from_file(str(APP), default_timeout=30).run()
     assert not app.exception and app.title[0].value == "BioScout"
 
@@ -147,6 +149,49 @@ def test_the_page_shows_the_answer_with_verdicts_sources_and_what_was_removed(mo
     captions = "\n".join(c.value for c in app.caption)
     assert f"“{QUOTE}”" in captions and "Still not backed after one rewrite." in captions
     assert "Questions left in this session: 4" in [c.value for c in app.sidebar.caption]
+
+
+def test_the_page_stops_at_the_allowance_that_all_visitors_share(tmp_path, monkeypatch):
+    testing = pytest.importorskip("streamlit.testing.v1", reason="the demo extra is not installed")
+    asked: list[str] = []
+
+    async def fake_ask(question: str, verify: bool = True, on_step=None) -> demo.DemoResult:
+        asked.append(question)
+        return canned_result()
+
+    async def broken_ask(question: str, verify: bool = True, on_step=None) -> demo.DemoResult:
+        raise RuntimeError("https://eutils.example/esearch.fcgi?api_key=SECRETKEY")
+
+    monkeypatch.setattr(demo, "ask", fake_ask)
+    monkeypatch.setattr(demo, "can_answer", lambda: True)
+    monkeypatch.setattr(demo, "quota", lambda: Quota(tmp_path / "quota.sqlite", per_day=2, total=50))
+    app = testing.AppTest.from_file(str(APP), default_timeout=30).run()
+
+    def ask(question: str) -> None:
+        app.text_area[0].set_value(question).run()
+        next(b for b in app.button if b.label == "Ask").click().run()
+        assert not app.exception
+
+    ask("Is X better than Y?")
+    assert asked == ["Is X better than Y?"] and not app.warning
+
+    # A failed answer shows the kind of error only: its text could quote a request with the API key.
+    monkeypatch.setattr(demo, "ask", broken_ask)
+    ask("Is Y better than Z?")
+    errors = "\n".join(e.value for e in app.error)
+    assert "The answer could not be produced (RuntimeError)." in errors and "SECRETKEY" not in errors
+
+    # The day's allowance (two here) is used up: a refresh would reset the session's count, not this.
+    monkeypatch.setattr(demo, "ask", fake_ask)
+    ask("Is Z better than X?")
+    assert asked == ["Is X better than Y?"]
+    assert "Today's allowance of live questions" in "\n".join(w.value for w in app.warning)
+    # The refused question did not use one of the session's questions either.
+    assert "Questions left in this session: 3" in [c.value for c in app.sidebar.caption]
+    # A recorded example still shows, and clears the notice.
+    next(b for b in app.button if b.label == demo.EXAMPLE_QUESTIONS[0]).click().run()
+    next(b for b in app.button if b.label == "Ask").click().run()
+    assert not app.exception and not app.warning
 
 
 def test_a_recorded_result_keeps_the_answer_but_no_article_text(tmp_path: Path):

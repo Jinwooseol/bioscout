@@ -18,10 +18,12 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   `.env`; with them set, the demo, `bioscout-eval run` and `judge` send traces too
 - `BIOSCOUT_TOOLS=mcp` before a demo or eval run: the agent calls the MCP server's tools over a client
   session instead of the PubMed client in-process. Same answers; the run's metadata records which
+- `uv run --extra api bioscout-api`: the HTTP API on http://127.0.0.1:8000 (docs at `/docs`). With
+  `BIOSCOUT_CACHE_MODE=readonly` it only replays; `BIOSCOUT_QUOTA_PATH` moves the count of questions
 - `uv run python scripts/build_examples.py`: record the demo's example answers into `app/examples.json`
   (free for questions already in the cache)
-- `docker build -t bioscout-demo .`: the demo image. There is no Docker on the author's PC; the CI
-  `image` job builds it and checks the page starts
+- `docker build -t bioscout-demo .`: the image of the demo page and the API. There is no Docker on the
+  author's PC; the CI `image` job builds it and checks that the page and the API start
 - `uv run --with huggingface_hub python scripts/deploy_space.py brakey/bioscout`: publish the public page
   (a static Space with the recorded answers). `--dry-run` lists the files; `--sdk docker` publishes the
   Streamlit app instead, which Hugging Face refuses without a paid plan (HTTP 402)
@@ -68,9 +70,14 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
-- `src/bioscout/demo.py`: what the demo page shows for a question, as plain data (no UI code);
-  `app/streamlit_app.py` only lays it out
-- `Dockerfile`, `.dockerignore`: the demo as a container (uid 1000, port 7860, no secrets in the image)
+- `src/bioscout/demo.py`: what the demo page and the API show for a question, as plain data (no UI or
+  web code); `app/streamlit_app.py` and `api.py` only lay it out
+- `src/bioscout/api.py`: the FastAPI service (optional extra `api`): answers as JSON or server-sent
+  events, and the checks a question passes before the agent runs
+- `src/bioscout/quota.py`: the cap on questions per UTC day and in total, in a SQLite file that the
+  API and the demo page share
+- `Dockerfile`, `.dockerignore`: the page and the API as one image (uid 1000, port 7860, no secrets in
+  the image); `bioscout-api` as the command runs the API instead of the page
 - `space/static/index.html`: the public page (https://brakey-bioscout.static.hf.space). It reads `examples.json` and
   shows the recorded answers; its labels must match `demo.py` (a test checks)
 - `scripts/deploy_space.py`, `space/*/README.md`: publish to a Hugging Face Space from an allow-list of
@@ -108,7 +115,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - Tracing must stay a no-op without configuration: `traced_llm` and `traced_literature` return the
   object they were given. Never log or print the Langfuse keys or the Authorization header. Abstract
   text stays out of the PubMed spans.
-- Run the tests with `--extra demo --extra trace` so the page and tracing tests are not skipped.
+- Run the tests with `--extra demo --extra trace --extra api` so the page, tracing and API tests are
+  not skipped.
 - The agent knows PubMed only through `Literature`. Keep both tool paths returning the same data, so
   cached responses replay on either.
 - Do not tune the agent to say yes or no where the abstracts disagree just to raise PubMedQA accuracy:
@@ -120,8 +128,18 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - Never commit `.env` or the cache.
 - `app/examples.json` holds answers and bibliographic lines only: no abstract text and no passage
   quoted from one. `demo.record()` strips them and a test checks the committed file.
-- The public page runs no model. Do not put a Claude API key on a public deployment until there is a
-  cap on the total number of questions: the per-session limit resets on refresh.
+- The question allowance (`quota.py`) is what bounds the bill of a deployment that holds a Claude API
+  key. Every path that runs the agent for a visitor takes from it first (`admit` in `api.py`,
+  `request_answer` in the page): never add a path around it, never give a question back when its
+  answer fails, and never let zero or a missing value mean "no limit". The public page still runs no
+  model: the API is not hosted anywhere.
+- What a visitor is told about a failed answer is `demo.failure_text`: the kind of error, never its
+  text. The API logs the kind and the stack frames only. An exception can quote a request, and a
+  request to PubMed carries the API key and the contact address.
+- In `api.py` the checks that refuse a question live in the `admit` dependency, not in the route: an
+  error raised inside a streaming route after it has started cannot become an error response.
+- No test may count against the real allowance: `tests/conftest.py` points `BIOSCOUT_QUOTA_PATH` at a
+  temp folder for every test. A page test also replaces `demo.quota`, so `.env` is not read.
 - After each work session, update `docs/progress.html` (the `PROGRESS` object at the top of its
   script) and add a log entry: what was decided, what failed, which numbers moved.
 - No schedule or timeline wording in code, tracked files, commit messages or branch names: no

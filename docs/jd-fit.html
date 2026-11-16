@@ -45,9 +45,9 @@
       <tr><td>평가</td><td>115문항, 같은 모델로 변형 4개, 결정적 지표, LLM judge, 사람 라벨과 비교하는 보정 도구(Cohen's kappa), 실패 분류, CI 평가 게이트</td><td><code>src/bioscout/evals/</code>, <code>evals/reports/</code>. judge가 인용 문장 1,151개를 판정</td><td><span class="tag built">충분</span> 보정 라벨링은 진행 중</td></tr>
       <tr><td>트레이싱, 관측 (Langfuse, LangSmith)</td><td>답변마다 단계별 비용, 토큰, 호출 수, 지연을 기록하고 리포트에 표로 냄. 답변 하나를 trace 하나로, 단계와 모델 호출과 PubMed 호출을 OpenTelemetry span으로 내보내 Langfuse로 보냄</td><td><a href="design.html#costs">비용 · 지연 집계</a>, <a href="design.html#tracing">트레이싱</a>. 에이전트 비용의 66%가 선별 단계</td><td><span class="tag built">충분</span> 실제 Langfuse 화면에서는 아직 확인하지 않음</td></tr>
       <tr><td>가드레일, 신뢰성</td><td>인용한 PMID가 실제로 있는지 확인. 초록을 받아 쓴 답변은 그 초록만 인용하도록 제한. 문장마다 인용 초록이 뒷받침하는지 판정하고, 부족하면 한 번 고쳐 쓰고, 그래도 근거가 없으면 삭제. 의료기기가 아니라는 안내</td><td><code>src/bioscout/verifier/</code>. 세 변형의 인용 1,681건 중 가짜 PMID 0건</td><td><span class="tag built">충분</span> 초록에 섞인 지시문(프롬프트 인젝션)은 따로 시험하지 않음</td></tr>
-      <tr><td>백엔드, 서빙</td><td>MCP 서버(stdio), Streamlit 화면, 비동기 I/O, 호스트별 속도 제한, 재시도, 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code>, <code>app/</code></td><td><span class="tag">부분</span> REST API(FastAPI)는 없음</td></tr>
+      <tr><td>백엔드, 서빙</td><td>FastAPI REST API(JSON 응답과 단계별 server-sent events, OpenAPI 문서), 전체 질문 수 한도, 동시 실행 제한, 시간 제한. MCP 서버(stdio), Streamlit 화면, 비동기 I/O, 호스트별 속도 제한, 재시도, 응답 캐시</td><td><a href="design.html#api">HTTP API</a>, <code>api.py</code>, <code>quota.py</code>, <code>http.py</code>, <code>cache.py</code></td><td><span class="tag built">충분</span> 아직 호스팅하지 않음. 인증과 호출자별 한도는 없음</td></tr>
       <tr><td>컨테이너, CI/CD, 배포</td><td>Dockerfile, GitHub Actions(테스트, 린트, 이미지 빌드, 평가 게이트), Hugging Face Static Space에 공개 페이지</td><td><code>Dockerfile</code>, <code>.github/workflows/ci.yml</code>, <a href="https://brakey-bioscout.static.hf.space">공개 페이지</a></td><td><span class="tag">부분</span> 클라우드(AWS, GCP)와 Kubernetes는 쓰지 않음</td></tr>
-      <tr><td>코드 품질, 테스트</td><td>네트워크 없이 도는 테스트 106개, ruff, Pydantic 모델, uv 잠금 파일</td><td><code>tests/</code>, CI의 <code>test</code> 작업</td><td><span class="tag built">충분</span></td></tr>
+      <tr><td>코드 품질, 테스트</td><td>네트워크 없이 도는 테스트 146개, ruff, Pydantic 모델, uv 잠금 파일</td><td><code>tests/</code>, CI의 <code>test</code> 작업</td><td><span class="tag built">충분</span></td></tr>
       <tr><td>비용 관리</td><td>요청 전체를 키로 하는 응답 캐시로 재채점과 재생에 비용이 들지 않음. 변형별, 단계별 비용 표</td><td>질의당 비용: LLM 단독 $0.016, 단순 RAG $0.024, 에이전트 $0.148</td><td><span class="tag">부분</span> 배치 API와 프롬프트 캐싱은 적용하지 않음</td></tr>
       <tr><td>파인튜닝, 모델 학습</td><td>이 프로젝트에는 없음</td><td>다른 프로젝트(홈페이지 챗봇의 파인튜닝 모델, 진단 AI)가 보여 줌</td><td><span class="tag">범위 밖</span></td></tr>
       <tr><td>도메인 지식</td><td>MSI, 디지털 PCR, liquid biopsy 질문 15개를 직접 쓰고, 문항마다 인용해야 할 논문을 PubMed에서 확인해 지정</td><td><code>evals/datasets/domain.jsonl</code></td><td><span class="tag built">충분</span></td></tr>
@@ -61,7 +61,7 @@
     <tbody>
       <tr><td>judge 보정 라벨링을 마치고 변형 D를 실행</td><td>평가. "LLM judge를 사람 라벨로 검증했다"는 문장을 수치로 쓸 수 있게 됨</td><td>저자의 라벨링 60쌍, 변형 D 실행 비용</td></tr>
       <tr><td>Langfuse 키를 넣고 trace가 화면에 보이는지 확인</td><td>트레이싱, 관측. 코드와 테스트는 끝났고 실제 화면 확인이 남음</td><td>Langfuse 계정</td></tr>
-      <tr><td>에이전트를 REST API로 내고 전체 질문 수 한도를 둠</td><td>백엔드, 서빙. 공개 페이지에서 직접 질문을 받을 수 있게 됨</td><td>호스팅(Docker Space는 유료 플랜)</td></tr>
+      <tr><td>API를 호스팅하고 공개 페이지에서 직접 질문을 받음</td><td>배포. API와 전체 질문 수 한도는 만들었고, 올릴 곳과 공개 페이지의 질문 입력칸이 남음</td><td>호스팅(Docker Space는 유료 플랜)</td></tr>
       <tr><td>도메인 질문의 검색 개선</td><td>RAG. 인용해야 할 논문 43편 중 19편을 어떤 검색도 찾지 못함</td><td>평가 실행 비용</td></tr>
     </tbody>
   </table></div>
@@ -74,6 +74,7 @@
       <tr><td>가짜 PMID가 0%면 인용 문제는 없는 것 아닌가?</td><td>존재 확인만으로는 변형이 구분되지 않음. LLM 단독은 가짜 PMID가 없지만 인용의 절반이 문장을 분명히 뒷받침하지 않고, 그중 일부는 주제가 다른 실제 논문</td></tr>
       <tr><td>LLM judge의 판정을 어떻게 믿나?</td><td>judge가 근거로 옮긴 구절이 초록에 실제로 있는지 코드로 확인함. 판정 기준별로 같은 수의 쌍을 뽑아 저자가 가린 채 라벨링하고 Cohen's kappa를 냄(목표 0.7). 이 비교가 끝나기 전의 수치는 잠정이라고 표시</td></tr>
       <tr><td>에이전트를 바꿨을 때 품질이 떨어지지 않았는지 어떻게 아나?</td><td><a href="design.html#gate">CI 평가 게이트</a>. 프롬프트나 설정이 바뀌면 평가를 다시 돌리기 전까지 CI가 실패하고, 새 수치가 한도 넘게 떨어져도 실패</td></tr>
+      <tr><td>공개 서비스로 열면 비용을 어떻게 막나?</td><td><a href="design.html#api">질문 수 한도</a>. 모든 호출자가 함께 쓰는 하루 20개, 전체 200개 한도를 SQLite 파일에 두어 다시 시작해도 남음. 검증을 켠 질문 하나가 약 $0.25이므로 하루 약 $5, 전체 약 $50이 상한. 답변은 동시에 2개까지, 하나에 300초까지</td></tr>
       <tr><td>MCP 서버는 에이전트와 어떤 관계인가?</td><td>같은 PubMed 클라이언트와 캐시를 두 경로로 씀. 기본은 프로세스 안에서 직접 호출이고, <code>BIOSCOUT_TOOLS=mcp</code>면 MCP 클라이언트 세션으로 도구를 호출. 두 경로의 답변이 같은 것을 테스트와 재생으로 확인</td></tr>
     </tbody>
   </table></div>
