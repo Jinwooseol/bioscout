@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from bioscout.agent import ResearchAgent
+from bioscout.agent.rank import EMBED_MODEL, Ranker, default_ranker
 from bioscout.answer import CitedAnswer, SearchLog, Step, Usage
 from bioscout.evals.datasets import EvalItem
 from bioscout.llm import LLM
@@ -36,6 +37,7 @@ PMID, leave "citations" empty rather than guess."""
 class Context:
     llm: LLM
     pubmed: Literature
+    ranker: Ranker | None = None  # variant E's; the default embedding ranker when not given
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,13 @@ async def verified_agent(item: EvalItem, ctx: Context) -> CitedAnswer:
     return await ResearchAgent(ctx.llm, ctx.pubmed, verify=VerifyConfig()).answer(item.question)
 
 
+async def ranking_agent(item: EvalItem, ctx: Context) -> CitedAnswer:
+    """E: C with the screening call replaced by embedding similarity. Plan, search once, keep the ten
+    abstracts closest to the question, answer like B and C (src/bioscout/agent/rank.py)."""
+    ranker = ctx.ranker or default_ranker()
+    return await ResearchAgent(ctx.llm, ctx.pubmed, ranker=ranker).answer(item.question)
+
+
 VARIANTS: dict[str, Variant] = {
     "A": Variant("A", "LLM only", SYSTEM_LLM_ONLY, llm_only),
     "B": Variant("B", "Naive RAG", SYSTEM_GROUNDED, naive_rag),
@@ -114,5 +123,12 @@ VARIANTS: dict[str, Variant] = {
         SYSTEM_GROUNDED,
         verified_agent,
         (*ResearchAgent.fingerprint(), *verify_fingerprint()),
+    ),
+    "E": Variant(
+        "E",
+        "Agent, embedding rank",
+        SYSTEM_GROUNDED,
+        ranking_agent,
+        ResearchAgent.rank_fingerprint(f"embedding:{EMBED_MODEL}"),
     ),
 }

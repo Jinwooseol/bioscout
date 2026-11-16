@@ -38,7 +38,11 @@ from bioscout.sources.pubmed import Literature
 
 INPUT = "langfuse.observation.input"
 OUTPUT = "langfuse.observation.output"
-STEP_KINDS = {"search": "retriever", "verify": "guardrail"}  # the other steps are "chain"
+STEP_KINDS = {
+    "search": "retriever",
+    "rank": "retriever",
+    "verify": "guardrail",
+}  # the other steps are "chain"
 
 
 @dataclass

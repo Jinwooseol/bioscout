@@ -32,6 +32,9 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `uv run bioscout-eval calibrate-sample evals/runs/<run_id>` then `calibrate-score`: write 60 pairs to
   `evals/review/calibration.md` for the author to label, then score the judge against the labels
   (Cohen's kappa). Free. Never fill in or change the labels: they are the author's judgment.
+- `BIOSCOUT_CACHE_MODE=readonly uv run --extra embed bioscout-eval selection --variants C,E --concurrency 1`:
+  run C and E up to the choice of abstracts and compare which expected papers were chosen. No answer
+  is written; free when the cache is read-only. `bioscout-eval run --variants E` runs E in full (paid)
 - `uv run bioscout-eval gate --since HEAD`: the eval gate, offline and free. It checks that the report
   named in `evals/baseline.json` was made with the prompts, model, judge and questions in the code,
   holds no fabricated PMID, and did not drop beyond the limits since the baseline at that revision.
@@ -56,6 +59,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/tools.py`: `McpLiterature`, the agent's PubMed interface over an MCP client session
 - `src/bioscout/evals/failures.py`: failure classes from a run's records (where an expected paper was
   lost, kinds of wrong answer); the report's last section
+- `src/bioscout/agent/rank.py`: variant E's choice of abstracts by embedding similarity (`Ranker`,
+  fastembed model, optional extra `embed`); `src/bioscout/evals/selection.py`: the selection-only run
 - `src/bioscout/tracing.py`: OpenTelemetry spans in Langfuse's attribute mapping (optional extra
   `trace`); off, and wrapping nothing, unless keys or an OTLP endpoint are configured
 - `docs/jd-fit.html`: what job postings ask for against what the project does, with the gaps
@@ -84,6 +89,9 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - D's first four steps send the same requests as C, so they replay C's cached responses and a
   D-vs-C difference comes only from the verify step. C's prompt hash is pinned in
   `tests/test_verify.py`. Run D only with a calibrated judge: its answers depend on the judge prompt.
+- Do not add fields to `AgentConfig`: it is part of C's and D's prompt hash, so the gate fails until
+  they are measured again. Pass new parts (like the ranker) separately and give the new variant its
+  own fingerprint. The embedding model's name is part of E's.
 - Tracing must stay a no-op without configuration: `traced_llm` and `traced_literature` return the
   object they were given. Never log or print the Langfuse keys or the Authorization header. Abstract
   text stays out of the PubMed spans.

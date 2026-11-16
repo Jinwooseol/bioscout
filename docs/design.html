@@ -665,6 +665,62 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     </tbody>
   </table></div>
 
+  <h2 id="rank">임베딩 선별 (변형 E) <span class="tag built">구현됨</span> <span class="tag">답변 품질은 측정 전</span></h2>
+  <p>변형 C의 선별 단계는 후보 초록을 25편까지 모델로 읽고, 에이전트 비용의 66%를 씁니다. 실패 분류에서 논문을 놓치는 곳은 선별이 아니라 검색이었습니다. 그래서 선별을 모델 호출 없이 해 보는 변형을 만들었습니다. 질문과 후보 초록을 임베딩해, 질문에 가장 가까운 10편을 고릅니다.</p>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>단계</th><th>변형 C</th><th>변형 E</th></tr></thead>
+    <tbody>
+      <tr><td>계획</td><td>모델이 검색어를 만듦</td><td>같음. 요청이 같아 C의 캐시된 응답이 재생됨</td></tr>
+      <tr><td>검색</td><td>검색어와 질문 원문으로 검색, 후보 25편까지</td><td>같음</td></tr>
+      <tr><td>초록 고르기</td><td>모델이 초록을 읽고 고름. 근거가 부족하면 검색어를 더 내 한 번 더 검색</td><td>임베딩 유사도 상위 10편. 모델 호출이 없고, 두 번째 검색도 없음</td></tr>
+      <tr><td>답변</td><td>고른 초록으로 답변</td><td>같은 프롬프트</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>초록을 고르는 방법을 인터페이스(<code>Ranker</code>)로 분리</td><td>에이전트 그래프는 그대로 두고 고르는 노드만 바꿈. 테스트는 단어 수를 세는 가짜 임베더로 네트워크와 모델 없이 돎</td><td>임베딩용 에이전트를 따로 작성</td></tr>
+      <tr><td>로컬 임베딩 모델(<code>BAAI/bge-small-en-v1.5</code>, 384차원, 약 67MB)</td><td>API 키와 호출 비용이 없고 결과가 실행마다 같음. CPU에서 질문 하나에 약 1.8초</td><td>임베딩 API(키와 비용이 필요). 생의학 전용 모델(PyTorch와 약 1GB가 필요해 먼저 가벼운 모델로 측정)</td></tr>
+      <tr><td>벡터 DB를 쓰지 않음</td><td>질문 하나의 후보가 25편뿐이라, 모두와 유사도를 직접 계산하는 편이 정확하고 빠름. 색인이 필요한 규모가 아님</td><td>후보를 벡터 DB에 넣고 검색</td></tr>
+      <tr><td>임베딩하는 글은 제목과 초록</td><td>답변 단계가 받는 것과 같은 내용. 초록이 없는 논문은 제목만</td><td>초록만. MeSH 용어까지</td></tr>
+      <tr><td>모델 이름을 변형의 해시에 넣음</td><td>임베딩 모델을 바꾸면 다른 변형으로 취급돼, 평가를 다시 하기 전까지 게이트가 알려 줌. C와 D의 해시는 그대로임을 테스트가 확인</td><td>설정값으로만 두기</td></tr>
+      <tr><td>초록을 고르는 데까지만 돌리는 실행(<code>bioscout-eval selection</code>)을 따로 둠</td><td>원 논문이 고른 초록에 들었는지는 답변 없이 셀 수 있음. 캐시를 읽기 전용으로 두면 계획 호출이 재생돼 비용이 들지 않음. 답변을 돌리기 전에 고르는 방법부터 비교</td><td>변형 전체를 실행해야만 비교</td></tr>
+      <tr><td>임베딩 패키지는 선택 설치(<code>embed</code>)</td><td>변형 E를 돌릴 때만 필요. 해시 계산과 테스트는 패키지 없이 됨</td><td>기본 의존성에 추가</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>초록 고르기까지 측정한 것</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>데이터셋</th><th>기대 논문</th><th>후보에 있음</th><th>고름</th><th>고른 초록 수</th><th>모델 호출</th><th>여기까지의 비용</th></tr></thead>
+    <tbody>
+      <tr><td>C. 모델이 고름</td><td>PubMedQA</td><td>100</td><td>92</td><td>91 (91%)</td><td>7.0</td><td>2.23</td><td>$0.114</td></tr>
+      <tr><td>E. 임베딩</td><td>PubMedQA</td><td>100</td><td>87</td><td>87 (87%)</td><td>10.0</td><td>1.00</td><td>$0.017</td></tr>
+      <tr><td>C. 모델이 고름</td><td>도메인</td><td>43</td><td>22</td><td>20 (47%)</td><td>9.9</td><td>2.33</td><td>$0.120</td></tr>
+      <tr><td>E. 임베딩</td><td>도메인</td><td>43</td><td>18</td><td>16 (37%)</td><td>10.0</td><td>1.00</td><td>$0.018</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">기대 논문은 PubMedQA 문항의 원 논문과 도메인 문항의 필수 인용 논문입니다. 리포트 <code>evals/reports/20261116-094814-select-CE</code>에서 옮겼습니다. 답변은 쓰지 않았고, 새로 든 비용은 없습니다. C의 비용은 처음 실행했을 때의 값입니다.</p>
+  <ul>
+    <li>임베딩은 검색이 찾아 준 원 논문을 하나도 떨어뜨리지 않았습니다. PubMedQA에서 후보에 있던 87편을 모두 골랐습니다. 모델은 92편 중 91편을 골랐습니다.</li>
+    <li>E가 C보다 낮은 것은 두 번째 검색이 없기 때문입니다. C는 23문항에서 한 번 더 검색해 원 논문 5편을 더 찾았습니다. 도메인에서도 차이 4편이 모두 후보 단계에서 났습니다.</li>
+    <li>초록을 고르는 데까지의 비용은 질문당 $0.114에서 $0.017로 줄었습니다. 답변 단계 비용(C에서 약 $0.034)을 더하면 E는 질문당 약 $0.05로, C의 3분의 1쯤입니다. 이 값은 추정이고 실행해서 잰 것이 아닙니다.</li>
+    <li>E는 항상 10편을 주고, C는 평균 7편을 줍니다. C가 고른 초록의 69%가 E의 10편에 들어 있습니다. 관련이 적은 초록이 섞일 때 답변이 어떻게 달라지는지는 아직 모릅니다.</li>
+  </ul>
+
+  <h3>남은 것</h3>
+  <p>답변 품질(정답률, 인용 정확도, 근거가 확인된 문장)은 변형 E를 실제로 실행하고 judge로 판정해야 나옵니다. 답변 단계는 새 요청이라 비용이 듭니다. 임베딩 선별 뒤에 부족할 때만 한 번 더 검색하는 방법은 모델 없이 판단할 기준이 필요해 아직 넣지 않았습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/agent/rank.py</code></td><td><code>Ranker</code>, 임베딩 랭커, fastembed 임베더</td></tr>
+      <tr><td><code>src/bioscout/evals/selection.py</code></td><td>초록 고르기까지만 실행해 비교하는 표. <code>uv run --extra embed bioscout-eval selection --variants C,E</code></td></tr>
+      <tr><td><code>tests/test_rank.py</code></td><td>가짜 임베더로 순위, 그래프(선별 호출 없음, 검색 한 번), 변형 E, 비교 표를 확인</td></tr>
+    </tbody>
+  </table></div>
+
   <h2 id="tools">에이전트의 도구 경로 <span class="tag built">구현됨</span></h2>
   <p>에이전트가 PubMed에 닿는 길은 두 가지입니다. 기본은 PubMed 클라이언트를 프로세스 안에서 직접 부르는 것이고, <code>BIOSCOUT_TOOLS=mcp</code>로 실행하면 MCP 서버의 도구(<code>search_pubmed</code>, <code>get_abstracts</code>, <code>check_pmids</code>)를 MCP 클라이언트 세션으로 부릅니다.</p>
   <div class="table-wrap"><table>
@@ -711,7 +767,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     <thead><tr><th>후보</th><th>근거</th><th>필요한 것</th></tr></thead>
     <tbody>
       <tr><td>도메인 질문의 검색을 넓힘(검색어 수, 검색어당 결과 수)</td><td>필수 인용 논문 43편 중 19편이 검색에 나오지 않음</td><td>변형 C 재실행과 재판정 비용</td></tr>
-      <tr><td>선별을 임베딩 유사도로 바꾼 변형</td><td>선별이 에이전트 비용의 66%. 놓치는 곳은 선별이 아니므로 더 싼 방법으로 바꿔 볼 여지가 있음</td><td>임베딩 모델, 평가 실행 비용</td></tr>
+      <tr><td>선별을 임베딩 유사도로 바꾼 변형. <a href="#rank">변형 E</a>로 구현하고 선택 단계까지 측정함</td><td>선별이 에이전트 비용의 66%. 놓치는 곳은 선별이 아니므로 더 싼 방법으로 바꿔 볼 여지가 있음</td><td>답변 품질을 보려면 평가 실행 비용</td></tr>
       <tr><td>결과표에 "반대로 답한 비율"을 정답률과 함께 표시</td><td>유보와 반대는 위험이 다른 실패인데 정답률은 같게 셈</td><td>비용 없음</td></tr>
     </tbody>
   </table></div>

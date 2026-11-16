@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "run_id": "20261116-094814-select-CE",
+    "model": "claude-opus-5-5",
+    "effort": "medium",
+    "cache_mode": "readonly",
+    "ranker": "embedding:BAAI/bge-small-en-v1.5",
+    "datasets": [
+      "pubmedqa",
+      "domain"
+    ],
+    "limit": 0,
+    "items": 115,
+    "commit": "bb1c58b"
+  },
+  "rows": [
+    {
+      "variant": "C",
+      "dataset": "pubmedqa",
+      "n": 100,
+      "papers": 100,
+      "found": 92,
+      "selected": 91,
+      "selected_rate": 0.91,
+      "context_size": 6.99,
+      "same_as_first": null,
+      "llm_calls_per_query": 2.23,
+      "usd_per_query": 0.1140748,
+      "choose_ms_p50": null,
+      "errors": 0
+    },
+    {
+      "variant": "C",
+      "dataset": "domain",
+      "n": 15,
+      "papers": 43,
+      "found": 22,
+      "selected": 20,
+      "selected_rate": 0.46511627906976744,
+      "context_size": 9.866666666666667,
+      "same_as_first": null,
+      "llm_calls_per_query": 2.3333333333333335,
+      "usd_per_query": 0.12004133333333333,
+      "choose_ms_p50": null,
+      "errors": 0
+    },
+    {
+      "variant": "E",
+      "dataset": "pubmedqa",
+      "n": 100,
+      "papers": 100,
+      "found": 87,
+      "selected": 87,
+      "selected_rate": 0.87,
+      "context_size": 10,
+      "same_as_first": 0.6901309523809523,
+      "llm_calls_per_query": 1,
+      "usd_per_query": 0.01668072,
+      "choose_ms_p50": 1789.0,
+      "errors": 0
+    },
+    {
+      "variant": "E",
+      "dataset": "domain",
+      "n": 15,
+      "papers": 43,
+      "found": 18,
+      "selected": 16,
+      "selected_rate": 0.37209302325581395,
+      "context_size": 10,
+      "same_as_first": 0.5592592592592592,
+      "llm_calls_per_query": 1,
+      "usd_per_query": 0.01764426666666667,
+      "choose_ms_p50": 1791,
+      "errors": 0
+    }
+  ]
+}

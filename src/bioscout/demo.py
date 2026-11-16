@@ -50,6 +50,7 @@ STEP_LABELS = {
     "plan": "Planned the PubMed searches",
     "search": "Searched PubMed and fetched abstracts",
     "screen": "Read the abstracts and picked the relevant ones",
+    "rank": "Ranked the abstracts by similarity to the question",
     "answer": "Wrote the answer",
     "verify": "Checked each sentence against the abstracts it cites",
     "revise": "Rewrote sentences that were not fully backed",

@@ -21,7 +21,7 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 | Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
 | Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
 | Tracing | One trace per answer: steps, model calls and PubMed calls as OpenTelemetry spans, sent to Langfuse when keys are set | `src/bioscout/tracing.py` |
-| CI | 113 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| CI | 118 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
 | Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
 ## Results
@@ -65,6 +65,17 @@ question's own source paper among the abstracts: PubMedQA scores against one pap
 the agent reads ten. Naive RAG's wrong answers are mostly searches that found nothing (13 questions
 with no answer). On the domain questions the agent loses must-cite papers at the search step (19 of
 43 never returned by any search), not at selection (4).
+
+**Choosing abstracts without the model (variant E).** Screening is two thirds of the agent's cost, and
+the failure analysis says papers are lost at search, not at selection. Variant E therefore replaces
+the screening call with embedding similarity: a 67 MB local model (`BAAI/bge-small-en-v1.5`), and no
+vector database, since a question has at most 25 candidates. Run only up to the choice of abstracts
+([`evals/reports/20261116-094814-select-CE.md`](evals/reports/20261116-094814-select-CE.md)), which costs nothing
+because the plan calls replay from the cache, E keeps the source paper for 87 of 100 PubMedQA
+questions against C's 91, at $0.017 a question up to that point against $0.114. The ranking itself
+dropped nothing: E kept all 87 source papers its search had found. What it lacks is C's second search
+round, which found five more. Answers from E have not been run, so its accuracy and citation numbers
+are not known yet.
 
 **Eval gate.** CI cannot run the agent: it has no API key, and the response cache that would replay a
 run holds abstracts, which are not committed. It gates on the committed evidence instead.

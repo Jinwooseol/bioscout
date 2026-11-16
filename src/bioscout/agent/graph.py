@@ -21,6 +21,7 @@ from langgraph.graph import END, START, StateGraph
 
 from bioscout import tracing
 from bioscout.agent.prompts import PLAN_SCHEMA, SCREEN_SCHEMA, SYSTEM_PLAN, SYSTEM_SCREEN
+from bioscout.agent.rank import Ranker
 from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, SearchLog, Step, Usage, Verdict
 from bioscout.llm import LLM
 from bioscout.models import AbstractBatch, ArticleAbstract
@@ -116,11 +117,13 @@ class ResearchAgent:
         pubmed: Literature,
         config: AgentConfig | None = None,
         verify: VerifyConfig | None = None,
+        ranker: Ranker | None = None,
     ) -> None:
         self.llm = llm
         self.pubmed = pubmed
         self.config = config or AgentConfig()
         self.verify = verify  # None: variant C, the answer is returned as written
+        self.ranker = ranker  # None: the model screens the candidates; else variant E ranks them
         self.graph = self._build()
 
     @staticmethod
@@ -128,16 +131,28 @@ class ResearchAgent:
         """Everything besides the answer prompt that changes behaviour; part of the variant's prompt_sha."""
         return (SYSTEM_PLAN, PLAN_SCHEMA, SYSTEM_SCREEN, SCREEN_SCHEMA, asdict(config or AgentConfig()))
 
-    def _build(self) -> Any:
+    @staticmethod
+    def rank_fingerprint(ranker: str, config: AgentConfig | None = None) -> tuple[Any, ...]:
+        """The same for an agent that ranks the candidates instead of screening them (variant E)."""
+        return (SYSTEM_PLAN, PLAN_SCHEMA, asdict(config or AgentConfig()), "rank", ranker)
+
+    def _build(self, answering: bool = True) -> Any:
+        """The whole graph, or with `answering` off the graph up to the choice of abstracts."""
         graph = StateGraph(AgentState)
         graph.add_node("plan", _timed("plan", self._plan))
         graph.add_node("search", _timed("search", self._search))
-        graph.add_node("screen", _timed("screen", self._screen))
-        graph.add_node("answer", _timed("answer", self._answer))
+        # The abstracts for the answer are chosen by the model (screen) or by a ranker (rank).
+        choose = "screen" if self.ranker is None else "rank"
+        graph.add_node(choose, _timed(choose, self._screen if self.ranker is None else self._rank))
         graph.add_edge(START, "plan")
         graph.add_conditional_edges("plan", self._after_plan, ["search", END])
-        graph.add_edge("search", "screen")
-        graph.add_conditional_edges("screen", self._after_screen, ["search", "answer", END])
+        graph.add_edge("search", choose)
+        if not answering:
+            stops = {"search": "search", "answer": END, END: END}
+            graph.add_conditional_edges(choose, self._after_screen, stops)
+            return graph.compile(name="bioscout-select")
+        graph.add_node("answer", _timed("answer", self._answer))
+        graph.add_conditional_edges(choose, self._after_screen, ["search", "answer", END])
         if self.verify is None:
             graph.add_edge("answer", END)
         else:
@@ -156,11 +171,9 @@ class ResearchAgent:
         answer, _ = await self.run(question, on_step)
         return answer
 
-    async def run(
-        self, question: str, on_step: Callable[[Step], None] | None = None
-    ) -> tuple[CitedAnswer, dict[str, ArticleAbstract]]:
-        """`answer`, plus every abstract the agent fetched on the way, by PMID."""
-        start: AgentState = {
+    @staticmethod
+    def _start(question: str) -> AgentState:
+        return {
             "question": question,
             "round": 0,
             "searches": [],
@@ -172,6 +185,21 @@ class ResearchAgent:
             "revisions": 0,
             "dropped": [],
         }
+
+    async def select(self, question: str) -> AgentState:
+        """Run up to the choice of abstracts and stop, writing no answer. The state that comes back holds
+        the searches, every abstract fetched and the PMIDs chosen (see evals/selection.py)."""
+        with tracing.span("bioscout.select", kind="agent") as trace:
+            trace.input(question)
+            state: AgentState = await self._build(answering=False).ainvoke(self._start(question))
+            trace.output({"selected": state.get("selected", [])})
+        return state
+
+    async def run(
+        self, question: str, on_step: Callable[[Step], None] | None = None
+    ) -> tuple[CitedAnswer, dict[str, ArticleAbstract]]:
+        """`answer`, plus every abstract the agent fetched on the way, by PMID."""
+        start = self._start(question)
         state = start
         reported = 0
         with tracing.span("bioscout.answer", kind="agent", verify=self.verify is not None) as trace:
@@ -271,6 +299,14 @@ class ResearchAgent:
             "enough": bool(data["enough"]),
             "pending_queries": next_queries[: cfg.max_next_queries],
         }
+
+    async def _rank(self, state: AgentState) -> AgentState:
+        """Variant E: keep the candidates closest to the question. No model call, so no second round."""
+        assert self.ranker is not None
+        candidates = [state["abstracts"][pmid] for pmid in state["fresh"]]
+        ranked = await self.ranker.rank(state["question"], candidates)
+        selected = [pmid for pmid, _ in ranked][: self.config.max_context]
+        return {"selected": selected, "enough": True, "pending_queries": [], "usages": []}
 
     def _after_screen(self, state: AgentState) -> str:
         if state.get("refused"):

@@ -20,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 from bioscout import tracing
+from bioscout.agent.rank import default_ranker
 from bioscout.config import CacheMode, Settings
 from bioscout.evals import gate
 from bioscout.evals.calibration import (
@@ -33,6 +34,7 @@ from bioscout.evals.calibration import (
 from bioscout.evals.datasets import DATASET_FILES, datasets_sha, load_dataset
 from bioscout.evals.judging import describe_judgments, judge_run, load_judgments
 from bioscout.evals.runner import load_records, run_eval, write_report
+from bioscout.evals.selection import SELECTORS, build_agent, render_selection, select_all, summarize_selection
 from bioscout.evals.variants import VARIANTS, Context
 from bioscout.llm import ClaudeLLM
 from bioscout.mcp_server import Sources
@@ -272,6 +274,64 @@ async def cmd_retrieval(args: argparse.Namespace) -> int:
     return 0
 
 
+async def cmd_selection(args: argparse.Namespace) -> int:
+    """Run the agent up to its choice of abstracts, once per variant, and compare what was chosen. No
+    answer is written. With BIOSCOUT_CACHE_MODE=readonly a variant run before is replayed at no cost."""
+    unknown = [v for v in args.variants if v not in SELECTORS]
+    if unknown:
+        print(
+            f"Unknown variant(s) {unknown}. Choices differ only between: {', '.join(SELECTORS)}",
+            file=sys.stderr,
+        )
+        return 2
+    items = []
+    for name in args.datasets:
+        loaded = load_dataset(name, args.evals_dir / "datasets")
+        items += loaded[: args.limit] if args.limit else loaded
+
+    settings = Settings.from_env()
+    if not _can_call_claude(settings):
+        return 2
+    sources = Sources(settings)
+    llm = ClaudeLLM(settings)
+    ranker = default_ranker() if "E" in args.variants else None
+    if ranker is not None:  # load the model now, so the first question's time is not the loading time
+        await asyncio.to_thread(ranker.embedder.embed_query, "warm up")
+    run_id = f"{datetime.now():%Y%m%d-%H%M%S}-select-{''.join(args.variants)}"
+    meta = {
+        "run_id": run_id,
+        "model": llm.model,
+        "effort": llm.effort,
+        "cache_mode": str(settings.cache_mode),
+        "ranker": ranker.name if ranker else None,
+        "datasets": args.datasets,
+        "limit": args.limit,
+        "items": len(items),
+        "commit": _git_commit(),
+    }
+    print(
+        f"selection {run_id}: {len(items)} items x {len(args.variants)} variants, cache {settings.cache_mode}"
+    )
+    try:
+        async with open_literature(sources, settings.through_mcp) as pubmed:
+            agents = {v: build_agent(v, llm, pubmed, ranker) for v in args.variants}
+            selections = await select_all(items, agents, args.concurrency)
+    finally:
+        await sources.http.aclose()
+    rows = summarize_selection(selections, {item.id: item for item in items})
+    text = render_selection(rows, meta)
+    reports = args.evals_dir / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    out = reports / f"{run_id}.json"
+    out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=2), encoding="utf-8", newline="\n")
+    out.with_suffix(".md").write_text(text, encoding="utf-8", newline="\n")
+    print(text)
+    for failed in [s for s in selections if s.error][:5]:
+        print(f"error {failed.variant} {failed.item_id}: {failed.error[:160]}")
+    print(f"report: {out}")
+    return 0 if any(not s.error for s in selections) else 1
+
+
 def cmd_gate(args: argparse.Namespace) -> int:
     """Check the committed baseline report against the code and against the baseline of an earlier commit."""
     path = args.baseline or args.evals_dir / "baseline.json"
@@ -335,6 +395,12 @@ def main() -> None:
     gate_cmd.add_argument("--baseline", type=Path, help="default: evals/baseline.json")
     gate_cmd.add_argument("--since", help="git revision whose baseline to compare with, e.g. HEAD^")
 
+    selection = sub.add_parser("selection", help="compare how variants choose abstracts, writing no answer")
+    selection.add_argument("--variants", type=_csv, default=["C", "E"])
+    selection.add_argument("--datasets", type=_csv, default=["pubmedqa", "domain"])
+    selection.add_argument("--limit", type=int, default=0, help="first N items of each dataset (0 = all)")
+    selection.add_argument("--concurrency", type=int, default=4)
+
     retrieval = sub.add_parser("retrieval", help="PubMedQA source-paper recall@10 of verbatim search, no LLM")
     retrieval.add_argument("--limit", type=int, default=0)
 
@@ -355,6 +421,8 @@ def main() -> None:
         sys.exit(asyncio.run(cmd_retrieval(args)))
     if args.command == "gate":
         sys.exit(cmd_gate(args))
+    if args.command == "selection":
+        sys.exit(asyncio.run(cmd_selection(args)))
     sys.exit(asyncio.run(cmd_check(args)))
 
 
