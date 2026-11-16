@@ -18,6 +18,12 @@ from typing import Any
 _IGNORED_PARAMS = {"api_key", "email", "tool"}
 
 
+def visible_params(params: dict[str, Any] | None) -> dict[str, Any]:
+    """The parameters that identify a request, without the API key and contact details. Use this for
+    anything that is printed, logged or stored in a record."""
+    return {k: v for k, v in (params or {}).items() if k not in _IGNORED_PARAMS}
+
+
 def make_key(url: str, params: dict[str, Any] | None) -> str:
     clean = {k: str(v) for k, v in sorted((params or {}).items()) if k not in _IGNORED_PARAMS}
     raw = json.dumps([url, clean], ensure_ascii=False, separators=(",", ":"))

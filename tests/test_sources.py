@@ -7,6 +7,7 @@ from bioscout.config import CacheMode, Settings
 from bioscout.http import CachedHttp, CacheMissError
 from bioscout.sources.clinicaltrials import CTGOV, ClinicalTrials
 from bioscout.sources.europepmc import EPMC, EuropePMC, parse_jats_sections
+from bioscout.sources.pubmed import PubMed
 from tests.conftest import fixture, ok
 
 
@@ -53,4 +54,20 @@ async def test_readonly_mode_never_touches_network(tmp_path, api):
     with pytest.raises(CacheMissError):
         await ClinicalTrials(http).search(query="anything")
     assert api.calls.call_count == 0
+    await http.aclose()
+
+
+async def test_a_cache_miss_is_reported_without_the_api_key_or_the_contact_address(tmp_path, api):
+    settings = Settings(
+        ncbi_api_key="secret-test-key",
+        ncbi_email="dev@example.com",
+        cache_dir=tmp_path,
+        cache_mode=CacheMode.READONLY,
+    )
+    http = CachedHttp(settings, cache=ResponseCache(tmp_path / "r.sqlite"))
+    with pytest.raises(CacheMissError) as missed:
+        await PubMed(http).check_pmids(["10000001"])
+    message = str(missed.value)
+    assert "10000001" in message  # what was asked for is still there, to find the missing recording
+    assert "secret-test-key" not in message and "dev@example.com" not in message
     await http.aclose()

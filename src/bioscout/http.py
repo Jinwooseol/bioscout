@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from bioscout import __version__
-from bioscout.cache import ResponseCache, make_key
+from bioscout.cache import ResponseCache, make_key, visible_params
 from bioscout.config import CacheMode, Settings
 
 
@@ -68,7 +68,8 @@ class CachedHttp:
                 self.stats["hits"] += 1
                 return cached
             if mode is CacheMode.READONLY:
-                raise CacheMissError(f"No recorded response for {url} {params}")
+                # The message ends up in run records and on the console, so it carries no credentials.
+                raise CacheMissError(f"No recorded response for {url} {visible_params(params)}")
         self.stats["misses"] += 1
         body = await self._fetch(url, params)
         if mode is not CacheMode.OFF:
