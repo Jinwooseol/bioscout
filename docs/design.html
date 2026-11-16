@@ -16,6 +16,7 @@
     <a href="how-it-works.html">동작 방식</a>
     <a href="progress.html">진행 상황</a>
     <a href="guide.html">가이드</a>
+    <a href="jd-fit.html">채용 요건 대조</a>
   </nav>
 </header>
 
@@ -106,14 +107,14 @@
       <path class="edge" d="M270 480H330" marker-end="url(#a)"/>
       <text class="s" x="300" y="470" text-anchor="middle">미스만</text>
     </svg>
-    <figcaption>초록색 실선 상자는 구현을 마친 부분, 점선 상자는 예정된 부분입니다.</figcaption>
+    <figcaption>초록색 실선 상자는 구현을 마친 부분, 점선 상자는 예정된 부분입니다. 에이전트는 기본으로 PubMed 클라이언트를 프로세스 안에서 직접 부르고, <code>BIOSCOUT_TOOLS=mcp</code>로 실행하면 MCP 서버의 도구를 MCP 클라이언트 세션으로 부릅니다.</figcaption>
   </figure>
 
   <h3>구성 요소</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>구성 요소</th><th>역할</th><th>위치</th><th>상태</th></tr></thead>
     <tbody>
-      <tr><td>Bio MCP 서버</td><td>외부 API를 MCP 도구 5개로 제공. 에이전트와 독립적으로 Claude Desktop 등에서도 사용</td><td><code>src/bioscout/mcp_server.py</code></td><td><span class="tag built">구현됨</span></td></tr>
+      <tr><td>Bio MCP 서버</td><td>외부 API를 MCP 도구 5개로 제공. Claude Desktop 등에서 따로 쓸 수 있고, 에이전트도 같은 도구를 MCP 세션으로 부를 수 있음. <a href="#tools">도구 경로</a></td><td><code>src/bioscout/mcp_server.py</code>, <code>tools.py</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>데이터 소스</td><td>PubMed, Europe PMC, ClinicalTrials.gov 응답을 타입이 있는 레코드로 파싱</td><td><code>src/bioscout/sources/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>HTTP · 캐시</td><td>호스트별 속도 제한, 429/5xx 재시도, SQLite 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성. <a href="#harness">상세 설계</a></td><td><code>src/bioscout/evals/</code>, <code>evals/</code></td><td><span class="tag built">구현됨</span></td></tr>
@@ -661,6 +662,64 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>src/bioscout/answer.py</code></td><td><code>Step</code>: 단계 이름과 그 단계의 비용, 호출 수, 걸린 시간. <code>CitedAnswer.steps</code>에 실행 순서대로 남음</td></tr>
       <tr><td><code>src/bioscout/evals/costs.py</code></td><td>단계별 집계와 리포트의 비용 표 두 개</td></tr>
       <tr><td><code>bioscout-eval report evals/runs/&lt;run_id&gt;</code></td><td>이미 끝난 실행의 리포트를 다시 만들어 비용 표를 더함. 비용은 들지 않음</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="tools">에이전트의 도구 경로 <span class="tag built">구현됨</span></h2>
+  <p>에이전트가 PubMed에 닿는 길은 두 가지입니다. 기본은 PubMed 클라이언트를 프로세스 안에서 직접 부르는 것이고, <code>BIOSCOUT_TOOLS=mcp</code>로 실행하면 MCP 서버의 도구(<code>search_pubmed</code>, <code>get_abstracts</code>, <code>check_pmids</code>)를 MCP 클라이언트 세션으로 부릅니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>에이전트는 PubMed를 인터페이스(<code>Literature</code>) 하나로만 앎</td><td>직접 호출, MCP 호출, 테스트용 가짜가 같은 자리에 들어감. 에이전트 코드는 경로를 모름</td><td>에이전트 안에서 경로를 분기</td></tr>
+      <tr><td>MCP 경로를 스위치로 둠</td><td>MCP 호스트(Claude Code 등)가 받는 것과 같은 도구로 에이전트를 돌려, 도구의 스키마, 한도, 오류 문구까지 평가에 넣을 수 있음. 기본값은 직접 호출이라 기존 실행과 캐시가 그대로 유효</td><td>MCP 서버를 에이전트와 무관한 부속물로 두기. 항상 MCP로만 호출</td></tr>
+      <tr><td>두 경로는 같은 클라이언트와 캐시로 끝남</td><td>같은 데이터가 돌아오므로 Claude에 보내는 요청이 같고, 캐시된 응답이 그대로 재생됨</td><td>MCP 경로용 구현을 따로 두기</td></tr>
+      <tr><td>도구가 오류를 알리면 예외로 올림</td><td>인자 한도 초과나 외부 API 장애가 빈 결과로 바뀌면 "근거 없음"으로 잘못 답하게 됨</td><td>오류를 빈 결과로 처리</td></tr>
+      <tr><td>긴 목록은 도구가 선언한 한도(초록 50건, PMID 확인 200건)로 나눠 호출</td><td>도구의 입력 검증을 통과해야 함</td><td>서버의 한도를 늘리기</td></tr>
+    </tbody>
+  </table></div>
+  <p>확인한 것: 가짜 PubMed를 서버 뒤에 두고 에이전트를 두 경로로 돌려 답변이 같은지 테스트합니다. 실제 데이터로도 예시 질문 3개를 캐시에서 두 경로로 재생해 문장, 검색 기록, 답변에 쓴 초록이 모두 같은 것을 확인했습니다. 새로 든 비용은 없습니다.</p>
+
+  <h2 id="failures">실패 분류 <span class="tag built">구현됨</span></h2>
+  <p>정답률 하나로는 무엇이 틀렸는지 알 수 없습니다. 실행 기록만으로 두 가지를 분류해 리포트에 넣습니다. 모델을 다시 부르지 않으므로 비용이 들지 않습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>분류</th><th>기준</th></tr></thead>
+    <tbody>
+      <tr><td>인용했어야 할 논문을 놓친 단계</td><td>PubMedQA는 문항의 원 논문, 도메인은 문항마다 지정한 필수 인용 논문이 대상. 인용함, 읽었지만 인용 안 함, 검색에는 나왔지만 선별에서 빠짐, 어떤 검색에도 안 나옴 가운데 처음 놓친 단계로 셈</td></tr>
+      <tr><td>오답의 종류</td><td>라벨이 yes나 no인데 반대로 답함(반대), 라벨이 yes나 no인데 maybe로 답함(유보), 라벨이 maybe인데 yes나 no로 답함(단정), 답을 내지 못함</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>전체 실행에서 나온 것</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>변형</th><th>오답</th><th>반대</th><th>유보</th><th>단정</th><th>답 없음</th><th>원 논문을 읽고도 오답</th></tr></thead>
+    <tbody>
+      <tr><td>A. LLM 단독</td><td>23</td><td>11</td><td>6</td><td>6</td><td>0</td><td>해당 없음</td></tr>
+      <tr><td>B. 단순 RAG</td><td>25</td><td>1</td><td>8</td><td>3</td><td>13</td><td>11</td></tr>
+      <tr><td>C. 에이전트</td><td>24</td><td>2</td><td>19</td><td>3</td><td>0</td><td>19</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">PubMedQA 100문항. 실행 <code>20261115-195946-ABC</code>의 리포트에서 옮겼습니다.</p>
+  <ul>
+    <li>정답률은 세 변형이 비슷하지만(75–77%) 틀리는 방식이 다릅니다. LLM 단독은 100문항 중 11번 라벨과 반대로 답했고, 단순 RAG는 1번, 에이전트는 2번입니다.</li>
+    <li>에이전트의 오답 24건 중 19건은 유보입니다. 오답 24건 중 19건은 원 논문을 읽고 쓴 답입니다. PubMedQA의 라벨은 논문 한 편의 결론이고 에이전트는 초록 10편을 읽으므로, 근거가 엇갈리면 maybe로 답합니다. 이것을 라벨에 맞추려고 고치지는 않습니다.</li>
+    <li>단순 RAG의 오답은 검색 실패에서 옵니다. 13문항은 검색 결과가 없어 답을 내지 못했습니다.</li>
+    <li>에이전트는 PubMedQA 원 논문 100편 중 91편을 인용했고, 8편은 어떤 검색에도 나오지 않았고, 1편은 검색에 나왔지만 선별에서 빠졌습니다. 도메인의 필수 인용 논문 43편 중에서는 20편을 인용했고, 19편은 검색에 나오지 않았고, 4편은 선별에서 빠졌습니다. 논문을 놓치는 곳은 선별이 아니라 검색입니다.</li>
+  </ul>
+
+  <h3>개선 후보</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>후보</th><th>근거</th><th>필요한 것</th></tr></thead>
+    <tbody>
+      <tr><td>도메인 질문의 검색을 넓힘(검색어 수, 검색어당 결과 수)</td><td>필수 인용 논문 43편 중 19편이 검색에 나오지 않음</td><td>변형 C 재실행과 재판정 비용</td></tr>
+      <tr><td>선별을 임베딩 유사도로 바꾼 변형</td><td>선별이 에이전트 비용의 66%. 놓치는 곳은 선별이 아니므로 더 싼 방법으로 바꿔 볼 여지가 있음</td><td>임베딩 모델, 평가 실행 비용</td></tr>
+      <tr><td>결과표에 "반대로 답한 비율"을 정답률과 함께 표시</td><td>유보와 반대는 위험이 다른 실패인데 정답률은 같게 셈</td><td>비용 없음</td></tr>
+    </tbody>
+  </table></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/evals/failures.py</code></td><td>두 분류와 리포트의 표. <code>uv run bioscout-eval report evals/runs/&lt;run_id&gt;</code>로 다시 만듦</td></tr>
+      <tr><td><code>tests/test_failures.py</code></td><td>가상 기록으로 단계 판정과 오답 종류를 확인</td></tr>
     </tbody>
   </table></div>
 

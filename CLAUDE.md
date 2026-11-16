@@ -13,6 +13,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `uv run bioscout-mcp`: run the MCP server over stdio
 - `uv run --extra demo streamlit run app/streamlit_app.py`: the demo page (needs `ANTHROPIC_API_KEY`,
   about $0.2 per question; with `BIOSCOUT_CACHE_MODE=readonly` it only replays recorded answers)
+- `BIOSCOUT_TOOLS=mcp` before a demo or eval run: the agent calls the MCP server's tools over a client
+  session instead of the PubMed client in-process. Same answers; the run's metadata records which
 - `uv run python scripts/build_examples.py`: record the demo's example answers into `app/examples.json`
   (free for questions already in the cache)
 - `docker build -t bioscout-demo .`: the demo image. There is no Docker on the author's PC; the CI
@@ -48,6 +50,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/evals/`: datasets, variants (A to D), deterministic metrics, runner, run-level judging
   (`judgments.jsonl`, citation precision and coverage), judge calibration against hand labels,
   cost and latency tables (`costs.py`), `bioscout-eval` CLI
+- `src/bioscout/tools.py`: `McpLiterature`, the agent's PubMed interface over an MCP client session
+- `src/bioscout/evals/failures.py`: failure classes from a run's records (where an expected paper was
+  lost, kinds of wrong answer); the report's last section
+- `docs/jd-fit.html`: what job postings ask for against what the project does, with the gaps
 - `src/bioscout/evals/gate.py`, `evals/baseline.json`: the eval gate and the report it holds the code to
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
@@ -73,6 +79,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - D's first four steps send the same requests as C, so they replay C's cached responses and a
   D-vs-C difference comes only from the verify step. C's prompt hash is pinned in
   `tests/test_verify.py`. Run D only with a calibrated judge: its answers depend on the judge prompt.
+- The agent knows PubMed only through `Literature`. Keep both tool paths returning the same data, so
+  cached responses replay on either.
+- Do not tune the agent to say yes or no where the abstracts disagree just to raise PubMedQA accuracy:
+  the label is one paper's conclusion. Report hedges and opposite answers separately.
 - Dataset PMIDs come from live PubMed results, never from memory; run `check-datasets` after edits.
 - Tests never touch the network. Fixtures are synthetic and labelled as such; never put fake
   "real-looking" citations anywhere outside `tests/fixtures`.

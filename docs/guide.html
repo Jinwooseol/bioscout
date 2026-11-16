@@ -16,6 +16,7 @@
     <a href="how-it-works.html">동작 방식</a>
     <a href="progress.html">진행 상황</a>
     <a href="guide.html" aria-current="page">가이드</a>
+    <a href="jd-fit.html">채용 요건 대조</a>
   </nav>
 </header>
 
@@ -124,6 +125,10 @@ $env:BIOSCOUT_CACHE_MODE = "readonly"; uv run bioscout-eval run --variants A,B,C
   <p>이렇게 띄우면 캐시에 있는 답변만 재생하므로 비용이 들지 않습니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_CACHE_MODE</code>로 되돌립니다. 세션당 질문 수 한도는 <code>BIOSCOUT_DEMO_MAX_QUESTIONS</code>로 바꿉니다(기본 5).</p>
   <p>화면의 예시 질문 3개는 기록해 둔 답변(<code>app/examples.json</code>)을 바로 보여 줍니다. API 키가 없어도 나오고 비용이 들지 않습니다. 기록된 답변에는 초록에서 옮긴 근거 구절이 없습니다. 초록을 저장소에 넣지 않기 때문이고, 직접 질문하면 근거 구절까지 나옵니다. 예시 답변을 다시 기록하려면 아래 명령을 씁니다. 캐시에 있는 질문은 비용 없이 재생됩니다.</p>
   <div class="cmd"><pre><code>uv run python scripts/build_examples.py</code></pre></div>
+
+  <h3>MCP 도구로 실행</h3>
+  <div class="cmd"><pre><code>$env:BIOSCOUT_TOOLS = "mcp"; uv run --extra demo streamlit run app/streamlit_app.py</code></pre></div>
+  <p>에이전트가 PubMed 클라이언트를 직접 부르지 않고 MCP 서버의 도구를 MCP 클라이언트 세션으로 부릅니다. 답변은 같습니다. 평가 실행(<code>bioscout-eval run</code>)에도 같은 환경 변수가 적용되고, 실행 기록의 <code>tools</code>에 어느 경로였는지 남습니다. 끝나면 <code>Remove-Item Env:BIOSCOUT_TOOLS</code>로 되돌립니다.</p>
 
   <h3>컨테이너로 실행</h3>
   <div class="cmd"><pre><code>docker build -t bioscout-demo .

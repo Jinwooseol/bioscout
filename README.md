@@ -1,17 +1,27 @@
 # BioScout
 
+[![ci](https://github.com/Jinwooseol/bioscout/actions/workflows/ci.yml/badge.svg)](https://github.com/Jinwooseol/bioscout/actions/workflows/ci.yml)
+
 **A biomedical research agent that cites PubMed for every claim, and checks its own citations.**
+[Live page with recorded answers](https://brakey-bioscout.static.hf.space)
 
 LLMs answering biomedical questions fail in a specific, dangerous way: they cite papers that do not
 exist, or real papers that do not say what is claimed. BioScout is built eval-first around that
 failure. Every sentence in an answer carries PMIDs, every PMID is checked against PubMed, and every
 (claim, abstract) pair is judged for support before the answer is shown.
 
-> Status: work in progress. The MCP tool server, the eval harness, the datasets (100 PubMedQA + 15
-> domain questions), the research agent (a LangGraph graph, variant C), the citation judge and the
-> verify step (variant D) and the demo page are built, and variants A to C have been run and
-> judged on all 115 questions. Checking the judge against hand labels and running variant D come next.
-> Progress: [`docs/progress.html`](docs/progress.html).
+> Status: the MCP tool server, the eval harness and its datasets, the research agent, the citation
+> judge, the verify step, the CI eval gate and the demo are built, and variants A to C have been run
+> and judged on all 115 questions. Still open: checking the judge against hand labels, then running
+> variant D. Progress: [`docs/progress.html`](docs/progress.html).
+
+| Area | What was built | Where |
+| --- | --- | --- |
+| Agent | A LangGraph state graph: plan, search (MeSH query rewriting), screen, cited answer, verify, revise once | `src/bioscout/agent/`, `src/bioscout/verifier/` |
+| Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
+| Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
+| CI | 106 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
 ## Results
 
@@ -45,6 +55,15 @@ down per variant and per step.
 - The agent backs 93% of its sentences and leaves no answer without evidence. It cites an unrelated
   paper 0.7% of the time; its misses are mostly partial support, which the verifier (variant D) is
   meant to remove.
+
+**Where answers go wrong.** The report also classifies failures from the run's records. Accuracy looks
+alike across the variants (75 to 77%), but the mistakes differ. The LLM alone answers the opposite of
+the label 11 times in 100; naive RAG does so once and the agent twice. 19 of the agent's 24 wrong
+answers are a "maybe" where the label says yes or no, and 19 of the 24 were written with the
+question's own source paper among the abstracts: PubMedQA scores against one paper's conclusion, and
+the agent reads ten. Naive RAG's wrong answers are mostly searches that found nothing (13 questions
+with no answer). On the domain questions the agent loses must-cite papers at the search step (19 of
+43 never returned by any search), not at selection (4).
 
 **Eval gate.** CI cannot run the agent: it has no API key, and the response cache that would replay a
 run holds abstracts, which are not committed. It gates on the committed evidence instead.
@@ -83,13 +102,18 @@ app itself instead, which Hugging Face hosts only on a paid plan.
 ## Architecture
 
 ```
-Streamlit demo ─┐                 ┌─> results table, CI gate
-Eval harness ───┴─> Research agent (plan → search → cited answer → verify ↺)
-                         │ MCP tool calls                       │ traces
-                         ▼                                      ▼
-                    Bio MCP server ── SQLite cache ──> NCBI E-utilities, Europe PMC, ClinicalTrials.gov
-                                                                  Langfuse
+Streamlit demo ─┐                 ┌─> report (results, costs, failure classes) ─> CI eval gate
+Eval harness ───┴─> Research agent (plan → search → screen → cited answer → verify ↺ revise)
+                         │ in-process, or MCP tool calls with BIOSCOUT_TOOLS=mcp
+                         ▼
+MCP hosts ────────> Bio MCP server ── SQLite cache ──> NCBI E-utilities, Europe PMC, ClinicalTrials.gov
+(Claude Code, Claude Desktop)
 ```
+
+By default the agent calls the PubMed client in-process. With `BIOSCOUT_TOOLS=mcp` it calls the
+server's tools through an MCP client session instead; both end in the same client and cache, and the
+example questions replay to identical answers either way. Every answer records the cost, tokens and
+latency of each step; sending those as traces to Langfuse is planned.
 
 Design notes, diagrams and the evaluation plan: [`docs/design.html`](docs/design.html) and
 [`docs/how-it-works.html`](docs/how-it-works.html).
@@ -105,7 +129,7 @@ Design notes, diagrams and the evaluation plan: [`docs/design.html`](docs/design
 | `search_trials` | ClinicalTrials.gov v2 search by text, condition, intervention and status |
 
 All responses go through a SQLite cache: it respects NCBI rate limits, makes evaluation runs
-reproducible, and lets CI replay recorded responses with no network (`BIOSCOUT_CACHE_MODE=readonly`).
+reproducible, and lets a run be replayed with no network and at no cost (`BIOSCOUT_CACHE_MODE=readonly`).
 
 ### Quickstart
 

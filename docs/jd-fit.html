@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BioScout 채용 요건 대조</title>
+<meta name="description" content="LLM · AI 에이전트 엔지니어 채용 공고가 요구하는 기술과 BioScout에서 한 일을 대조한 표">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="wordmark" href="index.html"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>BioScout</a>
+  <nav class="nav" aria-label="문서">
+    <a href="index.html">개요</a>
+    <a href="design.html">설계</a>
+    <a href="how-it-works.html">동작 방식</a>
+    <a href="progress.html">진행 상황</a>
+    <a href="guide.html">가이드</a>
+    <a href="jd-fit.html" aria-current="page">채용 요건 대조</a>
+  </nav>
+</header>
+
+<main>
+  <h1>채용 요건 대조</h1>
+  <p class="lead">LLM · AI 에이전트 엔지니어 공고가 요구하는 기술을 이 프로젝트에서 한 일과 나란히 놓았습니다. 한 것은 근거가 되는 파일과 수치를 적고, 하지 않은 것은 하지 않았다고 적습니다.</p>
+
+  <h2>기준으로 삼은 요건</h2>
+  <p>2026년 공고와 직무 안내를 검색해 여러 곳에 반복해서 나오는 항목을 모았습니다. 공고 몇 개를 본 것이라 모든 회사의 요건은 아닙니다.</p>
+  <ul>
+    <li>LLM API(OpenAI, Anthropic)를 능숙하게 다루고, LangGraph나 DSPy를 써 봤고, MCP 서버를 구성할 줄 알 것 (<a href="https://www.dice.com/job-detail/a54b5ad9-576d-4b53-884a-1a9ab4af92ae">Dice, LLM Engineer</a>)</li>
+    <li>LangChain, LlamaIndex 같은 프레임워크와 임베딩, RAG 시스템 경험 (<a href="https://hw.glich.co/jobboard/jobs/senior-ai-engineer-python-rag-agentic-ai-adk-mcp-gcp-vertex-ai-ibm-watsox-at-ups-m2mrfv">UPS, Senior AI Engineer</a>)</li>
+    <li>RAG, 에이전트, 도구 사용, 파인튜닝이 들어간 LLM 애플리케이션을 운영 수준으로 만든 경험 (<a href="https://hw.glich.co/jobboard/jobs/senior-ai-engineer-at-drivenets-l8m8af">DRIVENETS, Senior AI Engineer</a>)</li>
+    <li>에이전트 엔지니어는 프롬프트, RAG에 더해 오케스트레이션, 도구, 평가를 다룸 (<a href="https://www.techademy.com/ai-agent-engineer-job-salary-2026">Techademy 직무 안내</a>)</li>
+    <li>국내 공고(원티드, 리멤버 검색 결과): LangChain이나 LangGraph로 에이전트 또는 RAG 시스템을 만든 경험(개인 프로젝트 포함), 트레이싱 · 평가 · 개선을 반복해 본 경험(LangSmith, Langfuse, 자체 평가셋), 평가 · 모니터링 · 가드레일 설계, 벡터 검색과 임베딩, 비동기 큐와 Docker · Kubernetes</li>
+  </ul>
+
+  <h2>대조표</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>요건</th><th>이 프로젝트에서 한 것</th><th>근거</th><th>판단</th></tr></thead>
+    <tbody>
+      <tr><td>LLM API, 구조화 출력, 프롬프트 관리</td><td>Claude API를 JSON 스키마 출력으로 호출. 변형마다 프롬프트 해시를 내고 테스트에 고정. 모델이 거절하면 기본 모델로 넘기고 기록</td><td><code>src/bioscout/llm.py</code>, <code>prompts.py</code>, <code>tests/test_agent.py</code></td><td><span class="tag built">충분</span></td></tr>
+      <tr><td>에이전트 오케스트레이션 (LangGraph)</td><td>계획, 검색, 선별, 인용 답변, 검증, 고쳐 쓰기를 상태 그래프로 실행. 근거가 부족하면 한 라운드 더 검색. 단계마다 비용과 시간을 기록</td><td><code>src/bioscout/agent/graph.py</code>, <a href="design.html#agent">설계</a></td><td><span class="tag built">충분</span> 에이전트 하나의 그래프이고 멀티 에이전트는 아님</td></tr>
+      <tr><td>MCP</td><td>PubMed, Europe PMC, ClinicalTrials.gov를 도구 5개로 내는 MCP 서버. Claude Code와 Claude Desktop에 연결해 사용. 에이전트도 같은 도구를 MCP 클라이언트 세션으로 부를 수 있음</td><td><code>src/bioscout/mcp_server.py</code>, <code>tools.py</code>. 예시 질문 3개가 직접 호출과 MCP 호출에서 같은 답변으로 재생됨</td><td><span class="tag built">충분</span></td></tr>
+      <tr><td>RAG, 검색</td><td>MeSH 검색어를 다시 쓰는 PubMed 검색에 질문 그대로의 검색을 더하고, LLM이 초록을 읽어 10편을 고름. 단순 RAG를 baseline으로 두고 비교</td><td>원 논문이 답변에 쓰인 비율: 단순 RAG 85%, 에이전트 91%. 도메인 질문 15개 중 13개는 단순 검색 결과가 0건</td><td><span class="tag">부분</span> 임베딩과 벡터 DB는 쓰지 않음</td></tr>
+      <tr><td>평가</td><td>115문항, 같은 모델로 변형 4개, 결정적 지표, LLM judge, 사람 라벨과 비교하는 보정 도구(Cohen's kappa), 실패 분류, CI 평가 게이트</td><td><code>src/bioscout/evals/</code>, <code>evals/reports/</code>. judge가 인용 문장 1,151개를 판정</td><td><span class="tag built">충분</span> 보정 라벨링은 진행 중</td></tr>
+      <tr><td>트레이싱, 관측 (Langfuse, LangSmith)</td><td>답변마다 단계별 비용, 토큰, 호출 수, 지연을 기록하고 리포트에 표로 냄</td><td><a href="design.html#costs">비용 · 지연 집계</a>. 에이전트 비용의 66%가 선별 단계</td><td><span class="tag">부분</span> 트레이싱 도구 연결은 하지 않음</td></tr>
+      <tr><td>가드레일, 신뢰성</td><td>인용한 PMID가 실제로 있는지 확인. 문장마다 인용 초록이 뒷받침하는지 판정하고, 부족하면 한 번 고쳐 쓰고, 그래도 근거가 없으면 삭제. 의료기기가 아니라는 안내</td><td><code>src/bioscout/verifier/</code>. 세 변형의 인용 1,681건 중 가짜 PMID 0건</td><td><span class="tag built">충분</span> 초록에 섞인 지시문(프롬프트 인젝션)은 따로 시험하지 않음</td></tr>
+      <tr><td>백엔드, 서빙</td><td>MCP 서버(stdio), Streamlit 화면, 비동기 I/O, 호스트별 속도 제한, 재시도, 응답 캐시</td><td><code>http.py</code>, <code>cache.py</code>, <code>app/</code></td><td><span class="tag">부분</span> REST API(FastAPI)는 없음</td></tr>
+      <tr><td>컨테이너, CI/CD, 배포</td><td>Dockerfile, GitHub Actions(테스트, 린트, 이미지 빌드, 평가 게이트), Hugging Face Static Space에 공개 페이지</td><td><code>Dockerfile</code>, <code>.github/workflows/ci.yml</code>, <a href="https://brakey-bioscout.static.hf.space">공개 페이지</a></td><td><span class="tag">부분</span> 클라우드(AWS, GCP)와 Kubernetes는 쓰지 않음</td></tr>
+      <tr><td>코드 품질, 테스트</td><td>네트워크 없이 도는 테스트 106개, ruff, Pydantic 모델, uv 잠금 파일</td><td><code>tests/</code>, CI의 <code>test</code> 작업</td><td><span class="tag built">충분</span></td></tr>
+      <tr><td>비용 관리</td><td>요청 전체를 키로 하는 응답 캐시로 재채점과 재생에 비용이 들지 않음. 변형별, 단계별 비용 표</td><td>질의당 비용: LLM 단독 $0.016, 단순 RAG $0.024, 에이전트 $0.148</td><td><span class="tag">부분</span> 배치 API와 프롬프트 캐싱은 적용하지 않음</td></tr>
+      <tr><td>파인튜닝, 모델 학습</td><td>이 프로젝트에는 없음</td><td>다른 프로젝트(홈페이지 챗봇의 파인튜닝 모델, 진단 AI)가 보여 줌</td><td><span class="tag">범위 밖</span></td></tr>
+      <tr><td>도메인 지식</td><td>MSI, 디지털 PCR, liquid biopsy 질문 15개를 직접 쓰고, 문항마다 인용해야 할 논문을 PubMed에서 확인해 지정</td><td><code>evals/datasets/domain.jsonl</code></td><td><span class="tag built">충분</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>빈 곳과 다음 작업</h2>
+  <p>공고에 자주 나오는데 이 프로젝트에 없거나 약한 것을 효과가 큰 순서로 적었습니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>작업</th><th>채우는 요건</th><th>필요한 것</th></tr></thead>
+    <tbody>
+      <tr><td>judge 보정 라벨링을 마치고 변형 D를 실행</td><td>평가. "LLM judge를 사람 라벨로 검증했다"는 문장을 수치로 쓸 수 있게 됨</td><td>저자의 라벨링 60쌍, 변형 D 실행 비용</td></tr>
+      <tr><td>단계별 실행을 OpenTelemetry span으로 내보내고 Langfuse에 연결</td><td>트레이싱, 관측</td><td>Langfuse 계정</td></tr>
+      <tr><td>선별 단계를 임베딩 유사도로 바꾼 변형을 만들어 비용과 원 논문 포함률을 비교</td><td>임베딩, 벡터 검색. 에이전트 비용의 66%를 차지하는 단계를 줄이는 시도이기도 함</td><td>임베딩 모델, 평가 실행 비용</td></tr>
+      <tr><td>에이전트를 REST API로 내고 전체 질문 수 한도를 둠</td><td>백엔드, 서빙. 공개 페이지에서 직접 질문을 받을 수 있게 됨</td><td>호스팅(Docker Space는 유료 플랜)</td></tr>
+      <tr><td>도메인 질문의 검색 개선</td><td>RAG. 인용해야 할 논문 43편 중 19편을 어떤 검색도 찾지 못함</td><td>평가 실행 비용</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>받을 만한 질문과 답할 근거</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>질문</th><th>근거</th></tr></thead>
+    <tbody>
+      <tr><td>에이전트가 단순 RAG보다 6배 비싼데 정답률은 같다. 왜 쓰나?</td><td>근거가 확인된 문장이 82%에서 93%로 늘고, 근거 있는 문장이 하나도 없는 답변이 24개에서 0개로 줄어듦. 도메인 질문은 단순 검색으로 15개 중 13개가 0건. 정답률이 같은 이유는 <a href="design.html#failures">실패 분류</a>에 있음: 에이전트의 오답 24건 중 19건은 라벨이 yes나 no인데 maybe로 답한 경우</td></tr>
+      <tr><td>가짜 PMID가 0%면 인용 문제는 없는 것 아닌가?</td><td>존재 확인만으로는 변형이 구분되지 않음. LLM 단독은 가짜 PMID가 없지만 인용의 절반이 문장을 분명히 뒷받침하지 않고, 그중 일부는 주제가 다른 실제 논문</td></tr>
+      <tr><td>LLM judge의 판정을 어떻게 믿나?</td><td>judge가 근거로 옮긴 구절이 초록에 실제로 있는지 코드로 확인함. 판정 기준별로 같은 수의 쌍을 뽑아 저자가 가린 채 라벨링하고 Cohen's kappa를 냄(목표 0.7). 이 비교가 끝나기 전의 수치는 잠정이라고 표시</td></tr>
+      <tr><td>에이전트를 바꿨을 때 품질이 떨어지지 않았는지 어떻게 아나?</td><td><a href="design.html#gate">CI 평가 게이트</a>. 프롬프트나 설정이 바뀌면 평가를 다시 돌리기 전까지 CI가 실패하고, 새 수치가 한도 넘게 떨어져도 실패</td></tr>
+      <tr><td>MCP 서버는 에이전트와 어떤 관계인가?</td><td>같은 PubMed 클라이언트와 캐시를 두 경로로 씀. 기본은 프로세스 안에서 직접 호출이고, <code>BIOSCOUT_TOOLS=mcp</code>면 MCP 클라이언트 세션으로 도구를 호출. 두 경로의 답변이 같은 것을 테스트와 재생으로 확인</td></tr>
+    </tbody>
+  </table></div>
+</main>
+
+<footer>BioScout는 문헌 탐색을 돕는 도구이며, 개별 환자의 진단이나 치료 결정에 쓰지 않습니다.</footer>
+</body>
+</html>
