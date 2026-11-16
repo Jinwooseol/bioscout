@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from bioscout.evals.costs import render_costs, summarize_steps
-from bioscout.evals.datasets import EvalItem
+from bioscout.evals.datasets import DATASET_FILES, EvalItem, load_dataset
+from bioscout.evals.failures import render_failures, summarize_failures
 from bioscout.evals.judging import load_judgments, summarize_judgments
 from bioscout.evals.metrics import Record, render_markdown, score_item, summarize
 from bioscout.evals.variants import Context, Variant
@@ -99,8 +100,11 @@ def load_records(run_dir: Path) -> list[Record]:
     return [Record.model_validate_json(line) for line in lines if line.strip()]
 
 
-def write_report(run_dir: Path, reports_dir: Path) -> Path:
-    """Summarise a run's records into reports/<run_id>.json and .md (numbers only, no answer text)."""
+def write_report(run_dir: Path, reports_dir: Path, datasets_dir: Path | None = None) -> Path:
+    """Summarise a run's records into reports/<run_id>.json and .md (numbers only, no answer text).
+
+    With the datasets at hand the report also says where answers go wrong (see failures.py).
+    """
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
     records = load_records(run_dir)
     rows = summarize(records)
@@ -121,7 +125,12 @@ def write_report(run_dir: Path, reports_dir: Path) -> Path:
     # Reports are committed; LF keeps them identical on Windows and in the repository.
     steps = summarize_steps(records)
     report = {"meta": meta, "rows": rows, "steps": steps}
-    out.write_text(json.dumps(report, indent=2), encoding="utf-8", newline="\n")
     text = render_markdown(rows, meta) + "\n" + render_costs(rows, steps)
+    if datasets_dir is not None:
+        names = [name for name in meta.get("datasets", []) if name in DATASET_FILES]
+        items = {item.id: item for name in names for item in load_dataset(name, datasets_dir)}
+        report["failures"] = summarize_failures(records, items)
+        text += "\n" + render_failures(report["failures"])
+    out.write_text(json.dumps(report, indent=2), encoding="utf-8", newline="\n")
     out.with_suffix(".md").write_text(text, encoding="utf-8", newline="\n")
     return out

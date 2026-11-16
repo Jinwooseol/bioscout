@@ -103,7 +103,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
         )
     finally:
         await sources.http.aclose()
-    report = write_report(run_dir, args.evals_dir / "reports")
+    report = write_report(run_dir, args.evals_dir / "reports", args.evals_dir / "datasets")
     print(report.with_suffix(".md").read_text(encoding="utf-8"))
     print(f"records: {run_dir / 'records.jsonl'}\nreport:  {report}")
     return 1 if all(r.error for r in records) else 0
@@ -132,7 +132,7 @@ async def cmd_judge(args: argparse.Namespace) -> int:
         await sources.http.aclose()
     # What was judged just now. The report shows judge columns only for groups judged in full.
     print("\n".join(describe_judgments(records, judged)))
-    report = write_report(args.run_dir, args.evals_dir / "reports")
+    report = write_report(args.run_dir, args.evals_dir / "reports", args.evals_dir / "datasets")
     print(report.with_suffix(".md").read_text(encoding="utf-8"))
     print(f"judgments: {args.run_dir / 'judgments.jsonl'}\nreport:    {report}")
     return 0 if judged or not cited else 1
@@ -213,7 +213,7 @@ def cmd_calibrate_score(args: argparse.Namespace) -> int:
     reports_dir.mkdir(parents=True, exist_ok=True)
     out = reports_dir / f"{pair_set.run_id}.calibration.json"
     out.write_text(result.model_dump_json(indent=2), encoding="utf-8", newline="\n")
-    write_report(args.run_dir, reports_dir)
+    write_report(args.run_dir, reports_dir, args.evals_dir / "datasets")
     print(f"\nsaved: {out}")
     return 0
 
@@ -337,7 +337,7 @@ def main() -> None:
     if args.command == "calibrate-score":
         sys.exit(cmd_calibrate_score(args))
     if args.command == "report":
-        out = write_report(args.run_dir, args.evals_dir / "reports")
+        out = write_report(args.run_dir, args.evals_dir / "reports", args.evals_dir / "datasets")
         print(out.with_suffix(".md").read_text(encoding="utf-8"))
         sys.exit(0)
     if args.command == "retrieval":

@@ -349,5 +349,98 @@
       "judge_usd": 6.6057719999999955
     }
   ],
-  "steps": []
+  "steps": [],
+  "failures": {
+    "papers": [
+      {
+        "variant": "A",
+        "dataset": "domain",
+        "papers": 43,
+        "cited": 24,
+        "not_cited": null,
+        "not_selected": null,
+        "not_found": null
+      },
+      {
+        "variant": "A",
+        "dataset": "pubmedqa",
+        "papers": 100,
+        "cited": 0,
+        "not_cited": null,
+        "not_selected": null,
+        "not_found": null
+      },
+      {
+        "variant": "B",
+        "dataset": "domain",
+        "papers": 43,
+        "cited": 0,
+        "not_cited": 0,
+        "not_selected": 0,
+        "not_found": 43
+      },
+      {
+        "variant": "B",
+        "dataset": "pubmedqa",
+        "papers": 100,
+        "cited": 85,
+        "not_cited": 0,
+        "not_selected": 0,
+        "not_found": 15
+      },
+      {
+        "variant": "C",
+        "dataset": "domain",
+        "papers": 43,
+        "cited": 20,
+        "not_cited": 0,
+        "not_selected": 4,
+        "not_found": 19
+      },
+      {
+        "variant": "C",
+        "dataset": "pubmedqa",
+        "papers": 100,
+        "cited": 91,
+        "not_cited": 0,
+        "not_selected": 1,
+        "not_found": 8
+      }
+    ],
+    "answers": [
+      {
+        "variant": "A",
+        "dataset": "pubmedqa",
+        "n": 100,
+        "wrong": 23,
+        "opposite": 11,
+        "hedged": 6,
+        "committed": 6,
+        "no_answer": 0,
+        "wrong_with_source": null
+      },
+      {
+        "variant": "B",
+        "dataset": "pubmedqa",
+        "n": 100,
+        "wrong": 25,
+        "opposite": 1,
+        "hedged": 8,
+        "committed": 3,
+        "no_answer": 13,
+        "wrong_with_source": 11
+      },
+      {
+        "variant": "C",
+        "dataset": "pubmedqa",
+        "n": 100,
+        "wrong": 24,
+        "opposite": 2,
+        "hedged": 19,
+        "committed": 3,
+        "no_answer": 0,
+        "wrong_with_source": 19
+      }
+    ]
+  }
 }
