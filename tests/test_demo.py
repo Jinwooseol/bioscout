@@ -200,3 +200,29 @@ def test_an_example_shows_its_recorded_answer_without_calling_claude(monkeypatch
     # Asking the same question again still needs no key and no call.
     next(b for b in app.button if b.label == "Ask").click().run()
     assert not app.exception
+
+
+async def test_ask_builds_the_agents_parts_from_the_environment_without_calling_anything(
+    tmp_path, monkeypatch
+):
+    seen: dict[str, Any] = {}
+
+    async def stub(llm: Any, pubmed: Any, question: str, verify: bool, on_step: Any) -> demo.DemoResult:
+        seen.update(model=llm.model, searches=hasattr(pubmed, "search"), question=question, verify=verify)
+        return canned_result()
+
+    monkeypatch.chdir(tmp_path)  # no .env here, so the settings come from the variables below only
+    monkeypatch.setenv("BIOSCOUT_CACHE_DIR", str(tmp_path))
+    for name in (
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "BIOSCOUT_TOOLS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(demo, "answer_question", stub)
+
+    result = await demo.ask("Is X better than Y?", verify=False)
+    assert result.answer.sentences and seen == {
+        "model": "claude-opus-5-5", "searches": True, "question": "Is X better than Y?", "verify": False,
+    }  # fmt: skip

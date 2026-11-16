@@ -13,10 +13,10 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv sync --locked --extra demo  # the demo extra, so the page test runs too
+      - run: uv sync --locked --extra demo --extra trace  # the extras, so the page and tracing tests run too
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run --extra demo pytest -q
+      - run: uv run --extra demo --extra trace pytest -q
       - name: MCP server starts over stdio
         run: uv run python scripts/smoke_live.py --offline
 

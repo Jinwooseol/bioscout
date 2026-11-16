@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from bioscout import tracing
 from bioscout.agent import ResearchAgent
 from bioscout.answer import CitedAnswer, Step, Verdict
 from bioscout.config import CacheMode, Settings
@@ -98,9 +99,13 @@ async def ask(
     """`answer_question` against the real APIs, with settings from the environment and .env."""
     settings = Settings.from_env()
     sources = Sources(settings)
+    tracing.configure(settings)
+    llm = tracing.traced_llm(ClaudeLLM(settings))
     try:
         async with open_literature(sources, settings.through_mcp) as pubmed:
-            return await answer_question(ClaudeLLM(settings), pubmed, question, verify, on_step)
+            with tracing.context(tags=["demo"]):
+                traced = tracing.traced_literature(pubmed)
+                return await answer_question(llm, traced, question, verify, on_step)
     finally:
         await sources.http.aclose()
 

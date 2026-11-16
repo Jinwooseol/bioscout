@@ -140,6 +140,27 @@ docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=&lt;키&gt; bioscout-demo</cod
   <p>기록된 예시 답변을 보여 주는 정적 페이지를 Space에 올립니다. 공개 주소는 <a href="https://brakey-bioscout.static.hf.space">https://brakey-bioscout.static.hf.space</a>입니다. 이 PC에 저장된 Hugging Face 로그인(<code>hf auth login</code>)을 쓰며, <code>--dry-run</code>을 붙이면 올릴 파일 목록만 보여 줍니다. 예시 답변을 다시 기록했거나 <code>space/static/index.html</code>을 고쳤으면 다시 실행합니다.</p>
   <p><code>--sdk docker</code>를 붙이면 Streamlit 화면 자체를 Docker Space로 올립니다. Hugging Face가 Docker Space에 유료 플랜(PRO)을 요구해 지금은 쓰지 않습니다.</p>
 
+  <h2>트레이싱 (Langfuse)</h2>
+  <p>답변 하나가 거친 단계, 모델 호출, PubMed 호출을 Langfuse에서 볼 수 있습니다. 설정하지 않으면 꺼져 있습니다.</p>
+  <ol class="steps">
+    <li>
+      <h3>키 넣기</h3>
+      <p>Langfuse 프로젝트의 Settings → API Keys에서 키를 만들어 <code>.env</code>에 넣습니다. EU 클라우드가 아니면 <code>LANGFUSE_HOST</code>도 적습니다(미국: <code>https://us.cloud.langfuse.com</code>).</p>
+      <div class="cmd"><pre><code>LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...</code></pre></div>
+    </li>
+    <li>
+      <h3>설치하고 한 건 보내 보기 (무료)</h3>
+      <div class="cmd"><pre><code>uv sync --extra demo --extra trace
+uv run --extra demo --extra trace python scripts/trace_check.py</code></pre></div>
+      <p>첫 예시 질문을 캐시에서 재생하면서 trace를 보냅니다. 캐시를 읽기 전용으로 쓰므로 비용이 들지 않습니다. Langfuse의 Traces에서 <code>bioscout.answer</code>라는 이름과 <code>demo</code> 태그로 찾습니다. 키가 틀리면 내보내기 오류가 출력됩니다.</p>
+    </li>
+    <li>
+      <h3>평소 실행에서</h3>
+      <p>키가 있으면 데모 화면, <code>bioscout-eval run</code>, <code>bioscout-eval judge</code>가 모두 trace를 보냅니다. 평가 실행은 실행 ID가 세션이 되고, 변형과 데이터셋이 태그로 붙습니다. 질문, 프롬프트, 응답을 빼고 이름, 토큰, 비용만 보내려면 <code>BIOSCOUT_TRACE_CONTENT=off</code>를 둡니다.</p>
+    </li>
+  </ol>
+
   <h2>Claude Code에 연결</h2>
   <p>프로젝트 폴더에서 Claude Code를 열면 <code>.mcp.json</code>에 등록된 <code>bioscout</code> 서버를 쓸지 묻습니다. 승인하면 바로 쓸 수 있습니다. 다른 폴더에서도 쓰려면 사용자 범위로 추가합니다.</p>
   <div class="cmd"><pre><code>claude mcp add --scope user bioscout -- uv --directory "C:\Users\Jinwoo\OneDrive\Desktop\Jinwoo\01_Development\Projects\bioscout" run bioscout-mcp

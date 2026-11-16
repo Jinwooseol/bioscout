@@ -19,6 +19,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from bioscout import tracing
 from bioscout.config import CacheMode, Settings
 from bioscout.evals import gate
 from bioscout.evals.calibration import (
@@ -83,7 +84,8 @@ async def cmd_run(args: argparse.Namespace) -> int:
     if not _can_call_claude(settings):
         return 2
     sources = Sources(settings)
-    llm = ClaudeLLM(settings)
+    traces = tracing.configure(settings)
+    llm = tracing.traced_llm(ClaudeLLM(settings))
     variants = [VARIANTS[v] for v in args.variants]
     run_id = f"{datetime.now():%Y%m%d-%H%M%S}-{''.join(args.variants)}"
     run_dir = args.evals_dir / "runs" / run_id
@@ -99,9 +101,12 @@ async def cmd_run(args: argparse.Namespace) -> int:
         "commit": _git_commit(),
     }
     print(f"run {run_id}: {len(items)} items x {len(variants)} variants, model {llm.model} ({llm.effort})")
+    if traces:
+        print(f"tracing to {traces}")
     try:
         async with open_literature(sources, settings.through_mcp) as pubmed:
-            records = await run_eval(items, variants, Context(llm, pubmed), run_dir, meta, args.concurrency)
+            ctx = Context(llm, tracing.traced_literature(pubmed))
+            records = await run_eval(items, variants, ctx, run_dir, meta, args.concurrency)
     finally:
         await sources.http.aclose()
     report = write_report(run_dir, args.evals_dir / "reports", args.evals_dir / "datasets")
@@ -125,10 +130,15 @@ async def cmd_judge(args: argparse.Namespace) -> int:
     if not _can_call_claude(settings):
         return 2
     sources = Sources(settings)
-    llm = ClaudeLLM(settings)
+    traces = tracing.configure(settings)
+    llm = tracing.traced_llm(ClaudeLLM(settings))
     print(f"judge {args.run_dir.name}: {len(records)} answers, {cited} cited sentences, model {llm.model}")
+    if traces:
+        print(f"tracing to {traces}")
     try:
-        judged = await judge_run(records, llm, sources.pubmed, args.run_dir, args.concurrency)
+        with tracing.context(session_id=_run_id(args.run_dir), tags=["judge"]):
+            pubmed = tracing.traced_literature(sources.pubmed)
+            judged = await judge_run(records, llm, pubmed, args.run_dir, args.concurrency)
     finally:
         await sources.http.aclose()
     # What was judged just now. The report shows judge columns only for groups judged in full.

@@ -20,7 +20,8 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 | Agent | A LangGraph state graph: plan, search (MeSH query rewriting), screen, cited answer, verify, revise once | `src/bioscout/agent/`, `src/bioscout/verifier/` |
 | Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
 | Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
-| CI | 106 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| Tracing | One trace per answer: steps, model calls and PubMed calls as OpenTelemetry spans, sent to Langfuse when keys are set | `src/bioscout/tracing.py` |
+| CI | 113 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
 | Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
 ## Results
@@ -112,8 +113,14 @@ MCP hosts ────────> Bio MCP server ── SQLite cache ──> N
 
 By default the agent calls the PubMed client in-process. With `BIOSCOUT_TOOLS=mcp` it calls the
 server's tools through an MCP client session instead; both end in the same client and cache, and the
-example questions replay to identical answers either way. Every answer records the cost, tokens and
-latency of each step; sending those as traces to Langfuse is planned.
+example questions replay to identical answers either way.
+
+Every answer records the cost, tokens and latency of each step. With `LANGFUSE_PUBLIC_KEY` and
+`LANGFUSE_SECRET_KEY` in `.env` (and `uv sync --extra trace`), each answer is also sent as one trace:
+the graph's steps, every model call with its tokens and cost, and every PubMed call, as OpenTelemetry
+spans in Langfuse's attribute mapping. Tracing is off without keys, and `BIOSCOUT_TRACE_CONTENT=off`
+sends names and numbers only. The export path is checked against a local receiver; it has not been
+viewed in a Langfuse project yet.
 
 Design notes, diagrams and the evaluation plan: [`docs/design.html`](docs/design.html) and
 [`docs/how-it-works.html`](docs/how-it-works.html).

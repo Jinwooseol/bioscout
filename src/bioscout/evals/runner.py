@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from bioscout import tracing
 from bioscout.evals.costs import render_costs, summarize_steps
 from bioscout.evals.datasets import DATASET_FILES, EvalItem, load_dataset
 from bioscout.evals.failures import render_failures, summarize_failures
@@ -22,13 +23,23 @@ from bioscout.verifier import JUDGE_SHA
 async def answer_and_score(item: EvalItem, variant: Variant, ctx: Context) -> Record:
     record = Record(item_id=item.id, dataset=item.dataset, variant=variant.key)
     start = time.perf_counter()
-    try:
-        answer = await variant.run(item, ctx)
-        answer.usage.latency_ms = round((time.perf_counter() - start) * 1000)
-        record.scores = await score_item(item, answer, ctx.pubmed)
-        record.answer = answer
-    except Exception as exc:  # one bad item is recorded, it must not sink the whole run
-        record.error = f"{type(exc).__name__}: {exc}"
+    tags = [f"variant:{variant.key}", f"dataset:{item.dataset}"]
+    with (
+        tracing.context(tags=tags, item_id=item.id),
+        tracing.span(f"eval.{variant.key}", item_id=item.id, dataset=item.dataset) as trace,
+    ):
+        trace.input(item.question)
+        try:
+            answer = await variant.run(item, ctx)
+            answer.usage.latency_ms = round((time.perf_counter() - start) * 1000)
+            record.scores = await score_item(item, answer, ctx.pubmed)
+            record.answer = answer
+            scores = record.scores
+            trace.output({"decision": answer.decision, "cited": scores.cited, "correct": scores.correct})
+            trace.set(usd=answer.usage.usd, fabricated=scores.fabricated)
+        except Exception as exc:  # one bad item is recorded, it must not sink the whole run
+            record.error = f"{type(exc).__name__}: {exc}"
+            trace.set(error=record.error)
     return record
 
 
@@ -76,7 +87,8 @@ async def run_eval(
         done += 1
         progress(f"[{done}/{total}] {_progress_line(record)}")
 
-    await asyncio.gather(*(one(item, v) for v in variants for item in items))
+    with tracing.context(session_id=meta.get("run_id")):  # one Langfuse session per eval run
+        await asyncio.gather(*(one(item, v) for v in variants for item in items))
 
     meta["finished"] = datetime.now(UTC).isoformat(timespec="seconds")
     await asyncio.to_thread(_write_meta, run_dir, meta)

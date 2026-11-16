@@ -13,6 +13,9 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `uv run bioscout-mcp`: run the MCP server over stdio
 - `uv run --extra demo streamlit run app/streamlit_app.py`: the demo page (needs `ANTHROPIC_API_KEY`,
   about $0.2 per question; with `BIOSCOUT_CACHE_MODE=readonly` it only replays recorded answers)
+- `uv run --extra demo --extra trace python scripts/trace_check.py`: replay the first example question
+  with tracing on (free, read-only cache). Needs `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` in
+  `.env`; with them set, the demo, `bioscout-eval run` and `judge` send traces too
 - `BIOSCOUT_TOOLS=mcp` before a demo or eval run: the agent calls the MCP server's tools over a client
   session instead of the PubMed client in-process. Same answers; the run's metadata records which
 - `uv run python scripts/build_examples.py`: record the demo's example answers into `app/examples.json`
@@ -53,6 +56,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/tools.py`: `McpLiterature`, the agent's PubMed interface over an MCP client session
 - `src/bioscout/evals/failures.py`: failure classes from a run's records (where an expected paper was
   lost, kinds of wrong answer); the report's last section
+- `src/bioscout/tracing.py`: OpenTelemetry spans in Langfuse's attribute mapping (optional extra
+  `trace`); off, and wrapping nothing, unless keys or an OTLP endpoint are configured
 - `docs/jd-fit.html`: what job postings ask for against what the project does, with the gaps
 - `src/bioscout/evals/gate.py`, `evals/baseline.json`: the eval gate and the report it holds the code to
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
@@ -79,6 +84,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - D's first four steps send the same requests as C, so they replay C's cached responses and a
   D-vs-C difference comes only from the verify step. C's prompt hash is pinned in
   `tests/test_verify.py`. Run D only with a calibrated judge: its answers depend on the judge prompt.
+- Tracing must stay a no-op without configuration: `traced_llm` and `traced_literature` return the
+  object they were given. Never log or print the Langfuse keys or the Authorization header. Abstract
+  text stays out of the PubMed spans.
+- Run the tests with `--extra demo --extra trace` so the page and tracing tests are not skipped.
 - The agent knows PubMed only through `Literature`. Keep both tool paths returning the same data, so
   cached responses replay on either.
 - Do not tune the agent to say yes or no where the abstracts disagree just to raise PubMedQA accuracy:

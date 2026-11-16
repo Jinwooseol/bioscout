@@ -38,6 +38,12 @@ class Settings:
     llm_model: str = "claude-opus-5-5"
     llm_effort: str = "medium"
     tools: str = "direct"  # "mcp": the agent reaches PubMed through the MCP server's tools
+    # Tracing is off unless Langfuse keys or an OTLP endpoint are given (see tracing.py).
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = field(default=None, repr=False)
+    langfuse_host: str = "https://cloud.langfuse.com"
+    otlp_endpoint: str | None = None
+    trace_content: bool = True  # False: no questions, prompts or replies in the spans
 
     def __post_init__(self) -> None:
         if self.tools not in ("direct", "mcp"):
@@ -67,4 +73,11 @@ class Settings:
             llm_model=env.get("BIOSCOUT_MODEL") or cls.llm_model,
             llm_effort=env.get("BIOSCOUT_EFFORT") or cls.llm_effort,
             tools=env.get("BIOSCOUT_TOOLS") or cls.tools,
+            langfuse_public_key=env.get("LANGFUSE_PUBLIC_KEY") or None,
+            langfuse_secret_key=env.get("LANGFUSE_SECRET_KEY") or None,
+            langfuse_host=env.get("LANGFUSE_HOST") or env.get("LANGFUSE_BASE_URL") or cls.langfuse_host,
+            otlp_endpoint=env.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+            or env.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+            or None,
+            trace_content=env.get("BIOSCOUT_TRACE_CONTENT", "on").lower() not in ("off", "0", "false", "no"),
         )

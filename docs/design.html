@@ -55,9 +55,9 @@
       <text class="t" x="450" y="46" text-anchor="middle">평가 하네스</text>
       <text class="s" x="450" y="66" text-anchor="middle">변형 A–D 구현</text>
 
-      <rect class="box planned" x="630" y="20" width="250" height="60" rx="10"/>
+      <rect class="box accent" x="630" y="20" width="250" height="60" rx="10"/>
       <text class="t" x="755" y="46" text-anchor="middle">결과표 · CI 게이트</text>
-      <text class="s" x="755" y="66" text-anchor="middle">PR마다 20문항 재생 평가 (예정)</text>
+      <text class="s" x="755" y="66" text-anchor="middle">커밋된 리포트를 CI가 확인</text>
 
       <rect class="group" x="20" y="130" width="860" height="170" rx="12"/>
       <text class="t" x="40" y="157">리서치 에이전트 (LangGraph)</text>
@@ -87,9 +87,9 @@
       <text class="t" x="280" y="366" text-anchor="middle">Bio MCP 서버 (구현됨)</text>
       <text class="s" x="280" y="386" text-anchor="middle">search_pubmed · get_abstracts · check_pmids · get_fulltext · search_trials</text>
 
-      <rect class="box planned" x="630" y="340" width="250" height="70" rx="10"/>
+      <rect class="box accent" x="630" y="340" width="250" height="70" rx="10"/>
       <text class="t" x="755" y="366" text-anchor="middle">Langfuse</text>
-      <text class="s" x="755" y="386" text-anchor="middle">요청별 트레이스 (예정)</text>
+      <text class="s" x="755" y="386" text-anchor="middle">답변별 트레이스 (키를 넣으면 전송)</text>
 
       <path class="edge" d="M280 300V340" marker-end="url(#a)"/>
       <text class="s" x="290" y="325">MCP 도구 호출</text>
@@ -120,7 +120,7 @@
       <tr><td>평가 하네스</td><td>평가셋 로딩, 변형 실행, 지표 계산, 리포트 생성. <a href="#harness">상세 설계</a></td><td><code>src/bioscout/evals/</code>, <code>evals/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>리서치 에이전트</td><td>계획, 검색, 선별, 인용 답변 생성을 상태 그래프로 실행. <a href="#agent">상세 설계</a></td><td><code>src/bioscout/agent/</code></td><td><span class="tag built">구현됨</span></td></tr>
       <tr><td>인용 검증기</td><td>문장과 인용 초록을 맞대어 지지 / 부분 지지 / 근거 없음으로 판정하고, 부족한 문장은 고쳐 쓰거나 삭제. <a href="#judge">judge</a>, <a href="#verify">검증 루프</a></td><td><code>src/bioscout/verifier/</code></td><td><span class="tag built">구현됨</span></td></tr>
-      <tr><td>관측 · CI 게이트</td><td>비용·지연 집계, 커밋된 평가 리포트를 확인하는 CI 게이트, Langfuse 트레이스. <a href="#gate">게이트 설계</a></td><td><code>src/bioscout/evals/gate.py</code>, <code>.github/workflows/</code></td><td><span class="tag built">게이트 구현됨</span> <span class="tag">트레이스 예정</span></td></tr>
+      <tr><td>관측 · CI 게이트</td><td>비용·지연 집계, 커밋된 평가 리포트를 확인하는 CI 게이트, 답변별 트레이스. <a href="#gate">게이트 설계</a>, <a href="#tracing">트레이싱 설계</a></td><td><code>src/bioscout/evals/gate.py</code>, <code>src/bioscout/tracing.py</code>, <code>.github/workflows/</code></td><td><span class="tag built">구현됨</span> <span class="tag">Langfuse 화면 확인 전</span></td></tr>
       <tr><td>데모</td><td>Streamlit 화면, Docker, Hugging Face Spaces 배포. <a href="#demo">화면 설계</a></td><td><code>app/</code>, <code>src/bioscout/demo.py</code></td><td><span class="tag built">구현됨</span> <span class="tag built">배포됨</span></td></tr>
     </tbody>
   </table></div>
@@ -761,6 +761,52 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td><code>evals/baseline.json</code></td><td>지금 코드의 근거가 되는 리포트와, 받아들인 하락 목록</td></tr>
       <tr><td><code>tests/test_gate.py</code></td><td>작은 가상 리포트로 신선도, 바닥, 하락 검사를 확인</td></tr>
       <tr><td><code>.github/workflows/ci.yml</code></td><td><code>eval-gate</code> 작업. 푸시 전 커밋(또는 PR의 기준 커밋)의 baseline과 비교</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="tracing">트레이싱 <span class="tag built">구현됨</span> <span class="tag">Langfuse 화면 확인 전</span></h2>
+  <p>답변 하나가 어떤 단계를 거쳤고, 단계마다 어떤 프롬프트를 보냈고, 무엇이 돌아왔는지를 하나씩 열어 볼 수 있게 합니다. 리포트의 비용 · 지연 표는 여러 답변의 합계이고, 트레이스는 답변 한 건의 기록입니다. OpenTelemetry span으로 내보내고 Langfuse의 OTLP 주소로 보냅니다. 설정하지 않으면 꺼져 있고 아무것도 보내지 않습니다.</p>
+
+  <h3>답변 하나가 트레이스 하나</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>span</th><th>종류</th><th>담는 것</th></tr></thead>
+    <tbody>
+      <tr><td><code>bioscout.answer</code></td><td>agent</td><td>질문, 최종 답변(문장, 인용, 판정, 삭제한 문장), 총비용</td></tr>
+      <tr><td><code>plan</code>, <code>screen</code>, <code>answer</code>, <code>revise</code></td><td>chain</td><td>그래프의 단계 하나. 그 단계의 비용, 모델 호출 수</td></tr>
+      <tr><td><code>search</code></td><td>retriever</td><td>검색 단계. 아래에 PubMed 호출이 달림</td></tr>
+      <tr><td><code>verify</code></td><td>guardrail</td><td>검증 단계. 아래에 문장별 judge 호출이 달림</td></tr>
+      <tr><td><code>claude.json</code></td><td>generation</td><td>모델 호출 하나. 모델 이름, 입력 · 출력 토큰, 비용, 프롬프트와 응답, 거절 여부</td></tr>
+      <tr><td><code>pubmed.search</code>, <code>pubmed.abstracts</code>, <code>pubmed.check_pmids</code></td><td>tool</td><td>검색어와 돌아온 PMID. 초록 본문은 넣지 않음</td></tr>
+      <tr><td><code>eval.A</code> – <code>eval.D</code></td><td>span</td><td>평가 실행에서 문항 하나. 변형과 데이터셋을 태그로, 실행 ID를 세션으로 붙임</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>설계 결정</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>OpenTelemetry로 내보내고 Langfuse는 받는 쪽으로 둠</td><td>Langfuse가 OTLP를 그대로 받음. 다른 OTLP 백엔드로도 보낼 수 있고, 테스트는 메모리 내보내기로 네트워크 없이 span을 확인함</td><td>Langfuse SDK를 코드 곳곳에서 직접 호출</td></tr>
+      <tr><td>속성 이름은 Langfuse의 OpenTelemetry 매핑을 따름(<code>langfuse.observation.*</code>)</td><td>모델 호출이 generation으로 잡혀 토큰과 비용이 Langfuse 화면에 집계됨</td><td>임의의 속성 이름</td></tr>
+      <tr><td>설정이 없으면 완전히 꺼짐</td><td>키가 없으면 LLM과 PubMed 객체를 감싸지 않고 그대로 씀. 기존 실행, 캐시, 평가 수치에 영향이 없음</td><td>항상 span을 만들고 내보내기만 끔</td></tr>
+      <tr><td>모델과 PubMed 호출은 감싸는 객체로 기록</td><td>에이전트가 쓰는 인터페이스(<code>LLM</code>, <code>Literature</code>)를 감싸므로 변형 A–D와 judge가 모두 같은 방식으로 기록되고, 가짜 LLM으로 테스트할 수 있음</td><td>Claude 클라이언트 안에서 기록</td></tr>
+      <tr><td>캐시에서 재생한 응답은 비용을 0으로 보냄</td><td>지금 쓴 돈이 아님. 처음 만들 때의 비용은 메타데이터에 따로 남김</td><td>재생도 원래 비용으로 집계</td></tr>
+      <tr><td>내용을 빼고 보낼 수 있음(<code>BIOSCOUT_TRACE_CONTENT=off</code>)</td><td>질문, 프롬프트, 응답 없이 이름, 횟수, 토큰, 비용만 보냄. 외부 서비스에 내용을 두고 싶지 않을 때 씀</td><td>항상 전체 내용 전송</td></tr>
+      <tr><td>초록 본문은 PubMed span에 넣지 않음</td><td>그 초록을 읽는 모델 호출의 프롬프트에 이미 들어 있음. 같은 본문을 두 번 보내지 않음</td><td>도구 결과 전체를 기록</td></tr>
+      <tr><td>세션과 태그는 trace의 모든 span에 붙임</td><td>Langfuse가 필터와 집계에 그렇게 요구함. 평가 실행 하나가 세션 하나가 됨</td><td>루트 span에만 붙이기</td></tr>
+      <tr><td>OpenTelemetry 패키지는 선택 설치(<code>trace</code>)</td><td>MCP 서버나 평가만 쓰는 설치를 가볍게 유지. 패키지가 없으면 트레이싱 테스트는 건너뜀</td><td>기본 의존성에 추가</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>확인한 것과 남은 것</h3>
+  <p>가짜 LLM과 가짜 PubMed로 에이전트를 돌려 span의 부모 관계, 종류, 토큰과 비용, 세션과 태그를 테스트합니다. 실제 데이터로는 예시 질문 하나를 캐시에서 재생하면서, Langfuse 자리에 로컬 수신기를 세워 전송을 확인했습니다. 요청은 <code>/api/public/otel/v1/traces</code>로 한 번 갔고, 인증 헤더가 맞았고, span 19개가 한 trace로 도착했습니다. 검증 단계의 judge 호출 5개는 동시에 실행돼도 <code>verify</code> 아래에 달렸습니다. 새로 든 비용은 없습니다.</p>
+  <p>이 확인 과정에서 데모 경로의 버그 하나를 찾아 고쳤습니다. 단위 테스트가 지나가지 않던 줄이어서, 그 줄을 지나는 테스트를 더했습니다.</p>
+  <p>실제 Langfuse 화면에서는 아직 보지 못했습니다. Langfuse 계정의 키가 없기 때문입니다. 키를 넣고 <code>scripts/trace_check.py</code>를 실행해 화면에 trace가 보이면 끝납니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/tracing.py</code></td><td>설정, span, 세션과 태그, 모델과 PubMed를 감싸는 객체</td></tr>
+      <tr><td><code>scripts/trace_check.py</code></td><td>예시 질문 하나를 재생해 trace를 보내 보는 확인용 스크립트</td></tr>
+      <tr><td><code>tests/test_tracing.py</code></td><td>메모리 내보내기로 span 구조와 속성을 확인. <code>trace</code>를 설치했을 때만 실행</td></tr>
     </tbody>
   </table></div>
 

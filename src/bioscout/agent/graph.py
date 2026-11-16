@@ -19,6 +19,7 @@ from typing import Annotated, Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from bioscout import tracing
 from bioscout.agent.prompts import PLAN_SCHEMA, SCREEN_SCHEMA, SYSTEM_PLAN, SYSTEM_SCREEN
 from bioscout.answer import CitedAnswer, CitedSentence, DroppedSentence, SearchLog, Step, Usage, Verdict
 from bioscout.llm import LLM
@@ -80,10 +81,26 @@ def _timed(name: str, node: Node) -> Node:
 
     async def run(state: AgentState) -> AgentState:
         start = time.perf_counter()
-        update = await node(state)
-        return {**update, "steps": [Step.since(name, start, update.get("usages", []))]}
+        with tracing.span(name, kind=tracing.STEP_KINDS.get(name, "chain")) as current:
+            update = await node(state)
+            step = Step.since(name, start, update.get("usages", []))
+            usage = step.usage
+            current.set(usd=usage.usd, llm_calls=usage.llm_calls, tool_calls=usage.tool_calls)
+        return {**update, "steps": [step]}
 
     return run
+
+
+def _traced_output(answer: CitedAnswer) -> dict[str, Any]:
+    """The answer as the trace shows it: what was said, on which papers, and what was removed."""
+    return {
+        "decision": answer.decision,
+        "refused": answer.refused,
+        "sentences": [
+            {"text": s.text, "citations": s.citations, "verdict": s.verdict} for s in answer.sentences
+        ],
+        "dropped": [{"text": d.text, "reason": d.reason} for d in answer.dropped],
+    }
 
 
 def _interleave(ranked: list[list[str]], exclude: set[str]) -> list[str]:
@@ -157,23 +174,32 @@ class ResearchAgent:
         }
         state = start
         reported = 0
-        async for state in self.graph.astream(start, stream_mode="values"):  # the state after each step
-            steps = state.get("steps", [])
-            for step in steps[reported:]:
-                if on_step is not None:
-                    on_step(step)
-            reported = len(steps)
-        if "answer" in state:
-            return state["answer"].model_copy(update={"steps": state["steps"]}), state["abstracts"]
-        # A step before the answer was refused, even after the server-side fallback.
-        refused = CitedAnswer(
-            question=question,
-            searches=state["searches"],
-            usage=Usage.total(state["usages"]),
-            steps=state["steps"],
-            refused=True,
-        )
-        return refused, state["abstracts"]
+        with tracing.span("bioscout.answer", kind="agent", verify=self.verify is not None) as trace:
+            trace.input(question)
+            async for state in self.graph.astream(start, stream_mode="values"):  # the state after each step
+                steps = state.get("steps", [])
+                for step in steps[reported:]:
+                    if on_step is not None:
+                        on_step(step)
+                reported = len(steps)
+            if "answer" in state:
+                answer = state["answer"].model_copy(update={"steps": state["steps"]})
+            else:  # a step before the answer was refused, even after the server-side fallback
+                answer = CitedAnswer(
+                    question=question,
+                    searches=state["searches"],
+                    usage=Usage.total(state["usages"]),
+                    steps=state["steps"],
+                    refused=True,
+                )
+            trace.output(_traced_output(answer))
+            trace.set(
+                usd=answer.usage.usd,
+                sentences=len(answer.sentences),
+                dropped=len(answer.dropped),
+                searches=len(answer.searches),
+            )
+        return answer, state["abstracts"]
 
     async def _plan(self, state: AgentState) -> AgentState:
         result = await self.llm.json(
