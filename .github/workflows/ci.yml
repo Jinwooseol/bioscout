@@ -51,6 +51,24 @@ jobs:
           done
           docker logs api
           exit 1
+      # What a host does: it cannot always change the command, and the volume it mounts is root's.
+      - name: Told by a variable to serve the API, it runs as uid 1000 and keeps the count in a mounted folder that root owns
+        run: |
+          sudo mkdir -p /tmp/bioscout-data
+          sudo chown root:root /tmp/bioscout-data
+          sudo chmod 755 /tmp/bioscout-data
+          docker run -d --name hosted -p 7862:7860 -e BIOSCOUT_SERVE=api -e BIOSCOUT_CACHE_DIR=/data -v /tmp/bioscout-data:/data bioscout-demo
+          for attempt in $(seq 1 30); do
+            if curl -fs http://localhost:7862/health; then
+              curl -fs http://localhost:7862/v1/status | python3 -c 'import json, sys; status = json.load(sys.stdin); assert not status["live"] and status["quota"]["left_today"] == 20, status'
+              test "$(docker exec hosted sh -c "grep '^Uid:' /proc/1/status | cut -f2")" = 1000
+              test "$(stat -c %u /tmp/bioscout-data/quota.sqlite)" = 1000
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs hosted
+          exit 1
 
   # CI cannot run the agent (no API key) or replay it (the response cache holds abstracts, which are
   # not committed). It checks the committed evidence instead: the report named in evals/baseline.json

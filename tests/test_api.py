@@ -332,6 +332,36 @@ def test_a_question_must_be_text_of_a_sensible_length(tmp_path: Path):
         assert client.post("/v1/answers", json={"question": "x" * 400}).status_code == 200
 
 
+def test_a_body_larger_than_any_question_is_refused_before_it_is_read(tmp_path: Path):
+    calls: list[str] = []
+
+    async def counting(question: str, verify: bool = True, on_step: Any = None) -> demo.DemoResult:
+        calls.append(question)
+        return canned_result()
+
+    def unsized():  # sent in chunks, with no Content-Length
+        yield json.dumps(ASK).encode()
+
+    json_body = {"Content-Type": "application/json"}
+    with TestClient(build(tmp_path, counting, api_cors_origins=(PAGE,))) as client:
+        large = json.dumps({"question": "x" * api.MAX_BODY_BYTES}).encode()
+        for path in ("/v1/answers", "/v1/answers/stream"):
+            refused = client.post(path, content=large, headers={**json_body, "Origin": PAGE})
+            assert refused.status_code == 413 and refused.json()["detail"]["code"] == "too_large"
+            assert refused.headers["access-control-allow-origin"] == PAGE  # a page can read why
+            chunked = client.post(path, content=unsized(), headers=json_body)
+            assert chunked.status_code == 411 and chunked.json()["detail"]["code"] == "length_required"
+        assert not calls and left_today(client) == 5
+        assert client.post("/v1/answers", json=ASK).status_code == 200  # an ordinary question passes
+
+
+def test_the_address_of_the_server_itself_leads_to_the_docs(tmp_path: Path):
+    with TestClient(build(tmp_path)) as client:
+        home = client.get("/", follow_redirects=False)
+        assert home.status_code == 307 and home.headers["location"] == "/docs"
+        assert client.get("/docs").status_code == 200
+
+
 def test_the_schema_lists_the_routes_and_how_a_question_is_refused(tmp_path: Path):
     schema = build(tmp_path).openapi()
     assert set(schema["paths"]) == {

@@ -35,9 +35,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from pydantic import BaseModel, Field, StringConstraints
+from starlette.datastructures import Headers
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from bioscout import __version__, demo, tracing
 from bioscout.answer import Decision, Step, Verdict
@@ -48,6 +50,7 @@ from bioscout.quota import Quota, QuotaExceeded
 log = logging.getLogger("bioscout.api")
 
 BUSY_RETRY_S = 30
+MAX_BODY_BYTES = 16 * 1024  # a question is at most 400 characters; no request needs a larger body
 LIVE_OFF = (
     "Live questions are switched off on this server: no Claude API key is configured. "
     "GET /v1/examples returns the recorded answers."
@@ -428,9 +431,40 @@ async def answer_stream(request: Request, ticket: Admitted) -> AsyncIterator[Ser
         task.cancel()  # the caller went away: stop paying for an answer nobody will read
 
 
+@router.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    return RedirectResponse("/docs")
+
+
 async def problem_response(request: Request, problem: Problem) -> JSONResponse:
     headers = {"Retry-After": str(problem.retry_after_s)} if problem.retry_after_s else None
     return JSONResponse({"detail": problem.body()}, status_code=problem.status, headers=headers)
+
+
+class BodyLimit:
+    """Refuses a request whose body is larger than any question, before a byte of it is read.
+
+    The question is checked for length only after its whole body has been read into memory, so on a
+    small machine one large upload could use it all. The declared length is what is checked: the
+    server reads no more than that, and a body sent without one is refused."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int = MAX_BODY_BYTES) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["method"] not in ("GET", "HEAD", "OPTIONS"):
+            declared = Headers(scope=scope).get("content-length", "")
+            problem = None
+            if not declared.isdigit():
+                problem = Problem(411, "length_required", "Send the request body with a Content-Length.")
+            elif int(declared) > self.max_bytes:
+                problem = Problem(413, "too_large", f"The request body is over {self.max_bytes} bytes.")
+            if problem is not None:
+                refusal = JSONResponse({"detail": problem.body()}, status_code=problem.status)
+                await refusal(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
 
 
 @asynccontextmanager
@@ -476,6 +510,7 @@ def create_app(
         answerer=answerer,
     )
     app.add_exception_handler(Problem, problem_response)  # type: ignore[arg-type]
+    app.add_middleware(BodyLimit)  # added before CORS, so CORS wraps it and a refusal is readable by a page
     if settings.api_cors_origins:
         app.add_middleware(
             CORSMiddleware,

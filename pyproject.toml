@@ -21,6 +21,7 @@ dependencies = [
 bioscout-mcp = "bioscout.mcp_server:main"
 bioscout-eval = "bioscout.evals.cli:main"
 bioscout-api = "bioscout.api:main"
+bioscout-serve = "bioscout.container:main"
 
 [project.optional-dependencies]
 demo = [

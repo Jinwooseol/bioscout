@@ -24,6 +24,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   (free for questions already in the cache)
 - `docker build -t bioscout-demo .`: the image of the demo page and the API. There is no Docker on the
   author's PC; the CI `image` job builds it and checks that the page and the API start
+- `fly deploy --ha=false`: the API on Fly.io from `fly.toml` (README, "Hosting the API"). Not run yet:
+  it needs the author's Fly account, and the keys set there with `fly secrets set`
 - `uv run --with huggingface_hub python scripts/deploy_space.py brakey/bioscout`: publish the public page
   (a static Space with the recorded answers). `--dry-run` lists the files; `--sdk docker` publishes the
   Streamlit app instead, which Hugging Face refuses without a paid plan (HTTP 402)
@@ -77,7 +79,10 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - `src/bioscout/quota.py`: the cap on questions per UTC day and in total, in a SQLite file that the
   API and the demo page share
 - `Dockerfile`, `.dockerignore`: the page and the API as one image (uid 1000, port 7860, no secrets in
-  the image); `bioscout-api` as the command runs the API instead of the page
+  the image); `bioscout-api` as the command, or `BIOSCOUT_SERVE=api`, runs the API instead of the page
+- `src/bioscout/container.py`: the image's entrypoint (`bioscout-serve`). It picks what to serve and,
+  started as root, hands the state folders to uid 1000 and gives up root
+- `fly.toml`: the API on Fly.io (one machine that stops when idle, a volume for the count of questions)
 - `space/static/index.html`: the public page (https://brakey-bioscout.static.hf.space). It reads `examples.json` and
   shows the recorded answers; its labels must match `demo.py` (a test checks)
 - `scripts/deploy_space.py`, `space/*/README.md`: publish to a Hugging Face Space from an allow-list of
@@ -138,6 +143,11 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   count. The quota file must never hold an address, only the salted hash, and only for the day.
   Believe a header for the caller's address only when the operator named it
   (`BIOSCOUT_API_CLIENT_HEADER`): a caller can send any header.
+- A hosted API runs as one instance with `BIOSCOUT_CACHE_DIR` on a disk that outlives the container:
+  the count of questions is a file. Never put a key in `fly.toml` or any tracked file; keys are set
+  on the host (`fly secrets set`).
+- The server never runs as root. The image starts as root only so `container.py` can hand a mounted
+  folder to uid 1000; keep `give_up_root` the last thing before the command is run.
 - What a visitor is told about a failed answer is `demo.failure_text`: the kind of error, never its
   text. The API logs the kind and the stack frames only. An exception can quote a request, and a
   request to PubMed carries the API key and the contact address.

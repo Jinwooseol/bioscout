@@ -1,0 +1,43 @@
+# The HTTP API on Fly.io: one small machine that stops when nobody is calling and starts again on the
+# next request, with a volume for the count of questions. Steps: README, "Hosting the API".
+# Written from Fly's documentation and not yet deployed.
+
+app = "bioscout-api"  # the name chosen at `fly launch`; the API is then at https://<app>.fly.dev
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  BIOSCOUT_SERVE = "api"
+  # The response cache and the count of questions (quota.sqlite) go on the volume.
+  BIOSCOUT_CACHE_DIR = "/data"
+  # Fly's proxy gives the caller's address in this header; the limit per caller counts by it.
+  BIOSCOUT_API_CLIENT_HEADER = "Fly-Client-IP"
+  # The public page, the only other origin that may call the API from a browser.
+  BIOSCOUT_API_CORS_ORIGINS = "https://brakey-bioscout.static.hf.space"
+
+# One machine only (`fly deploy --ha=false`): the count is a file on this volume, so a second machine
+# with its own volume would allow the full number of questions again.
+[mounts]
+  source = "bioscout_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[http_service]
+  internal_port = 7860
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

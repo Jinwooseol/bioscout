@@ -180,10 +180,50 @@ the API key in its URL. An answer that runs longer than `BIOSCOUT_API_TIMEOUT_S`
 closing a stream stops the agent. Pages on other origins may call the API only when listed in
 `BIOSCOUT_API_CORS_ORIGINS`.
 
+A request body over 16 KB, or one sent without a length, is refused before it is read (413, 411):
+the question is at most 400 characters, and its length can be checked only once the body is in memory.
+
 From the container: `docker run --rm -p 7860:7860 -e ANTHROPIC_API_KEY=... bioscout-demo bioscout-api`.
 
-Not built: authentication. The API is not hosted anywhere yet, so the public
-page still shows recorded answers only.
+Not built: authentication.
+
+### Hosting the API
+
+The API is not hosted yet. That takes an account with a host and a Claude API key on it, which are the
+operator's to set up; the repository holds everything up to that point.
+
+A host has to give the container three things:
+
+- **The API as what it runs**: the command `bioscout-api`, or the variable `BIOSCOUT_SERVE=api` where
+  a host cannot change the command of an image.
+- **A folder that outlives the container**, named in `BIOSCOUT_CACHE_DIR`, for the count of questions.
+  On a disk that is wiped with every restart the allowance starts again each time and no longer
+  bounds the bill. A mounted volume is often owned by root, so the image's start-up hands that folder
+  to the user the server runs as (uid 1000) and then gives up root.
+- **One instance only.** The count is a file, so two instances would each allow the full number.
+
+[`fly.toml`](fly.toml) sets this up on [Fly.io](https://fly.io): one small machine that stops when
+nobody is calling and starts again on the next request, with a 1 GB volume. Fly bills a stopped
+machine for its disk only and, by its own pricing page, waives a personal account's monthly bill
+under $5.
+
+```bash
+fly launch --copy-config --no-deploy --name NAME --region nrt
+fly volumes create bioscout_data --size 1 --region nrt --app NAME
+fly secrets set ANTHROPIC_API_KEY=... NCBI_API_KEY=... NCBI_EMAIL=... --app NAME
+fly deploy --ha=false
+```
+
+`NAME` becomes the address (`https://NAME.fly.dev`) and goes into `fly.toml` as `app`. The keys are set
+as secrets on the host and never written to a file in the repository. `--ha=false` keeps it to one
+machine.
+
+Set a spend limit on the key as well, in the Claude Console, on the workspace the key belongs to. The
+allowance is counted by this code; a limit at the provider holds even where the code is wrong.
+
+These steps are written from Fly's documentation and have not been run. CI checks what needs no
+account: the image, told by `BIOSCOUT_SERVE` to serve the API, runs as uid 1000 and keeps its count
+in a mounted folder that root owned.
 
 ## Architecture
 
