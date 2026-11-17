@@ -907,7 +907,7 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
       <tr><td>PubMedQA 100문항에서 나온 비율은 정수 %로 적음</td><td>문항마다 답이 하나라, 소수 첫째 자리는 없는 정밀도임</td><td>모든 칸을 소수 첫째 자리까지</td></tr>
     </tbody>
   </table></div>
-  <p>확인한 것: 명령이 README와 차트를 쓰고, <code>--check</code>는 어긋난 파일 이름을 알려 주며 아무것도 쓰지 않습니다. 차트를 브라우저에서 라이트와 다크로 열어 글자가 겹치거나 넘치지 않는 것을 봤습니다. 확인하지 못한 것: GitHub에 올라간 README에서 실제로 보이는 모습입니다. GitHub 문서에는 <code>&lt;picture&gt;</code>를 지원한다고만 나와 있어, 다크용 파일이 GitHub 테마 설정을 따르는지 OS 설정을 따르는지는 올린 뒤에 봐야 합니다.</p>
+  <p>확인한 것: 명령이 README와 차트를 쓰고, <code>--check</code>는 어긋난 파일 이름을 알려 주며 아무것도 쓰지 않습니다. 차트를 브라우저에서 라이트와 다크로 열어 글자가 겹치거나 넘치지 않는 것을 봤습니다. GitHub의 README에서도 차트와 표가 그려지는 것을 봤고, 다크용 파일은 GitHub 파일 미리보기에서 봤습니다. GitHub는 <code>&lt;source media="(prefers-color-scheme: dark)"&gt;</code>를 그대로 두므로 어느 파일을 쓸지는 브라우저(OS)의 다크 설정이 정합니다. 브라우저 설정이 밝은 상태에서 페이지의 색 모드만 다크로 바꿔 보니(<code>data-color-mode</code>) 밝은 차트가 그대로 남았고, 차트에 자기 배경이 있어 어두운 페이지에서도 읽혔습니다. 확인하지 못한 것: GitHub 계정 설정에서 테마를 다크로 고정한 경우와, OS가 다크인 상태로 GitHub에서 본 모습입니다.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>파일</th><th>내용</th></tr></thead>
     <tbody>
