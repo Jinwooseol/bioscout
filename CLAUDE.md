@@ -43,6 +43,8 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   named in `evals/baseline.json` was made with the prompts, model, judge and questions in the code,
   holds no fabricated PMID, and did not drop beyond the limits since the baseline at that revision.
   CI runs it as the `eval-gate` job
+- `uv run bioscout-eval readme`: write the README's results chart and table from the report named in
+  `evals/baseline.json` (`--check` only compares). Offline and free. Run it after the baseline moves
 
 ## Layout
 
@@ -69,6 +71,9 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
   `trace`); off, and wrapping nothing, unless keys or an OTLP endpoint are configured
 - `docs/jd-fit.html`: what job postings ask for against what the project does, with the gaps
 - `src/bioscout/evals/gate.py`, `evals/baseline.json`: the eval gate and the report it holds the code to
+- `src/bioscout/evals/readme.py`, `chart.py`: the README's results block (between the
+  `results:begin` and `results:end` markers) and the two chart files it shows,
+  `docs/assets/results-light.svg` and `results-dark.svg`, all written from the baseline report
 - `evals/datasets/`: committed JSONL; `evals/runs/` is ignored; `evals/reports/` is committed;
   `evals/review/` (abstract quotes for hand review) is ignored
 - `tests/fakes.py`: the scripted LLM and in-memory PubMed that eval and agent tests share
@@ -96,6 +101,13 @@ Portfolio project: biomedical research agent + evaluation system. The plan of re
 - Eval-first: a change to agent behaviour is not done until it has a number from `evals/`.
 - After a full run of changed agent code, point `evals/baseline.json` at the new report so the gate
   passes. Never edit a report by hand. A drop accepted on purpose goes under `accepted` with its reason.
+- The README's results block and the two `docs/assets/results-*.svg` charts are generated: never edit
+  them by hand. Change the report (a new run) or the generator, then run `uv run bioscout-eval readme`;
+  `tests/test_readme.py` fails while they differ from the baseline report. The prose around the block
+  is hand-written, so read it again when the numbers move.
+- The chart is hand-written SVG so one report always gives the same bytes: add no plotting library and
+  nothing that varies between runs (dates, ids). Its two series colours were checked for colour-blind
+  separation and contrast on both surfaces; text stays in ink colours, never a series colour.
 - Every variant uses the same model, effort and answer schema; change them for all variants or none.
 - B and C answer through the same prompt in `prompts.py`, so B-vs-C differences come from retrieval.
   A's and B's prompt hashes are pinned in `tests/test_agent.py`; update them only on purpose (B's and

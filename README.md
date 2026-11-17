@@ -11,8 +11,8 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 (claim, abstract) pair is judged for support before the answer is shown.
 
 > Status: the MCP tool server, the eval harness and its datasets, the research agent, the citation
-> judge, the verify step, the CI eval gate and the demo are built, and variants A to C have been run
-> and judged on all 115 questions. Still open: checking the judge against hand labels, then running
+> judge, the verify step, the CI eval gate and the demo are built, and variants A, B, C and E have
+> been run and judged on all 115 questions. Still open: checking the judge against hand labels, then running
 > variant D. Progress: [`docs/progress.html`](docs/progress.html).
 
 | Area | What was built | Where |
@@ -21,35 +21,48 @@ failure. Every sentence in an answer carries PMIDs, every PMID is checked agains
 | Tools | An MCP server with five tools over PubMed, Europe PMC and ClinicalTrials.gov, behind rate limits, retries and a SQLite response cache; the agent can run on the same tools over MCP | `src/bioscout/mcp_server.py`, `src/bioscout/tools.py` |
 | Evaluation | 115 questions, four variants on one model, deterministic metrics, an LLM judge with a hand-label calibration tool, failure classes, cost and latency per step | `src/bioscout/evals/`, `evals/` |
 | Tracing | One trace per answer: steps, model calls and PubMed calls as OpenTelemetry spans, sent to Langfuse when keys are set | `src/bioscout/tracing.py` |
-| CI | 160 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
+| CI | 169 offline tests, lint, the container build, and an eval gate on the committed report | `.github/workflows/ci.yml` |
 | API | A FastAPI service: the answer as JSON, or as server-sent events step by step, behind a cap on questions per day and in total that is kept in SQLite | `src/bioscout/api.py`, `src/bioscout/quota.py` |
 | Demo | A Streamlit page, a Docker image, and a static page with recorded answers | `app/`, `space/` |
 
 ## Results
 
-First full run: 100 PubMedQA questions and 15 hand-written MSI / digital PCR / liquid biopsy
-questions, the same model and effort for every variant
-([`evals/reports/20261116-105242-ABCE.md`](evals/reports/20261116-105242-ABCE.md); A to C were first
-measured in [`20261115-195946-ABC`](evals/reports/20261115-195946-ABC.md), which also has their latency).
+100 PubMedQA questions and 15 hand-written MSI / digital PCR / liquid biopsy questions, answered by
+every variant with the same model and effort.
 
-| Variant | Fabricated PMIDs | Sentences cited | Source paper used (PubMedQA) | Citation precision | Citation coverage | Cost / query |
-| --- | --- | --- | --- | --- | --- | --- |
-| A. LLM only | 0.0% | 15.7% | n/a | 51.0% | 6.3% | $0.016 |
-| B. Naive RAG | 0.0% | 87.1% | 85% | 90.8% | 81.5% | $0.024 |
-| C. Agent | 0.0% | 99.7% | 91% | 86.1% | 93.4% | $0.148 |
-| D. Agent + verifier | built, not run yet | | | | | |
-| E. Agent, embedding rank | 0.0% | 98.6% | 87% | 85.5% | 91.7% | $0.055 |
+<!-- results:begin -->
+<!-- Written by `bioscout-eval readme` from the report named in evals/baseline.json. Change the report, not these lines. -->
 
-Citation precision is the share of citations whose abstract clearly backs the sentence; citation
-coverage is the share of answer sentences fully backed by the abstracts they cite. Both come from an
-LLM judge over all 1,151 cited sentences. They are provisional until the judge has been checked
-against hand labels.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/results-dark.svg">
+  <img src="docs/assets/results-light.svg" width="860" alt="Share of answer sentences backed by the abstracts they cite, and cost per question, by variant. A. LLM only: 6.3% backed, $0.016; B. Naive RAG: 81.5% backed, $0.024; C. Agent: 93.4% backed, $0.148; E. Agent, embedding rank: 91.7% backed, $0.055.">
+</picture>
 
-The median answer takes 8 s (A), 5 s (B) and 20 s (C). Two thirds of the agent's cost is its screening
-step, which reads up to 25 candidate abstracts per search round; the report breaks cost and latency
-down per variant and per step.
+| Variant | Fabricated PMIDs | Sentences cited | Citation precision | Citation coverage | Source paper used (PubMedQA) | Accuracy (PubMedQA) | Cost / question |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A. LLM only | 0.0% | 15.7% | 51.0% | 6.3% | n/a | 77% | $0.016 |
+| B. Naive RAG | 0.0% | 87.1% | 90.8% | 81.5% | 85% | 75% | $0.024 |
+| C. Agent | 0.0% | 99.7% | 86.1% | 93.4% | 91% | 76% | $0.148 |
+| D. Agent + verifier | built, not run yet | | | | | | |
+| E. Agent, embedding rank | 0.0% | 98.6% | 85.5% | 91.7% | 87% | 73% | $0.055 |
 
-- No variant cited a PMID that does not exist (0 of 1,681 citations), so an existence check alone
+Chart and table are written from [`evals/reports/20261116-105242-ABCE.md`](evals/reports/20261116-105242-ABCE.md), the report the eval gate checks: 115 questions, model `claude-opus-5-5`, effort `medium`, 1,771 cited sentences judged.
+<!-- results:end -->
+
+Each bar is every sentence of a variant's answers. Its first part, in blue, is citation coverage: the
+share of sentences fully backed by the abstracts they cite. Citation precision is the share of
+citations whose abstract clearly backs the sentence. Both come from an LLM judge, and they are
+provisional until the judge has been checked against hand labels. A fabricated PMID is a cited paper
+that PubMed does not have. "Source paper used" is how often the paper a PubMedQA question was written
+from was among the abstracts the answer was written from. Accuracy is against PubMedQA's yes / no /
+maybe labels, where answering yes every time scores 66%.
+
+A to C were first measured in [`20261115-195946-ABC`](evals/reports/20261115-195946-ABC.md), which
+also has their latency: the median answer takes 8 s (A), 5 s (B) and 20 s (C). Two thirds of the
+agent's cost is its screening step, which reads up to 25 candidate abstracts per search round; the
+reports break cost and latency down per variant and per step.
+
+- No variant cited a PMID that does not exist (0 of 2,582 citations), so an existence check alone
   does not separate the variants.
 - The LLM alone rarely cites, and half of what it cites from memory does not clearly back the
   sentence. 11 of its 102 citations are unsupported, several of them real papers on an unrelated
@@ -61,7 +74,7 @@ down per variant and per step.
   meant to remove.
 
 **Where answers go wrong.** The report also classifies failures from the run's records. Accuracy looks
-alike across the variants (75 to 77%), but the mistakes differ. The LLM alone answers the opposite of
+alike across A, B and C (75 to 77%), but the mistakes differ. The LLM alone answers the opposite of
 the label 11 times in 100; naive RAG does so once and the agent twice. 19 of the agent's 24 wrong
 answers are a "maybe" where the label says yes or no, and 19 of the 24 were written with the
 question's own source paper among the abstracts: PubMedQA scores against one paper's conclusion, and
@@ -100,6 +113,8 @@ run holds abstracts, which are not committed. It gates on the committed evidence
 not made with the prompts, model, judge and questions in the commit, when it holds a fabricated PMID
 or a failed question, or when citation precision or coverage fell more than 3 points (accuracy more
 than 5) since the previous baseline. A change to the agent therefore cannot land without a new run.
+The chart and table above are written from that same report by `bioscout-eval readme`, and a test fails
+when they differ from it, so this page cannot show a number the gate has not checked.
 
 ## Demo
 

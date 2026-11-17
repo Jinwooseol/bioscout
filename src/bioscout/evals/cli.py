@@ -6,6 +6,8 @@ uv run bioscout-eval calibrate-sample evals/runs/<run_id>
 uv run bioscout-eval calibrate-score evals/runs/<run_id>
 uv run bioscout-eval report evals/runs/<run_id>
 uv run bioscout-eval check-datasets
+uv run bioscout-eval gate --since HEAD^
+uv run bioscout-eval readme --check
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from pathlib import Path
 from bioscout import tracing
 from bioscout.agent.rank import default_ranker
 from bioscout.config import CacheMode, Settings
-from bioscout.evals import gate
+from bioscout.evals import gate, readme
 from bioscout.evals.calibration import (
     PairSet,
     describe_calibration,
@@ -351,6 +353,27 @@ def cmd_gate(args: argparse.Namespace) -> int:
     return 0 if gate.passed(checks) else 1
 
 
+def cmd_readme(args: argparse.Namespace) -> int:
+    """Write the README's results block and its charts from the baseline report, or only compare them."""
+    path = args.baseline or args.evals_dir / "baseline.json"
+    baseline = gate.Baseline.load(path.read_text(encoding="utf-8"), Path.cwd())
+    if args.check:
+        stale = readme.stale(Path.cwd(), baseline)
+        for name in stale:
+            print(f"out of date: {name}")
+        if stale:
+            print(f"These no longer show {baseline.report_path}. Run `uv run bioscout-eval readme`.")
+        else:
+            print(f"README.md and its charts show {baseline.report_path}")
+        return 1 if stale else 0
+    changed = readme.write(Path.cwd(), baseline)
+    for name in changed:
+        print(f"wrote {name}")
+    if not changed:
+        print(f"README.md and its charts already show {baseline.report_path}")
+    return 0
+
+
 def main() -> None:
     # A redirected stdout on Windows uses the locale code page (cp949 on a Korean PC), which cannot encode
     # the "—" of an empty table cell. Replace such characters rather than crash after the work is done.
@@ -395,6 +418,12 @@ def main() -> None:
     gate_cmd.add_argument("--baseline", type=Path, help="default: evals/baseline.json")
     gate_cmd.add_argument("--since", help="git revision whose baseline to compare with, e.g. HEAD^")
 
+    readme_cmd = sub.add_parser(
+        "readme", help="write the README's results chart and table from the baseline report"
+    )
+    readme_cmd.add_argument("--baseline", type=Path, help="default: evals/baseline.json")
+    readme_cmd.add_argument("--check", action="store_true", help="write nothing; exit 1 when out of date")
+
     selection = sub.add_parser("selection", help="compare how variants choose abstracts, writing no answer")
     selection.add_argument("--variants", type=_csv, default=["C", "E"])
     selection.add_argument("--datasets", type=_csv, default=["pubmedqa", "domain"])
@@ -421,6 +450,8 @@ def main() -> None:
         sys.exit(asyncio.run(cmd_retrieval(args)))
     if args.command == "gate":
         sys.exit(cmd_gate(args))
+    if args.command == "readme":
+        sys.exit(cmd_readme(args))
     if args.command == "selection":
         sys.exit(asyncio.run(cmd_selection(args)))
     sys.exit(asyncio.run(cmd_check(args)))
