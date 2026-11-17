@@ -892,6 +892,32 @@ refused: bool                 # 어느 단계든 거절이면 바로 종료</cod
     </tbody>
   </table></div>
 
+  <h3 id="readme-results">README 결과표와 차트 <span class="tag built">구현됨</span></h3>
+  <p>README의 결과표와 차트는 손으로 적지 않습니다. <code>evals/baseline.json</code>이 가리키는 리포트, 곧 게이트가 검사하는 리포트에서 <code>bioscout-eval readme</code>가 만들어 씁니다. 대상은 README의 두 표식(<code>results:begin</code>, <code>results:end</code>) 사이와 차트 파일 두 개(<code>docs/assets/results-light.svg</code>, <code>results-dark.svg</code>)입니다. 테스트가 커밋된 README와 차트를 리포트에서 다시 만든 것과 비교합니다. 그래서 기준 리포트를 바꾸고 README를 그대로 두면 CI가 실패합니다.</p>
+  <p>차트는 그림 하나에 패널 두 개입니다. 왼쪽은 변형마다 막대 하나로, 답변의 모든 문장을 세 부분으로 나눕니다. 인용한 초록이 뒷받침하는 문장(citation coverage), 인용은 있지만 다 뒷받침되지 않는 문장, 인용이 없는 문장입니다. 오른쪽은 질문당 비용입니다. 두 패널이 같은 행을 쓰므로, C와 E처럼 근거 비율은 비슷하고 비용이 다른 변형이 한 줄에서 비교됩니다. 판정되지 않은 변형은 막대가 없습니다. 실행하지 않은 변형(D)은 표에 "built, not run yet"으로 나옵니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>결정</th><th>이유</th><th>버린 대안</th></tr></thead>
+    <tbody>
+      <tr><td>결과표와 차트를 기준 리포트에서 만들고 테스트로 비교</td><td>손으로 옮긴 숫자는 리포트와 어긋남. README의 판정 문장 수와 인용 수가 변형 E를 더한 뒤에도 A, B, C만의 값으로 남아 있었음</td><td>손으로 갱신. 게이트의 네 번째 검사로 넣기(게이트는 근거가 코드와 맞는지를 봄. 보여 주는 숫자가 근거와 맞는지는 단위 테스트에 둠)</td></tr>
+      <tr><td>차트는 표준 라이브러리로 직접 쓴 SVG</td><td>같은 리포트면 바이트까지 같은 파일이 나와, 테스트가 커밋된 차트를 그대로 비교함. 의존성이 늘지 않음</td><td>matplotlib(버전에 따라 출력이 달라지고 의존성이 큼). PNG(확대하면 흐리고 diff를 읽을 수 없음)</td></tr>
+      <tr><td>문장 근거는 나눈 막대, 비용은 옆 패널의 막대</td><td>세 부분이 한 전체(모든 문장)를 나누고, 여러 변형을 한 축에서 비교함. 비용은 단위가 달라 축을 따로 둠</td><td>지표마다 묶은 막대(coverage와 인용률의 관계가 안 보임). 한 그림에 축 두 개 겹치기(두 축을 맞추는 방법이 임의라 없는 관계가 보임)</td></tr>
+      <tr><td>색은 뜻이 있는 두 곳에만 씀: 뒷받침된 문장(파랑), 다 뒷받침되지 않은 인용(주황)</td><td>인용 없음과 비용은 회색. 두 색은 색각 이상 시뮬레이션에서의 구분과 배경 대비를 검증 스크립트로 확인(라이트와 다크 모두 통과). 글자에는 계열 색을 쓰지 않음</td><td>변형마다 다른 색(색이 뜻하는 것이 없음)</td></tr>
+      <tr><td>라이트용과 다크용 파일을 따로 두고 README가 <code>&lt;picture&gt;</code>로 고름. 차트는 자기 배경을 가짐</td><td>GitHub가 <code>&lt;picture&gt;</code>를 지원함. 배경이 있어 파일만 따로 열거나 페이지와 모드가 어긋나도 글자가 읽힘</td><td>파일 하나에 미디어 쿼리. 투명 배경(다크용 파일을 따로 열면 밝은 글자가 흰 배경에 놓임)</td></tr>
+      <tr><td>막대에 붙인 숫자는 뒷받침된 비율 하나</td><td>나머지 값은 차트 바로 아래 표에 있음. 3px보다 좁은 부분은 그리지 않음(C의 인용 없는 문장 0.3%)</td><td>모든 부분에 숫자</td></tr>
+      <tr><td>PubMedQA 100문항에서 나온 비율은 정수 %로 적음</td><td>문항마다 답이 하나라, 소수 첫째 자리는 없는 정밀도임</td><td>모든 칸을 소수 첫째 자리까지</td></tr>
+    </tbody>
+  </table></div>
+  <p>확인한 것: 명령이 README와 차트를 쓰고, <code>--check</code>는 어긋난 파일 이름을 알려 주며 아무것도 쓰지 않습니다. 차트를 브라우저에서 라이트와 다크로 열어 글자가 겹치거나 넘치지 않는 것을 봤습니다. 확인하지 못한 것: GitHub에 올라간 README에서 실제로 보이는 모습입니다. GitHub 문서에는 <code>&lt;picture&gt;</code>를 지원한다고만 나와 있어, 다크용 파일이 GitHub 테마 설정을 따르는지 OS 설정을 따르는지는 올린 뒤에 봐야 합니다.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/bioscout/evals/chart.py</code></td><td>리포트의 행에서 차트 SVG를 그림. 색, 배치, 차트를 말로 옮긴 설명</td></tr>
+      <tr><td><code>src/bioscout/evals/readme.py</code></td><td>결과표와 README 블록, 어긋난 파일 찾기와 쓰기. <code>uv run bioscout-eval readme</code></td></tr>
+      <tr><td><code>docs/assets/results-light.svg</code>, <code>results-dark.svg</code></td><td>만들어진 차트. 직접 고치지 않음</td></tr>
+      <tr><td><code>tests/test_readme.py</code></td><td>커밋된 README와 차트가 기준 리포트와 같은지, 막대를 나누는 방식, 그리지 않는 부분, 표의 표기, 명령의 동작</td></tr>
+    </tbody>
+  </table></div>
+
   <h2 id="tracing">트레이싱 <span class="tag built">구현됨</span> <span class="tag">Langfuse 화면 확인 전</span></h2>
   <p>답변 하나가 어떤 단계를 거쳤고, 단계마다 어떤 프롬프트를 보냈고, 무엇이 돌아왔는지를 하나씩 열어 볼 수 있게 합니다. 리포트의 비용 · 지연 표는 여러 답변의 합계이고, 트레이스는 답변 한 건의 기록입니다. OpenTelemetry span으로 내보내고 Langfuse의 OTLP 주소로 보냅니다. 설정하지 않으면 꺼져 있고 아무것도 보내지 않습니다.</p>
 

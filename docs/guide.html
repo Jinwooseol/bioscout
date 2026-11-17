@@ -124,6 +124,13 @@ $env:BIOSCOUT_CACHE_MODE = "readonly"; uv run bioscout-eval run --variants A,B,C
       <p>커밋된 평가 리포트가 지금 코드에서 나온 것인지, 가짜 PMID가 없는지, 이전보다 한도 넘게 떨어지지 않았는지 확인합니다. 네트워크와 API 키를 쓰지 않습니다. CI의 <code>eval-gate</code> 작업이 같은 명령을 실행합니다.</p>
       <p>프롬프트나 에이전트 설정을 바꾸면 게이트가 실패합니다. 전체 평가를 다시 돌린 뒤 <code>evals/baseline.json</code>의 <code>report</code>를 새 리포트 경로로 바꾸면 통과합니다. 의도한 하락은 <code>accepted</code>에 <code>"C/pubmedqa/accuracy": "이유"</code>처럼 적습니다.</p>
     </li>
+    <li>
+      <h3>README 결과표와 차트 다시 쓰기 (무료)</h3>
+      <div class="cmd"><pre><code>uv run bioscout-eval readme
+uv run bioscout-eval readme --check</code></pre></div>
+      <p>첫 줄은 <code>evals/baseline.json</code>이 가리키는 리포트에서 README의 결과표와 차트(<code>docs/assets/results-light.svg</code>, <code>results-dark.svg</code>)를 다시 씁니다. 둘째 줄은 쓰지 않고 비교만 합니다. 어긋난 파일이 있으면 이름을 알려 주고 실패합니다. 네트워크와 API 키를 쓰지 않습니다.</p>
+      <p>baseline을 새 리포트로 바꿨으면 이 명령도 실행합니다. 실행하지 않으면 단위 테스트(<code>tests/test_readme.py</code>)가 실패합니다. README에서 두 표식 사이의 줄과 차트 파일은 직접 고치지 않습니다. 표 주변의 설명 문장은 손으로 쓴 것이므로 숫자가 바뀌면 함께 읽어 봅니다.</p>
+    </li>
   </ol>
 
   <h2>데모 화면 실행</h2>
